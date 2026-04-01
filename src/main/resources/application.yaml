@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: UngDungGoiXe
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/UngDungGoiXe
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 12345
+
+  jpa:
+    hibernate:
+      ddl-auto: update
