@@ -6,7 +6,10 @@ import com.example.ungdunggoixe.dto.response.UserResponse;
 import com.example.ungdunggoixe.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+
 import org.mapstruct.factory.Mappers;
+
+import static org.mapstruct.factory.Mappers.getMapper;
 
 @Mapper
 public interface UserMapper {

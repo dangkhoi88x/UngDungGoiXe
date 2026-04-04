@@ -1,13 +1,18 @@
 package com.example.ungdunggoixe.service;
 
+import com.example.ungdunggoixe.common.RoleName;
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 import com.example.ungdunggoixe.dto.request.UpdateUserRequest;
 import com.example.ungdunggoixe.dto.response.CreateUserResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
+import com.example.ungdunggoixe.entity.Role;
 import com.example.ungdunggoixe.entity.User;
 import com.example.ungdunggoixe.mapper.UserMapper;
+import com.example.ungdunggoixe.repository.RoleRepository;
 import com.example.ungdunggoixe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +23,8 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoleService roleService;
+
     public CreateUserResponse createUser(CreateUserRequest Request){
             String email=Request.getEmail();
             if(userRepository.existsByEmail(email)){
@@ -25,6 +32,8 @@ public class UserService {
             }
         User user= UserMapper.INSTANCE.ToUser(Request);
         user.setPassword(passwordEncoder.encode(Request.getPassword()));
+        Role role = roleService.createRole(RoleName.USER);
+        user.addRole(role);
         userRepository.save(user);
         return UserMapper.INSTANCE.ToCreateUserResponse(user);
 }
@@ -61,5 +70,18 @@ public class UserService {
             userRepository.save(user);
         }
             return UserMapper.INSTANCE.ToUserResponse(user);
+    }
+    public UserResponse getMyInfo(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if(authentication == null)
+            throw new RuntimeException("Authentication is null");
+        Long userID = Long.parseLong(authentication.getName());
+        User user = userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User does not exists"));
+        return UserResponse.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .build();
     }
 }
