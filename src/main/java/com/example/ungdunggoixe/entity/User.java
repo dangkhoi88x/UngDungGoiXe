@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
@@ -20,7 +21,15 @@ import java.util.List;
 public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+                List<Role> listRoles = this.userRoles.stream()
+                        .map(UserRole::getRole)
+                        .toList();
+                List<String> rolesName= listRoles.stream()
+                        .map(Role::getName)
+                        .toList();
+                return rolesName.stream()
+                        .map(roleName -> new SimpleGrantedAuthority("ROLE_" +roleName))
+                        .toList();
     }
 
     @Override

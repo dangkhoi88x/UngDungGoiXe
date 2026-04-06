@@ -11,6 +11,7 @@ import com.example.ungdunggoixe.mapper.UserMapper;
 import com.example.ungdunggoixe.repository.RoleRepository;
 import com.example.ungdunggoixe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -50,6 +51,7 @@ public class UserService {
         userRepository.deleteById(id);
         return "User has been deleted";
     }
+    @PreAuthorize("hasAuthority('ADMIN')")
     public List<UserResponse> getAllUser(){
         List<User> users=userRepository.findAll();
         return users.stream()

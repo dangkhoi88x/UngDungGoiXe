@@ -11,13 +11,15 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class JwtService {
 
     private final JwtEncoder jwtEncoder;
 
-    public String generateAccessToken(Long userId) {
+    public String generateAccessToken(Long userId, List<String> roles) {
         // Header
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
 
@@ -29,7 +31,7 @@ public class JwtService {
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(3600))
                 .issuer("http://localhost:8080")
-                .claim("roles", "USER")
+                .claim("roles", roles)
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(header, jwtClaimsSet)).getTokenValue();
