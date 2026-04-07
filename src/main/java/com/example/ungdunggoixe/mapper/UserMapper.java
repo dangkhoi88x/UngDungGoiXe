@@ -16,8 +16,6 @@ public interface UserMapper {
         UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
         @Mapping(target = "email",source = "email")
         @Mapping(target= "password", ignore = true)
-
-
         User ToUser(CreateUserRequest createUserRequest);
 
         CreateUserResponse ToCreateUserResponse(User user);

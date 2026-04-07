@@ -51,7 +51,7 @@ public class UserService {
         userRepository.deleteById(id);
         return "User has been deleted";
     }
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public List<UserResponse> getAllUser(){
         List<User> users=userRepository.findAll();
         return users.stream()
