@@ -13,8 +13,7 @@ import java.time.LocalTime;
 public class UpdateStationRequest {
     private String name;
     private String address;
-    private Double latitude;
-    private Double longitude;
+
     private String hotline;
     private String photo;
 

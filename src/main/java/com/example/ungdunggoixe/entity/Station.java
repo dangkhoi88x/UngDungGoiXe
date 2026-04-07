@@ -7,8 +7,11 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 @Entity
-@Table(name="stations")
+@Table(name = "stations")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,8 +34,9 @@ public class Station {
     private String photo;
     private LocalTime startTime;
     private LocalTime endTime;
+    @CreationTimestamp
     private LocalDateTime createdAt;
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
-
 
 }
