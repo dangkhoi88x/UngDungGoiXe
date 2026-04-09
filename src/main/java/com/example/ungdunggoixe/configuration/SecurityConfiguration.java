@@ -38,6 +38,7 @@ public class SecurityConfiguration {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers("/users","/users/**","/stations/**" ,"/vehicles/**" , "/auth/**").permitAll()
+                        .requestMatchers("/bookings/vehicle-availability").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer((oauth2) -> oauth2
                         .jwt(Customizer.withDefaults()))

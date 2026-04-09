@@ -2,13 +2,17 @@ package com.example.ungdunggoixe.dto.request;
 
 import com.example.ungdunggoixe.common.FuelType;
 import com.example.ungdunggoixe.common.VehicleStatus;
-import lombok.Getter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
-public class CreateVehicleRequest {
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class UpdateVehicleRequest {
     private Long stationId;
 
     private String licensePlate;
@@ -18,12 +22,9 @@ public class CreateVehicleRequest {
     private FuelType fuelType;
     private Double rating;
     private Integer capacity;
-
-    private Integer rentCount = 0;
+    private Integer rentCount;
     private List<String> photos;
-
-    private VehicleStatus status = VehicleStatus.AVAILABLE;
-
+    private VehicleStatus status;
     private BigDecimal hourlyRate;
     private BigDecimal dailyRate;
     private BigDecimal depositAmount;

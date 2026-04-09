@@ -5,10 +5,7 @@ import com.example.ungdunggoixe.dto.response.AuthenticationResponse;
 import com.example.ungdunggoixe.service.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,4 +17,9 @@ public class AuthenticationController {
         return authenticationService.authenticate(authenticationRequest);
     }
 
+    @PostMapping("/refresh-token")
+    public AuthenticationResponse refreshToken(@CookieValue(name = "refresh_token") String refreshToken) {
+        return authenticationService.refreshToken(refreshToken);
+
+    }
 }

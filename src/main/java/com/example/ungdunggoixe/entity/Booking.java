@@ -1,6 +1,8 @@
 package com.example.ungdunggoixe.entity;
 
 
+import com.example.ungdunggoixe.common.BookingStatus;
+import com.example.ungdunggoixe.common.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -47,7 +49,7 @@ public class Booking {
     private BookingStatus status = BookingStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "checked_out_by", nullable = false)
+    @JoinColumn(name = "checked_out_by", nullable = true)
     private User checkedOutBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -87,18 +89,5 @@ public class Booking {
     // ───────────────────────────────────────────
     // Enums
     // ───────────────────────────────────────────
-    public enum BookingStatus {
-        PENDING,
-        CONFIRMED,
-        ONGOING,
-        COMPLETED,
-        CANCELLED
-    }
 
-    public enum PaymentStatus {
-        PENDING,
-        PAID,
-        FAILED,
-        PARTIALLY_PAID
-    }
 }

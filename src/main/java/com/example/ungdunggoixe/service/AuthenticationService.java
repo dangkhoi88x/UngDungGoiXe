@@ -1,8 +1,11 @@
 package com.example.ungdunggoixe.service;
 
+import com.example.ungdunggoixe.common.TokenType;
+import com.example.ungdunggoixe.dto.TokenPayload;
 import com.example.ungdunggoixe.dto.request.AuthenticationRequest;
 import com.example.ungdunggoixe.dto.response.AuthenticationResponse;
 import com.example.ungdunggoixe.entity.User;
+import com.example.ungdunggoixe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,6 +22,7 @@ public class AuthenticationService {
 
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final UserRepository userRepository;
 
     public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest){
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken
@@ -38,6 +42,25 @@ public class AuthenticationService {
                 .userId(user.getId())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .build();
+
+    }
+    public AuthenticationResponse refreshToken(String refreshToken){
+            if(refreshToken==null || refreshToken.isEmpty()){
+                throw new IllegalArgumentException("Refresh token is empty");
+            }
+        var tokenPayload = jwtService.validateToken(refreshToken, TokenType.REFRESH);
+        var userID= tokenPayload.userId();
+
+        User user = userRepository.findById(userID).orElseThrow(()->new IllegalArgumentException("User not found"));
+
+        List<String> roles = user.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+        String accessToken = jwtService.generateAccessToken(user.getId(),roles);
+        return AuthenticationResponse.builder()
+                .userId(userID)
+                .accessToken(accessToken)
                 .build();
 
     }
