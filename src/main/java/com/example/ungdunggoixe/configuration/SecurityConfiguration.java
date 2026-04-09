@@ -37,7 +37,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers("/users","/users/**","/stations/**" , "/auth/**").permitAll()
+                        .requestMatchers("/users","/users/**","/stations/**" ,"/vehicles/**" , "/auth/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer((oauth2) -> oauth2
                         .jwt(Customizer.withDefaults()))

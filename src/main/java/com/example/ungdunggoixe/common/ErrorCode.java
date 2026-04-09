@@ -11,6 +11,9 @@ public enum ErrorCode {
     // ── Station errors ────────────────────────
     STATION_NOT_FOUND(2001, "Station not found", HttpStatus.NOT_FOUND),
     STATION_NAME_ALREADY_EXISTS(2002, "Station name already exists", HttpStatus.CONFLICT),
+    // ── Vehicle errors ────────────────────────
+    VEHICLE_NOT_FOUND(3001, "Vehicle not found", HttpStatus.NOT_FOUND),
+    VEHICLE_LICENSE_PLATE_ALREADY_EXISTS(3002, "Vehicle license plate already exists", HttpStatus.CONFLICT),
     // ── Generic errors ────────────────────────
     UNAUTHORIZED(9001, "Unauthorized", HttpStatus.UNAUTHORIZED),
     FORBIDDEN(9002, "Forbidden", HttpStatus.FORBIDDEN),

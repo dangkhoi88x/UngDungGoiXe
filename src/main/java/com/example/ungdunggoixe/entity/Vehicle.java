@@ -1,5 +1,7 @@
 package com.example.ungdunggoixe.entity;
 
+import com.example.ungdunggoixe.common.FuelType;
+import com.example.ungdunggoixe.common.VehicleStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -7,6 +9,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -35,16 +39,26 @@ public class Vehicle {
     private Integer capacity;
     @Builder.Default
     private Integer rentCount = 0;
-    private String[] photos;
+    @ElementCollection
+    @CollectionTable(name = "vehicle_photos", joinColumns = @JoinColumn(name = "vehicle_id"))
+    @Column(name = "photo_url")
+    @Builder.Default
+    private List<String> photos = new ArrayList<>();
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private VehicleStatus status = VehicleStatus.AVAILABLE;
+
+    @ElementCollection
+    @CollectionTable(name = "vehicle_policies", joinColumns = @JoinColumn(name = "vehicle_id"))
+    @Column(name = "policy_text", columnDefinition = "TEXT")
+    @Builder.Default
+    private List<String> policies = new ArrayList<>();
 
     private BigDecimal hourlyRate;
 
     private BigDecimal dailyRate;
     private BigDecimal depositAmount;
-    private String[] polices;
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -55,16 +69,7 @@ public class Vehicle {
     // ───────────────────────────────────────────
     // Enums
     // ───────────────────────────────────────────
-    public enum FuelType {
-        GASOLINE,
-        ELECTRICITY
-    }
 
-    public enum VehicleStatus {
-        AVAILABLE,
-        RENTED,
-        MAINTENANCE,
-        CHARGING,
-        UNAVAILABLE
-    }
+
+
 }

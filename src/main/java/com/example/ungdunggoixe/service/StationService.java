@@ -1,11 +1,13 @@
 package com.example.ungdunggoixe.service;
 
+import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.common.StationStatus;
 import com.example.ungdunggoixe.dto.request.CreateStationRequest;
 import com.example.ungdunggoixe.dto.request.UpdateStationRequest;
 import com.example.ungdunggoixe.dto.response.CreateStationResponse;
 import com.example.ungdunggoixe.dto.response.StationResponse;
 import com.example.ungdunggoixe.entity.Station;
+import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.mapper.StationMapper;
 import com.example.ungdunggoixe.repository.StationRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +26,7 @@ public class StationService {
     public CreateStationResponse createStation(CreateStationRequest request) {
         String name = request.getName();
         if (stationRepository.existsByName(name)) {
-            throw new RuntimeException("Name already exists");
+            throw new AppException(ErrorCode.STATION_NAME_ALREADY_EXISTS);
         }
         Station station = StationMapper.INSTANCE.toStation(request);
         station.setStatus(StationStatus.ACTIVE);
@@ -37,7 +39,7 @@ public class StationService {
     public StationResponse getStationbyID(Long id) {
         return stationRepository.findById(id)
                 .map(StationMapper.INSTANCE::toStationResponse)
-                .orElseThrow();
+                .orElseThrow(() -> new AppException(ErrorCode.STATION_NOT_FOUND));
 
     }
 
@@ -50,7 +52,7 @@ public class StationService {
 
     public StationResponse updateStation(Long id, UpdateStationRequest request) {
         Station station = stationRepository.findById(id)
-                .orElseThrow();
+                .orElseThrow(() -> new AppException(ErrorCode.STATION_NOT_FOUND));
         // 🔥 dùng mapper để update (auto ignore null)
         StationMapper.INSTANCE.updateEntity(request, station);
 
@@ -68,7 +70,7 @@ public class StationService {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public String deleteStation(Long id) {
         Station station = stationRepository.findById(id)
-                .orElseThrow();
+                .orElseThrow(() -> new AppException(ErrorCode.STATION_NOT_FOUND));
         station.setStatus(StationStatus.INACTIVE);
         stationRepository.save(station);
         return "Delete successfully";

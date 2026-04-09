@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.service;
 
+import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.common.RoleName;
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 import com.example.ungdunggoixe.dto.request.UpdateUserRequest;
@@ -7,6 +8,7 @@ import com.example.ungdunggoixe.dto.response.CreateUserResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
 import com.example.ungdunggoixe.entity.Role;
 import com.example.ungdunggoixe.entity.User;
+import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.mapper.UserMapper;
 import com.example.ungdunggoixe.repository.RoleRepository;
 import com.example.ungdunggoixe.repository.UserRepository;
@@ -29,7 +31,7 @@ public class UserService {
     public CreateUserResponse createUser(CreateUserRequest Request){
             String email=Request.getEmail();
             if(userRepository.existsByEmail(email)){
-                throw new RuntimeException("Email already exists");
+                throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
             }
         User user= UserMapper.INSTANCE.ToUser(Request);
         user.setPassword(passwordEncoder.encode(Request.getPassword()));
@@ -42,11 +44,11 @@ public class UserService {
     public UserResponse getUserbyID(Long id){
         return userRepository.findById(id)
                 .map(UserMapper.INSTANCE::ToUserResponse)
-                .orElseThrow();
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
     public String deleteUserbyID(Long id){
         if(!userRepository.existsById(id)){
-            throw new RuntimeException("User does not exists");
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
         userRepository.deleteById(id);
         return "User has been deleted";
@@ -59,7 +61,7 @@ public class UserService {
                 .toList();
     }
     public UserResponse updateUser(Long id, UpdateUserRequest Request){
-            User user=userRepository.findById(id).orElseThrow();
+            User user=userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
             String currentfirstname=user.getFirstName();
             String currentlastname=user.getLastName();
             if(Request.getFirstName() != null && !Request.getFirstName().equals(currentfirstname)){
@@ -78,7 +80,7 @@ public class UserService {
         if(authentication == null)
             throw new RuntimeException("Authentication is null");
         Long userID = Long.parseLong(authentication.getName());
-        User user = userRepository.findById(userID).orElseThrow(() -> new RuntimeException("User does not exists"));
+        User user = userRepository.findById(userID).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         return UserResponse.builder()
                 .id(user.getId())
                 .firstName(user.getFirstName())
