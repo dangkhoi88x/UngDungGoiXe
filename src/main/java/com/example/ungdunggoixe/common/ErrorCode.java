@@ -8,6 +8,7 @@ public enum ErrorCode {
     // ── User errors ──────────────────────────
     USER_NOT_FOUND(1001, "User not found", HttpStatus.NOT_FOUND),
     EMAIL_ALREADY_EXISTS(1002, "Email already exists", HttpStatus.CONFLICT),
+    CREATE_USER_INVALID(1005, "Vui lòng điền đủ email, mật khẩu, tên và họ.", HttpStatus.BAD_REQUEST),
     DOCUMENT_SUBMISSION_INVALID(1003, "Vui lòng gửi đầy đủ CMND/CCCD, số GPLX và ảnh hai mặt GPLX (JPEG/PNG/WebP).", HttpStatus.BAD_REQUEST),
     LICENSE_ALREADY_VERIFIED(1004, "GPLX đã được xác minh. Liên hệ admin nếu cần cập nhật.", HttpStatus.CONFLICT),
     // ── Station errors ────────────────────────

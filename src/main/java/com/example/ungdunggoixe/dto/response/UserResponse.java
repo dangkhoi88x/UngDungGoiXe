@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.dto.response;
 
+import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,7 +22,7 @@ public class UserResponse {
     private String phone;
     private String identityNumber;
     private String licenseNumber;
-    private Boolean isLicenseVerified;
+    private LicenseVerificationStatus licenseVerificationStatus;
     private String licenseCardFrontImageUrl;
     private String licenseCardBackImageUrl;
     private LocalDateTime updatedAt;

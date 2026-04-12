@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.mapper;
 
+import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 import com.example.ungdunggoixe.dto.response.CreateUserResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
@@ -24,6 +25,13 @@ public interface UserMapper {
 
     @Mapping(target = "roles", ignore = true)
     UserResponse ToUserResponse(User user);
+
+    @AfterMapping
+    default void defaultLicenseStatusOnCreate(CreateUserRequest req, @MappingTarget User user) {
+        if (user.getLicenseVerificationStatus() == null) {
+            user.setLicenseVerificationStatus(LicenseVerificationStatus.NOT_SUBMITTED);
+        }
+    }
 
     @AfterMapping
     default void fillRoles(User user, @MappingTarget UserResponse response) {

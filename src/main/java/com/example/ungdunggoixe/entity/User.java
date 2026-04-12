@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.entity;
 
+import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
@@ -92,9 +93,10 @@ public class User implements UserDetails {
     private String identityNumber;
     @Column(name = "license_number")
     private String licenseNumber;
+    @Enumerated(EnumType.STRING)
     @Builder.Default
-    @Column(name = "is_license_verified")
-    private Boolean isLicenseVerified = false;
+    @Column(name = "license_verification_status", nullable = false, length = 32)
+    private LicenseVerificationStatus licenseVerificationStatus = LicenseVerificationStatus.NOT_SUBMITTED;
     @Column(name = "license_card_front_image_url")
     private String licenseCardFrontImageUrl;
 

@@ -2,10 +2,14 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   createUser,
   deleteUser,
+  fetchUserById,
   fetchUsersPage,
+  licenseVerificationLabel,
+  type LicenseVerificationStatus,
   type PagedUsersResponse,
-  type UserDto,
   type UserCreatePayload,
+  type UserDto,
+  type UserProfileDto,
   type UserUpdatePayload,
   updateUser,
   userDisplayName,
@@ -31,7 +35,7 @@ type FormEdit = {
   firstName: string
   lastName: string
   password: string
-  licenseVerified: boolean
+  licenseVerificationStatus: LicenseVerificationStatus
 }
 
 function emptyCreate(): FormCreate {
@@ -44,12 +48,19 @@ function userToEditForm(u: UserDto): FormEdit {
     firstName: u.firstName ?? '',
     lastName: u.lastName ?? '',
     password: '',
-    licenseVerified: u.isLicenseVerified === true,
+    licenseVerificationStatus: u.licenseVerificationStatus ?? 'NOT_SUBMITTED',
   }
 }
 
 type Props = {
   refreshKey?: number
+}
+
+function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 export default function AdminUsersSection({ refreshKey = 0 }: Props) {
@@ -70,9 +81,11 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
     firstName: '',
     lastName: '',
     password: '',
-    licenseVerified: false,
+    licenseVerificationStatus: 'NOT_SUBMITTED',
   })
   const [saving, setSaving] = useState(false)
+  const [editDetail, setEditDetail] = useState<UserProfileDto | null>(null)
+  const [editDetailLoading, setEditDetailLoading] = useState(false)
 
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -108,15 +121,31 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
 
   const openEdit = (u: UserDto) => {
     setToast(null)
-    setFormEdit(userToEditForm(u))
     setEditingId(u.id)
+    setFormEdit(userToEditForm(u))
+    setEditDetail(null)
+    setEditDetailLoading(true)
     setModal('edit')
+    void (async () => {
+      try {
+        const full = await fetchUserById(u.id)
+        setEditDetail(full)
+        setFormEdit(userToEditForm(full))
+      } catch (e) {
+        setToast(e instanceof Error ? e.message : 'Không tải chi tiết người dùng.')
+        setEditDetail(null)
+      } finally {
+        setEditDetailLoading(false)
+      }
+    })()
   }
 
   const closeModal = () => {
     if (saving) return
     setModal(null)
     setEditingId(null)
+    setEditDetail(null)
+    setEditDetailLoading(false)
   }
 
   const onSubmitCreate = async (e: React.FormEvent) => {
@@ -161,7 +190,7 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
       firstName,
       lastName,
       password: formEdit.password.trim() || null,
-      isLicenseVerified: formEdit.licenseVerified,
+      licenseVerificationStatus: formEdit.licenseVerificationStatus,
     }
     setSaving(true)
     try {
@@ -294,6 +323,7 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
                   <th>ID</th>
                   <th>Họ tên</th>
                   <th>Email</th>
+                  <th>GPLX</th>
                   <th>Vai trò</th>
                   <th />
                 </tr>
@@ -304,6 +334,11 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
                     <td className="adm-veh__mono">{u.id}</td>
                     <td>{userDisplayName(u)}</td>
                     <td>{u.email}</td>
+                    <td>
+                      <span className="adm-veh__pill" title="Trạng thái giấy phép">
+                        {licenseVerificationLabel(u.licenseVerificationStatus)}
+                      </span>
+                    </td>
                     <td>
                       <span className="adm-veh__pill">
                         {(u.roles ?? []).join(', ') || '—'}
@@ -549,17 +584,118 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
                   }
                 />
               </div>
-              <div className="adm-veh__field adm-veh__field--checkbox">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={formEdit.licenseVerified}
-                    onChange={(e) =>
-                      setFormEdit((s) => ({ ...s, licenseVerified: e.target.checked }))
-                    }
-                  />{' '}
-                  GPLX đã xác minh (duyệt hồ sơ người dùng)
-                </label>
+              {editDetailLoading ? (
+                <p className="adm-veh__field--hint">Đang tải hồ sơ GPLX…</p>
+              ) : editDetail ? (
+                <div className="adm-users__doc-review">
+                  <h4>Hồ sơ GPLX (theo dữ liệu hệ thống)</h4>
+                  <dl className="adm-users__doc-grid">
+                    <dt>CMND / CCCD</dt>
+                    <dd>{editDetail.identityNumber?.trim() || '—'}</dd>
+                    <dt>Số GPLX</dt>
+                    <dd>{editDetail.licenseNumber?.trim() || '—'}</dd>
+                    <dt>Trạng thái</dt>
+                    <dd>{licenseVerificationLabel(editDetail.licenseVerificationStatus)}</dd>
+                    <dt>Xác minh lúc</dt>
+                    <dd>{formatDateTime(editDetail.verifiedAt)}</dd>
+                    <dt>Cập nhật lần cuối</dt>
+                    <dd>{formatDateTime(editDetail.updatedAt)}</dd>
+                  </dl>
+                  <div className="adm-users__doc-thumbs">
+                    <div>
+                      {editDetail.licenseCardFrontImageUrl ? (
+                        <>
+                          <a
+                            href={editDetail.licenseCardFrontImageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Mở ảnh trước
+                          </a>
+                          <img
+                            src={editDetail.licenseCardFrontImageUrl}
+                            alt="GPLX mặt trước"
+                          />
+                        </>
+                      ) : (
+                        <span className="adm-veh__field--hint">Chưa có ảnh trước</span>
+                      )}
+                    </div>
+                    <div>
+                      {editDetail.licenseCardBackImageUrl ? (
+                        <>
+                          <a
+                            href={editDetail.licenseCardBackImageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Mở ảnh sau
+                          </a>
+                          <img
+                            src={editDetail.licenseCardBackImageUrl}
+                            alt="GPLX mặt sau"
+                          />
+                        </>
+                      ) : (
+                        <span className="adm-veh__field--hint">Chưa có ảnh sau</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="adm-users__doc-actions">
+                    <button
+                      type="button"
+                      className="adm-veh__btn adm-veh__btn--primary"
+                      disabled={saving || editDetail.licenseVerificationStatus !== 'PENDING'}
+                      title={
+                        editDetail.licenseVerificationStatus !== 'PENDING'
+                          ? 'Chỉ duyệt khi hồ sơ đang chờ (PENDING)'
+                          : undefined
+                      }
+                      onClick={() =>
+                        setFormEdit((s) => ({ ...s, licenseVerificationStatus: 'APPROVED' }))
+                      }
+                    >
+                      Duyệt GPLX
+                    </button>
+                    <button
+                      type="button"
+                      className="adm-veh__btn adm-veh__btn--ghost"
+                      disabled={saving || editDetail.licenseVerificationStatus !== 'PENDING'}
+                      title={
+                        editDetail.licenseVerificationStatus !== 'PENDING'
+                          ? 'Chỉ từ chối khi hồ sơ đang chờ (PENDING)'
+                          : undefined
+                      }
+                      onClick={() =>
+                        setFormEdit((s) => ({ ...s, licenseVerificationStatus: 'REJECTED' }))
+                      }
+                    >
+                      Từ chối hồ sơ
+                    </button>
+                  </div>
+                  <p className="adm-veh__field--hint" style={{ marginTop: 10, marginBottom: 0 }}>
+                    Duyệt: giữ CMND/GPLX/ảnh và ghi nhận xác minh. Từ chối: xóa giấy tờ đã gửi khỏi hệ
+                    thống (user gửi lại từ đầu).
+                  </p>
+                </div>
+              ) : null}
+              <div className="adm-veh__field">
+                <label htmlFor="ue-license-st">Trạng thái GPLX / giấy tờ</label>
+                <select
+                  id="ue-license-st"
+                  value={formEdit.licenseVerificationStatus}
+                  onChange={(e) =>
+                    setFormEdit((s) => ({
+                      ...s,
+                      licenseVerificationStatus: e.target.value as LicenseVerificationStatus,
+                    }))
+                  }
+                >
+                  <option value="NOT_SUBMITTED">Chưa gửi hồ sơ</option>
+                  <option value="PENDING">Đã gửi — chờ duyệt</option>
+                  <option value="APPROVED">Đã xác minh (duyệt)</option>
+                  <option value="REJECTED">Từ chối</option>
+                </select>
               </div>
               <div className="adm-veh__form-actions">
                 <button

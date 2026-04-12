@@ -317,3 +317,63 @@
   display: flex;
   gap: 10px;
 }
+
+/* Admin: xem nhanh hồ sơ GPLX khi sửa user */
+.adm-users__doc-review {
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--adm-border, #e8e8e8);
+  background: var(--adm-bg-soft, #f8f9fb);
+}
+
+.adm-users__doc-review h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--adm-text, #333);
+}
+
+.adm-users__doc-grid {
+  display: grid;
+  gap: 8px 16px;
+  font-size: 13px;
+}
+
+.adm-users__doc-grid dt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--adm-muted, #666);
+}
+
+.adm-users__doc-grid dd {
+  margin: 0;
+}
+
+.adm-users__doc-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.adm-users__doc-thumbs a {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: var(--adm-accent, #2563eb);
+}
+
+.adm-users__doc-thumbs img {
+  display: block;
+  max-height: 100px;
+  border-radius: 8px;
+  border: 1px solid var(--adm-border, #e8e8e8);
+}
+
+.adm-users__doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}

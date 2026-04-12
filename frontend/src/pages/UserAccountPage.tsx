@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { persistUserDisplayName } from '../api/auth'
 import {
   fetchMyInfo,
+  licenseVerificationLabel,
   userDisplayName,
   type ApiErrorWithStatus,
   type UserProfileDto,
@@ -270,10 +271,14 @@ export default function UserAccountPage() {
                       {label}
                     </li>
                   ))}
-                  {profile.isLicenseVerified ? (
+                  {profile.licenseVerificationStatus === 'APPROVED' ? (
                     <li className="uacc__pill uacc__pill--hot">GPLX đã xác minh</li>
+                  ) : profile.licenseVerificationStatus === 'PENDING' ? (
+                    <li className="uacc__pill uacc__pill--soft">GPLX chờ duyệt</li>
+                  ) : profile.licenseVerificationStatus === 'REJECTED' ? (
+                    <li className="uacc__pill uacc__pill--soft">GPLX bị từ chối</li>
                   ) : (
-                    <li className="uacc__pill uacc__pill--soft">Chưa xác minh GPLX</li>
+                    <li className="uacc__pill uacc__pill--soft">Chưa gửi / chưa xác minh GPLX</li>
                   )}
                   <li className="uacc__pill uacc__pill--accent">VEX Member</li>
                 </ul>
@@ -299,11 +304,7 @@ export default function UserAccountPage() {
                 <InfoRow label="CMND / CCCD">{profile.identityNumber?.trim() || '—'}</InfoRow>
                 <InfoRow label="Số GPLX">{profile.licenseNumber?.trim() || '—'}</InfoRow>
                 <InfoRow label="Trạng thái GPLX" chevron>
-                  {profile.isLicenseVerified === true
-                    ? 'Đã xác minh'
-                    : profile.isLicenseVerified === false
-                      ? 'Chưa xác minh'
-                      : '—'}
+                  {licenseVerificationLabel(profile.licenseVerificationStatus)}
                 </InfoRow>
                 <InfoRow label="Ảnh GPLX (trước / sau)">
                   <span className="uacc__inline-links">
@@ -333,12 +334,18 @@ export default function UserAccountPage() {
                 <InfoRow label="Tài khoản đáng tin cậy">
                   <span
                     className={
-                      profile.isLicenseVerified
+                      profile.licenseVerificationStatus === 'APPROVED'
                         ? 'uacc__badge uacc__badge--ok'
                         : 'uacc__badge uacc__badge--pending'
                     }
                   >
-                    {profile.isLicenseVerified ? 'ĐÃ XÁC MINH' : 'CHỜ BỔ SUNG'}
+                    {profile.licenseVerificationStatus === 'APPROVED'
+                      ? 'ĐÃ XÁC MINH'
+                      : profile.licenseVerificationStatus === 'PENDING'
+                        ? 'CHỜ DUYỆT'
+                        : profile.licenseVerificationStatus === 'REJECTED'
+                          ? 'TỪ CHỐI'
+                          : 'CHƯA GỬI HỒ SƠ'}
                   </span>
                 </InfoRow>
                 <InfoRow label="Cập nhật lần cuối">{formatDateTime(profile.updatedAt)}</InfoRow>

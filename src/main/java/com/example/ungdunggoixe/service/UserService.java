@@ -1,8 +1,10 @@
 package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.example.ungdunggoixe.common.RoleName;
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
+import com.example.ungdunggoixe.dto.request.CreateUserWithRoleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateUserRequest;
 import com.example.ungdunggoixe.dto.response.CreateUserResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
@@ -18,9 +20,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -49,6 +53,50 @@ public class UserService {
         userRepository.save(user);
         return UserMapper.INSTANCE.ToCreateUserResponse(user);
 }
+
+    /**
+     * Admin tạo tài khoản với role chỉ định (USER, ADMIN). Gán SUPER_ADMIN chỉ khi người gọi có ROLE_SUPER_ADMIN.
+     */
+    public CreateUserResponse createUserWithRole(CreateUserWithRoleRequest request) {
+        if (request.getEmail() == null || request.getEmail().isBlank()
+                || request.getPassword() == null || request.getPassword().isBlank()
+                || request.getFirstName() == null || request.getFirstName().isBlank()
+                || request.getLastName() == null || request.getLastName().isBlank()) {
+            throw new AppException(ErrorCode.CREATE_USER_INVALID);
+        }
+        String email = request.getEmail().trim();
+        if (userRepository.existsByEmail(email)) {
+            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+        RoleName roleName = request.getRole() != null ? request.getRole() : RoleName.USER;
+        if (roleName == RoleName.SUPER_ADMIN && !currentAuthenticationHasAuthority("ROLE_SUPER_ADMIN")) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+        CreateUserRequest core = new CreateUserRequest();
+        core.setEmail(email);
+        core.setPassword(request.getPassword());
+        core.setFirstName(request.getFirstName().trim());
+        core.setLastName(request.getLastName().trim());
+        User user = UserMapper.INSTANCE.ToUser(core);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        Role role = roleService.createRole(roleName);
+        user.addRole(role);
+        userRepository.save(user);
+        return UserMapper.INSTANCE.ToCreateUserResponse(user);
+    }
+
+    private static boolean currentAuthenticationHasAuthority(String authority) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            return false;
+        }
+        for (GrantedAuthority ga : auth.getAuthorities()) {
+            if (authority.equals(ga.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public UserResponse getUserbyID(Long id){
         return userRepository.findById(id)
@@ -121,9 +169,18 @@ public class UserService {
             user.setLicenseCardBackImageUrl(
                     request.getLicenseCardBackImageUrl().isBlank() ? null : request.getLicenseCardBackImageUrl().trim());
         }
-        if (request.getIsLicenseVerified() != null) {
-            user.setIsLicenseVerified(request.getIsLicenseVerified());
-            if (Boolean.TRUE.equals(request.getIsLicenseVerified())) {
+        if (request.getLicenseVerificationStatus() != null) {
+            LicenseVerificationStatus st = request.getLicenseVerificationStatus();
+            if (st == LicenseVerificationStatus.REJECTED) {
+                localUserDocumentStorage.deleteStoredFileIfPresent(user.getLicenseCardFrontImageUrl());
+                localUserDocumentStorage.deleteStoredFileIfPresent(user.getLicenseCardBackImageUrl());
+                user.setIdentityNumber(null);
+                user.setLicenseNumber(null);
+                user.setLicenseCardFrontImageUrl(null);
+                user.setLicenseCardBackImageUrl(null);
+            }
+            user.setLicenseVerificationStatus(st);
+            if (st == LicenseVerificationStatus.APPROVED) {
                 user.setVerifiedAt(LocalDateTime.now());
             } else {
                 user.setVerifiedAt(null);
@@ -135,8 +192,9 @@ public class UserService {
     }
 
     /**
-     * Người dùng gửi CMND/CCCD, số GPLX và ảnh hai mặt — chờ admin duyệt (isLicenseVerified = false).
+     * Người dùng gửi CMND/CCCD, số GPLX và ảnh hai mặt — trạng thái {@link LicenseVerificationStatus#PENDING}.
      */
+    @Transactional
     public UserResponse submitMyDocuments(
             String identityNumber,
             String licenseNumber,
@@ -150,7 +208,7 @@ public class UserService {
         Long userId = Long.parseLong(authentication.getName());
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (Boolean.TRUE.equals(user.getIsLicenseVerified())) {
+        if (user.getLicenseVerificationStatus() == LicenseVerificationStatus.APPROVED) {
             throw new AppException(ErrorCode.LICENSE_ALREADY_VERIFIED);
         }
 
@@ -166,10 +224,10 @@ public class UserService {
         user.setLicenseNumber(licenseNumber.trim());
         user.setLicenseCardFrontImageUrl(frontUrl);
         user.setLicenseCardBackImageUrl(backUrl);
-        user.setIsLicenseVerified(false);
+        user.setLicenseVerificationStatus(LicenseVerificationStatus.PENDING);
         user.setVerifiedAt(null);
 
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
         return UserMapper.INSTANCE.ToUserResponse(user);
     }
 
