@@ -1,0 +1,76 @@
+const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
+
+type LoginBody = { email: string; password: string }
+type RegisterBody = {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+}
+
+export type AuthLoginResult = {
+  userId: number
+  firstName: string
+  lastName: string
+  accessToken: string
+  refreshToken?: string
+}
+
+export type ApiErrorShape = { code?: number; message?: string }
+
+async function parseJsonSafe(res: Response): Promise<unknown> {
+  const text = await res.text()
+  if (!text) return null
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    return { message: text }
+  }
+}
+
+function getErrorMessage(data: unknown, fallback: string): string {
+  if (data && typeof data === 'object' && 'message' in data) {
+    const m = (data as ApiErrorShape).message
+    if (typeof m === 'string' && m.length > 0) return m
+  }
+  return fallback
+}
+
+export async function loginRequest(body: LoginBody): Promise<AuthLoginResult> {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await parseJsonSafe(res)
+  if (!res.ok) {
+    throw new Error(getErrorMessage(data, res.status === 401 ? 'Email hoặc mật khẩu không đúng.' : 'Đăng nhập thất bại.'))
+  }
+  const o = data as Record<string, unknown>
+  return {
+    userId: Number(o.userId),
+    firstName: typeof o.firstName === 'string' ? o.firstName : '',
+    lastName: typeof o.lastName === 'string' ? o.lastName : '',
+    accessToken: String(o.accessToken ?? ''),
+    refreshToken: o.refreshToken != null ? String(o.refreshToken) : undefined,
+  }
+}
+
+/** Lưu tên hiển thị sau đăng nhập (đọc ở landing header, v.v.). */
+export function persistUserDisplayName(firstName: string, lastName: string): void {
+  const name = [firstName, lastName].map((s) => s.trim()).filter(Boolean).join(' ')
+  if (name) localStorage.setItem('userDisplayName', name)
+  else localStorage.removeItem('userDisplayName')
+}
+
+export async function registerRequest(body: RegisterBody): Promise<void> {
+  const res = await fetch(`${API_BASE}/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await parseJsonSafe(res)
+  if (!res.ok) {
+    throw new Error(getErrorMessage(data, 'Đăng ký thất bại.'))
+  }
+}

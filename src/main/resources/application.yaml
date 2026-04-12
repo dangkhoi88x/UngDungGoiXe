@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: UngDungGoiXe
+
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 14MB
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/UngDungGoiXe
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 12345
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    # Chạy schema-mysql.sql sau Hibernate để thêm cột còn thiếu (tránh lỗi login khi entity có field mới).
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+jwt:
+  secret-key: ${JWT_SECRET:85e3639086fbe37d05d716242e1dba7372b7127156cfad772d04afa35ce68b16}
+
+# Thư mục lưu ảnh GPLX (đường dẫn tương đối hoặc tuyệt đối)
+app:
+  upload-dir: uploads

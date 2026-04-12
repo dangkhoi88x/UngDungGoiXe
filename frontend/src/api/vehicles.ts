@@ -1,0 +1,171 @@
+const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
+
+export type VehicleDto = {
+  id: number
+  stationId: number
+  licensePlate: string
+  name: string
+  brand: string
+  fuelType: string | null
+  rating: number | null
+  capacity: number | null
+  rentCount: number | null
+  photos: string[] | null
+  status: string
+  hourlyRate: string | number | null
+  dailyRate: string | number | null
+  depositAmount: string | number | null
+  policies: string[] | null
+}
+
+function parseNum(v: string | number | null | undefined): number | null {
+  if (v == null) return null
+  const n = typeof v === 'number' ? v : parseFloat(String(v))
+  return Number.isFinite(n) ? n : null
+}
+
+export async function fetchAllVehicles(): Promise<VehicleDto[]> {
+  const res = await fetch(`${API_BASE}/vehicles`)
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const data = (await res.json()) as unknown
+  if (!Array.isArray(data)) return []
+  return data as VehicleDto[]
+}
+
+export async function fetchAvailableVehicles(): Promise<VehicleDto[]> {
+  const res = await fetch(`${API_BASE}/vehicles?status=AVAILABLE`)
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const data = (await res.json()) as unknown
+  if (!Array.isArray(data)) return []
+  return data as VehicleDto[]
+}
+
+export async function parseApiError(res: Response): Promise<string> {
+  const text = await res.text()
+  if (!text) return `Lỗi ${res.status}`
+  try {
+    const j = JSON.parse(text) as { message?: string }
+    if (j?.message) return j.message
+  } catch {
+    /* ignore */
+  }
+  return text
+}
+
+export type VehicleWritePayload = {
+  stationId: number
+  licensePlate: string
+  name?: string | null
+  brand?: string | null
+  fuelType?: string | null
+  rating?: number | null
+  capacity?: number | null
+  rentCount?: number | null
+  photos?: string[] | null
+  policies?: string[] | null
+  status?: string | null
+  hourlyRate?: number | null
+  dailyRate?: number | null
+  depositAmount?: number | null
+}
+
+export async function createVehicle(
+  payload: VehicleWritePayload,
+): Promise<VehicleDto> {
+  const res = await fetch(`${API_BASE}/vehicles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  return (await res.json()) as VehicleDto
+}
+
+export async function updateVehicle(
+  id: number,
+  payload: VehicleWritePayload,
+): Promise<VehicleDto> {
+  const res = await fetch(`${API_BASE}/vehicles/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  return (await res.json()) as VehicleDto
+}
+
+export async function deleteVehicle(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/vehicles/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+}
+
+export async function fetchVehicleById(id: number): Promise<VehicleDto> {
+  const res = await fetch(`${API_BASE}/vehicles/${id}`)
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  return (await res.json()) as VehicleDto
+}
+
+export function formatDailyPrice(v: VehicleDto): string {
+  const d = parseNum(v.dailyRate)
+  if (d == null || d <= 0) return 'Liên hệ'
+  return new Intl.NumberFormat('vi-VN').format(d) + ' ₫'
+}
+
+export function formatHourlyPrice(v: VehicleDto): string {
+  const h = parseNum(v.hourlyRate)
+  if (h == null || h <= 0) return '—'
+  return new Intl.NumberFormat('vi-VN').format(h) + ' ₫/giờ'
+}
+
+export function formatDeposit(v: VehicleDto): string {
+  const d = parseNum(v.depositAmount)
+  if (d == null || d <= 0) return '—'
+  return new Intl.NumberFormat('vi-VN').format(d) + ' ₫'
+}
+
+export function vehicleDisplayName(v: VehicleDto): string {
+  const b = (v.brand || '').trim()
+  const n = (v.name || '').trim()
+  if (b && n) return `${b} ${n}`
+  return n || b || v.licensePlate || 'Xe'
+}
+
+export type VehicleCategory = 'Hatchback' | 'Minivan' | 'SUV' | 'Sedan' | 'MPV'
+
+export function inferCategory(v: VehicleDto): VehicleCategory {
+  const n = (v.name || '').toLowerCase()
+  const cap = v.capacity ?? 0
+  if (n.includes('suv') || n.includes('fortuner') || n.includes('cx-5') || n.includes('nx'))
+    return 'SUV'
+  if (n.includes('alphard') || n.includes('veloz') || n.includes('staria') || cap >= 7)
+    return 'Minivan'
+  if (n.includes('mpv') || n.includes('innova') || cap === 6) return 'MPV'
+  if (
+    n.includes('yaris') ||
+    n.includes('i10') ||
+    n.includes('fadil') ||
+    n.includes('morning') ||
+    (cap > 0 && cap <= 4)
+  )
+    return 'Hatchback'
+  return 'Sedan'
+}
+
+export function fuelLabel(fuel: string | null | undefined): string {
+  if (!fuel) return '—'
+  if (fuel === 'GASOLINE') return 'Xăng'
+  if (fuel === 'ELECTRICITY') return 'Điện'
+  return fuel
+}

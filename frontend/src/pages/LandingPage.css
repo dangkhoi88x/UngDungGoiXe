@@ -1,0 +1,202 @@
+/* ── Layout ───────────────────────────────────────── */
+.landing {
+  position: relative;
+  min-height: 100svh;
+  width: 100%;
+  overflow: hidden;
+  color: #fff;
+}
+
+/* ── Background layers + 0.6s crossfade ───────────── */
+.landing__bg-stack {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.landing__bg-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.6s ease-in-out;
+  will-change: opacity;
+}
+
+.landing__bg-layer[data-visible='true'] {
+  opacity: 1;
+}
+
+/* ── Dark overlay ─────────────────────────────────── */
+.landing__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.48);
+  pointer-events: none;
+}
+
+/* ── Hero typography ───────────────────────────────── */
+.landing__hero {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(4rem, 12vh, 8rem) clamp(1.25rem, 5vw, 3rem) 8rem;
+  text-align: center;
+}
+
+.landing__headline {
+  margin: 0;
+  max-width: 52rem;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: clamp(1.75rem, 4.2vw, 2.85rem);
+  font-weight: 300;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+}
+
+.landing__headline-static {
+  font-style: italic;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: 0 1px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Keywords: thin, italic, faint underline by default */
+.landing__keyword {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-style: italic;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.42);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: rgba(255, 255, 255, 0.28);
+  transition:
+    color 0.35s ease,
+    font-weight 0.35s ease,
+    text-decoration-color 0.35s ease;
+  text-shadow: 0 1px 20px rgba(0, 0, 0, 0.25);
+}
+
+.landing__keyword:hover,
+.landing__keyword:focus-visible {
+  outline: none;
+}
+
+/* Active / hover: đậm chữ + gạch chân rõ + sáng */
+.landing__keyword[data-active='true'] {
+  font-weight: 600;
+  color: #fff;
+  text-decoration-color: rgba(255, 255, 255, 0.95);
+}
+
+.landing__keyword--wide {
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .landing__keyword--wide {
+    white-space: normal;
+  }
+}
+
+/* ── Bottom glass dock + orange CTA ───────────────── */
+.landing__dock {
+  position: absolute;
+  bottom: clamp(1.25rem, 4vh, 2.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  width: min(92vw, 520px);
+}
+
+.landing__dock-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 1rem 0.65rem 1.15rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.landing__logo {
+  font-size: 1.35rem;
+  font-weight: 300;
+  opacity: 0.95;
+  width: 2rem;
+  text-align: center;
+}
+
+.landing__menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 auto;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: opacity 0.25s ease;
+}
+
+.landing__menu-btn:hover {
+  opacity: 0.85;
+}
+
+.landing__menu-icon {
+  display: block;
+  width: 1.1rem;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+  box-shadow: 0 5px 0 #fff;
+}
+
+.landing__contact-btn {
+  padding: 0.55rem 1.35rem;
+  border: none;
+  border-radius: 999px;
+  background: #ff5a1f;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(255, 90, 31, 0.45);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.landing__contact-btn:hover {
+  background: #ff6d36;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(255, 90, 31, 0.55);
+}
+
+.landing__contact-btn:active {
+  transform: translateY(0);
+}
