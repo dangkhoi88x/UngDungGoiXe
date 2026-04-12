@@ -43,6 +43,7 @@ public class VehicleService {
         }
 
         // ── Dùng stationId thay vì station object ──
+
         Long stationId = request.getStationId();
         if (stationId == null) {
             throw new AppException(ErrorCode.STATION_NOT_FOUND);

@@ -1,0 +1,7 @@
+/* App shell — landing fills viewport */
+#root {
+  max-width: none;
+  margin: 0;
+  border: none;
+  min-height: 100svh;
+}

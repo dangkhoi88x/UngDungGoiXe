@@ -2,6 +2,9 @@ package com.example.ungdunggoixe.repository;
 
 import com.example.ungdunggoixe.common.BookingStatus;
 import com.example.ungdunggoixe.entity.Booking;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,11 +12,27 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface BookingRepository  extends JpaRepository<Booking, Long> {
+public interface BookingRepository extends JpaRepository<Booking, Long> {
         boolean existsByBookingCode(String bookingCode);
+
         List<Booking> findByRenterId(Long renterId);
+
         List<Booking> findByStationId(Long stationId);
+
         List<Booking> findByStatus(BookingStatus status);
+
+        @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
+        @Override
+        Page<Booking> findAll(Pageable pageable);
+
+        @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
+        Page<Booking> findByRenterId(Long renterId, Pageable pageable);
+
+        @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
+        Page<Booking> findByStationId(Long stationId, Pageable pageable);
+
+        @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
+        Page<Booking> findByStatus(BookingStatus status, Pageable pageable);
 
         /**
          * Tìm các booking đang hoạt động (PENDING / CONFIRMED / ONGOING)

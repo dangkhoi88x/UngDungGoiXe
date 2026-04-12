@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalTime;
+
 @Getter
 @Setter
 @Builder
@@ -14,5 +16,8 @@ public class StationResponse {
     private String address;
     private String hotline;
     private StationStatus status;
-
+    private Double rating;
+    private String photo;
+    private LocalTime startTime;
+    private LocalTime endTime;
 }

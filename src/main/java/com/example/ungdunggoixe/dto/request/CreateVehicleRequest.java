@@ -3,11 +3,15 @@ package com.example.ungdunggoixe.dto.request;
 import com.example.ungdunggoixe.common.FuelType;
 import com.example.ungdunggoixe.common.VehicleStatus;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
+@Setter
+@NoArgsConstructor
 public class CreateVehicleRequest {
     private Long stationId;
 

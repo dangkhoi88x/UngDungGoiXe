@@ -33,4 +33,9 @@ public class StationController {
     public StationResponse update(@PathVariable Long id, @RequestBody UpdateStationRequest request) {
         return stationService.updateStation(id, request);
     }
+
+    @DeleteMapping("/{id}")
+    public String delete(@PathVariable Long id) {
+        return stationService.deleteStation(id);
+    }
 }

@@ -8,6 +8,7 @@ import com.example.ungdunggoixe.common.VehicleStatus;
 import com.example.ungdunggoixe.dto.request.CreateBookingRequest;
 import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
+import com.example.ungdunggoixe.dto.response.PagedBookingResponse;
 import com.example.ungdunggoixe.entity.Booking;
 import com.example.ungdunggoixe.entity.Station;
 import com.example.ungdunggoixe.entity.User;
@@ -19,6 +20,13 @@ import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.UserRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +34,16 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class BookingService {
+    private static final Set<String> BOOKING_SORT_FIELDS = Set.of(
+            "id", "startTime", "expectedEndTime", "createdAt", "bookingCode", "totalAmount", "status");
+
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
@@ -79,6 +92,9 @@ public class BookingService {
         booking.setBookingCode(generateBookingCode());
         booking.setStatus(BookingStatus.PENDING);
         booking.setPaymentStatus(PaymentStatus.PENDING);
+        // DB có thể còn ràng buộc NOT NULL trên checked_out_by; lúc tạo booking chưa có nhân viên giao xe.
+        // Gán tạm renter để insert hợp lệ; pickup (có JWT nhân viên) sẽ ghi đè.
+        booking.setCheckedOutBy(renter);
 
         BigDecimal basePrice = calculateBasePrice(vehicle, request.getStartTime(), request.getExpectedEndTime());
         booking.setBasePrice(basePrice);
@@ -118,6 +134,7 @@ public class BookingService {
 
         // Chuyển trạng thái booking → ONGOING
         booking.setStatus(BookingStatus.ONGOING);
+        resolveCurrentUser().ifPresent(booking::setCheckedOutBy);
 
         // Chuyển trạng thái xe → RENTED
         Vehicle vehicle = booking.getVehicle();
@@ -141,6 +158,7 @@ public class BookingService {
         LocalDateTime now = LocalDateTime.now();
         booking.setStatus(BookingStatus.COMPLETED);
         booking.setActualEndTime(now);
+        resolveCurrentUser().ifPresent(booking::setCheckedInBy);
 
         // Tính phí trả trễ (nếu có)
         if (now.isAfter(booking.getExpectedEndTime())) {
@@ -236,6 +254,42 @@ public class BookingService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public PagedBookingResponse getBookingsPaged(
+            Long renterId,
+            Long stationId,
+            BookingStatus status,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir) {
+        String field = BOOKING_SORT_FIELDS.contains(sortBy) ? sortBy : "id";
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        int safePage = Math.max(page, 0);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, field));
+
+        Page<Booking> result;
+        if (renterId != null) {
+            result = bookingRepository.findByRenterId(renterId, pageable);
+        } else if (stationId != null) {
+            result = bookingRepository.findByStationId(stationId, pageable);
+        } else if (status != null) {
+            result = bookingRepository.findByStatus(status, pageable);
+        } else {
+            result = bookingRepository.findAll(pageable);
+        }
+
+        Page<BookingResponse> mapped = result.map(BookingMapper.INSTANCE::toBookingResponse);
+        return PagedBookingResponse.builder()
+                .content(mapped.getContent())
+                .totalElements(mapped.getTotalElements())
+                .totalPages(mapped.getTotalPages())
+                .page(mapped.getNumber())
+                .size(mapped.getSize())
+                .build();
+    }
+
     @Transactional
     public BookingResponse updateBooking(Long id, UpdateBookingRequest request) {
         if (request == null) {
@@ -279,6 +333,20 @@ public class BookingService {
     private Booking findBookingById(Long id) {
         return bookingRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+    }
+
+    /** JWT subject = user id (cùng convention với {@code UserService#getMyInfo}). */
+    private Optional<User> resolveCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            return Optional.empty();
+        }
+        try {
+            Long id = Long.parseLong(auth.getName());
+            return userRepository.findById(id);
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     /**

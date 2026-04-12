@@ -12,7 +12,6 @@ import com.example.ungdunggoixe.mapper.StationMapper;
 import com.example.ungdunggoixe.repository.StationRepository;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -67,7 +66,6 @@ public class StationService {
 
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public String deleteStation(Long id) {
         Station station = stationRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.STATION_NOT_FOUND));

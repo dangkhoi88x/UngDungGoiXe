@@ -40,8 +40,8 @@ public interface BookingMapper {
     @Mapping(target = "vehicleName", source = "vehicle.name")
     @Mapping(target = "stationId", source = "station.id")
     @Mapping(target = "stationName", source = "station.name")
-    @Mapping(target = "checkedOutById", source = "checkedOutBy.id")
-    @Mapping(target = "checkedInById", source = "checkedInBy.id")
+    @Mapping(target = "checkedOutById", expression = "java(booking.getCheckedOutBy() != null ? booking.getCheckedOutBy().getId() : null)")
+    @Mapping(target = "checkedInById", expression = "java(booking.getCheckedInBy() != null ? booking.getCheckedInBy().getId() : null)")
     BookingResponse toBookingResponse(Booking booking);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

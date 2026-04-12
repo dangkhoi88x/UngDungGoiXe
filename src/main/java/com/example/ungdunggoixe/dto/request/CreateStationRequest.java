@@ -1,10 +1,14 @@
 package com.example.ungdunggoixe.dto.request;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalTime;
 
 @Getter
+@Setter
+@NoArgsConstructor
 public class CreateStationRequest {
 
     private String name;

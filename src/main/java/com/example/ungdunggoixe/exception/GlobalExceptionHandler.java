@@ -21,9 +21,11 @@ public class GlobalExceptionHandler {
     // Bắt tất cả lỗi không mong muốn còn lại
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+        // In lỗi thật ra console để debug
+        e.printStackTrace();
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .code(ErrorCode.INTERNAL_ERROR.getCode())
-                .message(ErrorCode.INTERNAL_ERROR.getMessage())
+                .message(ErrorCode.INTERNAL_ERROR.getMessage() + ": " + e.getMessage())
                 .build();
         return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getHttpStatus()).body(response);
     }
