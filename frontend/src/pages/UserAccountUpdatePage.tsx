@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   fetchMyInfo,
+  licenseVerificationLabel,
   submitMyDocuments,
   type ApiErrorWithStatus,
   type UserProfileDto,
@@ -16,14 +17,7 @@ function clearSessionAndGoAuth() {
 
 function licenseStatusLabel(p: UserProfileDto | null): string {
   if (!p) return '—'
-  if (p.isLicenseVerified === true) return 'Đã xác minh'
-  const hasDoc =
-    Boolean(p.identityNumber?.trim()) ||
-    Boolean(p.licenseNumber?.trim()) ||
-    Boolean(p.licenseCardFrontImageUrl) ||
-    Boolean(p.licenseCardBackImageUrl)
-  if (hasDoc) return 'Đã gửi — chờ admin duyệt'
-  return 'Chưa gửi hồ sơ'
+  return licenseVerificationLabel(p.licenseVerificationStatus)
 }
 
 export default function UserAccountUpdatePage() {
@@ -66,7 +60,7 @@ export default function UserAccountUpdatePage() {
     void load()
   }, [load])
 
-  const locked = profile?.isLicenseVerified === true
+  const locked = profile?.licenseVerificationStatus === 'APPROVED'
 
   const statusText = useMemo(() => licenseStatusLabel(profile), [profile])
 

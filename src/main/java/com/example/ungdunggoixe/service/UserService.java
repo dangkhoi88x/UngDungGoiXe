@@ -1,8 +1,12 @@
 package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.example.ungdunggoixe.common.RoleName;
+import com.example.ungdunggoixe.dto.request.CreateAdminBootstrapRequest;
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
+
+import com.example.ungdunggoixe.dto.request.UpdateMyProfileRequest;
 import com.example.ungdunggoixe.dto.request.UpdateUserRequest;
 import com.example.ungdunggoixe.dto.response.CreateUserResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
@@ -18,9 +22,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -49,6 +55,58 @@ public class UserService {
         userRepository.save(user);
         return UserMapper.INSTANCE.ToCreateUserResponse(user);
 }
+
+    @Transactional
+    public CreateUserResponse createPrivilegedUser(CreateAdminBootstrapRequest req) {
+        RoleName role = parseBootstrapRole(req.getRole());
+        String email = req.getEmail();
+        if (email == null || email.isBlank()
+                || req.getPassword() == null || req.getPassword().isBlank()
+                || req.getFirstName() == null || req.getFirstName().isBlank()
+                || req.getLastName() == null || req.getLastName().isBlank()) {
+            throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_BODY_INVALID);
+        }
+        if (userRepository.existsByEmail(email.trim())) {
+            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+        CreateUserRequest mapped = new CreateUserRequest();
+        mapped.setEmail(email.trim());
+        mapped.setPassword(req.getPassword());
+        mapped.setFirstName(req.getFirstName());
+        mapped.setLastName(req.getLastName());
+        User user = UserMapper.INSTANCE.ToUser(mapped);
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
+        user.addRole(roleService.createRole(role));
+        userRepository.save(user);
+        return UserMapper.INSTANCE.ToCreateUserResponse(user);
+    }
+
+    private static RoleName parseBootstrapRole(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_ROLE_INVALID);
+        }
+        String u = raw.trim().toUpperCase().replace('-', '_');
+        if ("SUPER_ADMIN".equals(u)) {
+            return RoleName.SUPER_ADMIN;
+        }
+        if ("ADMIN".equals(u)) {
+            return RoleName.ADMIN;
+        }
+        throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_ROLE_INVALID);
+    }
+
+    private static boolean currentAuthenticationHasAuthority(String authority) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            return false;
+        }
+        for (GrantedAuthority ga : auth.getAuthorities()) {
+            if (authority.equals(ga.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public UserResponse getUserbyID(Long id){
         return userRepository.findById(id)
@@ -121,9 +179,18 @@ public class UserService {
             user.setLicenseCardBackImageUrl(
                     request.getLicenseCardBackImageUrl().isBlank() ? null : request.getLicenseCardBackImageUrl().trim());
         }
-        if (request.getIsLicenseVerified() != null) {
-            user.setIsLicenseVerified(request.getIsLicenseVerified());
-            if (Boolean.TRUE.equals(request.getIsLicenseVerified())) {
+        if (request.getLicenseVerificationStatus() != null) {
+            LicenseVerificationStatus st = request.getLicenseVerificationStatus();
+            if (st == LicenseVerificationStatus.REJECTED) {
+                localUserDocumentStorage.deleteStoredFileIfPresent(user.getLicenseCardFrontImageUrl());
+                localUserDocumentStorage.deleteStoredFileIfPresent(user.getLicenseCardBackImageUrl());
+                user.setIdentityNumber(null);
+                user.setLicenseNumber(null);
+                user.setLicenseCardFrontImageUrl(null);
+                user.setLicenseCardBackImageUrl(null);
+            }
+            user.setLicenseVerificationStatus(st);
+            if (st == LicenseVerificationStatus.APPROVED) {
                 user.setVerifiedAt(LocalDateTime.now());
             } else {
                 user.setVerifiedAt(null);
@@ -135,8 +202,9 @@ public class UserService {
     }
 
     /**
-     * Người dùng gửi CMND/CCCD, số GPLX và ảnh hai mặt — chờ admin duyệt (isLicenseVerified = false).
+     * Người dùng gửi CMND/CCCD, số GPLX và ảnh hai mặt — trạng thái {@link LicenseVerificationStatus#PENDING}.
      */
+    @Transactional
     public UserResponse submitMyDocuments(
             String identityNumber,
             String licenseNumber,
@@ -150,7 +218,7 @@ public class UserService {
         Long userId = Long.parseLong(authentication.getName());
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (Boolean.TRUE.equals(user.getIsLicenseVerified())) {
+        if (user.getLicenseVerificationStatus() == LicenseVerificationStatus.APPROVED) {
             throw new AppException(ErrorCode.LICENSE_ALREADY_VERIFIED);
         }
 
@@ -166,10 +234,10 @@ public class UserService {
         user.setLicenseNumber(licenseNumber.trim());
         user.setLicenseCardFrontImageUrl(frontUrl);
         user.setLicenseCardBackImageUrl(backUrl);
-        user.setIsLicenseVerified(false);
+        user.setLicenseVerificationStatus(LicenseVerificationStatus.PENDING);
         user.setVerifiedAt(null);
 
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
         return UserMapper.INSTANCE.ToUserResponse(user);
     }
 
@@ -179,6 +247,38 @@ public class UserService {
             throw new RuntimeException("Authentication is null");
         Long userID = Long.parseLong(authentication.getName());
         User user = userRepository.findById(userID).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        return UserMapper.INSTANCE.ToUserResponse(user);
+    }
+
+    @Transactional
+    public UserResponse updateMyProfile(UpdateMyProfileRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        Long userId = Long.parseLong(authentication.getName());
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (request.getFirstName() != null) {
+            String f = request.getFirstName().trim();
+            if (f.isEmpty()) {
+                throw new AppException(ErrorCode.PROFILE_UPDATE_INVALID);
+            }
+            user.setFirstName(f);
+        }
+        if (request.getLastName() != null) {
+            String l = request.getLastName().trim();
+            if (l.isEmpty()) {
+                throw new AppException(ErrorCode.PROFILE_UPDATE_INVALID);
+            }
+            user.setLastName(l);
+        }
+        if (request.getPhone() != null) {
+            String p = request.getPhone().trim();
+            user.setPhone(p.isEmpty() ? null : p);
+        }
+
+        userRepository.save(user);
         return UserMapper.INSTANCE.ToUserResponse(user);
     }
 }

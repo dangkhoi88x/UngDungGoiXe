@@ -8,8 +8,13 @@ public enum ErrorCode {
     // ── User errors ──────────────────────────
     USER_NOT_FOUND(1001, "User not found", HttpStatus.NOT_FOUND),
     EMAIL_ALREADY_EXISTS(1002, "Email already exists", HttpStatus.CONFLICT),
+  
     DOCUMENT_SUBMISSION_INVALID(1003, "Vui lòng gửi đầy đủ CMND/CCCD, số GPLX và ảnh hai mặt GPLX (JPEG/PNG/WebP).", HttpStatus.BAD_REQUEST),
     LICENSE_ALREADY_VERIFIED(1004, "GPLX đã được xác minh. Liên hệ admin nếu cần cập nhật.", HttpStatus.CONFLICT),
+    PROFILE_UPDATE_INVALID(1005, "Họ hoặc tên không hợp lệ.", HttpStatus.BAD_REQUEST),
+    BOOTSTRAP_ADMIN_DISABLED(1006, "Tạo admin qua API đang tắt. Cấu hình app.bootstrap-admin-secret (hoặc biến BOOTSTRAP_ADMIN_SECRET).", HttpStatus.FORBIDDEN),
+    BOOTSTRAP_ADMIN_ROLE_INVALID(1007, "role phải là ADMIN hoặc SUPER_ADMIN.", HttpStatus.BAD_REQUEST),
+    BOOTSTRAP_ADMIN_BODY_INVALID(1008, "Vui lòng gửi đủ email, mật khẩu, họ và tên.", HttpStatus.BAD_REQUEST),
     // ── Station errors ────────────────────────
     STATION_NOT_FOUND(2001, "Station not found", HttpStatus.NOT_FOUND),
     STATION_NAME_ALREADY_EXISTS(2002, "Station name already exists", HttpStatus.CONFLICT),

@@ -54,6 +54,32 @@ public class LocalUserDocumentStorage {
         return "/files/users/" + userId + "/" + filename;
     }
 
+    /**
+     * Xóa file đã lưu theo URL public trong DB (chỉ chấp nhận tiền tố {@code /files/} và nằm dưới {@code root}).
+     */
+    public void deleteStoredFileIfPresent(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()) {
+            return;
+        }
+        String p = publicUrl.trim();
+        if (!p.startsWith("/files/")) {
+            return;
+        }
+        String rel = p.substring("/files/".length());
+        if (rel.isEmpty() || rel.contains("..")) {
+            return;
+        }
+        Path target = root.resolve(rel).normalize();
+        if (!target.startsWith(root)) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException ignored) {
+            // best-effort cleanup
+        }
+    }
+
     private static String extensionForMime(String mime) {
         String m = mime.toLowerCase(Locale.ROOT);
         if (m.contains("png")) return ".png";

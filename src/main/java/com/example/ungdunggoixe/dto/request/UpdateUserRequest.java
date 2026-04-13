@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.dto.request;
 
+import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,6 +20,6 @@ public class UpdateUserRequest {
     private String licenseNumber;
     private String licenseCardFrontImageUrl;
     private String licenseCardBackImageUrl;
-    /** null = không đổi */
-    private Boolean isLicenseVerified;
+    /** null = không đổi (admin: duyệt / từ chối / reset trạng thái GPLX) */
+    private LicenseVerificationStatus licenseVerificationStatus;
 }
