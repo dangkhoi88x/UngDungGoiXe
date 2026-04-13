@@ -1,6 +1,6 @@
 package com.example.ungdunggoixe.controller;
 
-import com.example.ungdunggoixe.dto.request.CreateAdminBootstrapRequest;
+
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 
 import com.example.ungdunggoixe.dto.request.UpdateMyProfileRequest;
@@ -37,22 +37,6 @@ public class UserController {
         return userService.createUser(createUserRequest);
     }
 
-    /**
-     * Tạo tài khoản với role ADMIN hoặc SUPER_ADMIN (chỉ khi đã cấu hình {@code app.bootstrap-admin-secret}).
-     * Postman: header {@code X-Bootstrap-Secret} trùng secret; body JSON xem tài liệu API.
-     */
-    @PostMapping("/bootstrap-admin")
-    public CreateUserResponse bootstrapAdmin(
-            @RequestHeader(value = "X-Bootstrap-Secret", required = false) String secret,
-            @RequestBody CreateAdminBootstrapRequest body) {
-        if (bootstrapAdminSecret == null || bootstrapAdminSecret.isBlank()) {
-            throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_DISABLED);
-        }
-        if (secret == null || !bootstrapAdminSecret.equals(secret)) {
-            throw new AppException(ErrorCode.FORBIDDEN);
-        }
-        return userService.createPrivilegedUser(body);
-    }
 
     
 
@@ -82,7 +66,7 @@ public class UserController {
         return userService.submitMyDocuments(identityNumber, licenseNumber, frontImage, backImage);
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @GetMapping("/paged")
     public PagedUserResponse getUsersPage(
             @RequestParam(defaultValue = "0") int page,
@@ -92,25 +76,25 @@ public class UserController {
         return userService.getUsersPaged(page, size, sortBy, sortDir);
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @GetMapping("/{id}")
     public UserResponse getUserById(@PathVariable Long id) {
         return userService.getUserbyID(id);
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @GetMapping
     public List<UserResponse> getAllUsers() {
         return userService.getAllUser();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @PutMapping("/{id}")
     public UserResponse updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
         return userService.updateUser(id, request);
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @DeleteMapping("/{id}")
     public String deleteUserById(@PathVariable Long id) {
         return userService.deleteUserbyID(id);

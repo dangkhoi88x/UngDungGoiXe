@@ -16,6 +16,29 @@ export type AuthLoginResult = {
   refreshToken?: string
 }
 
+/** Giải mã payload JWT (không verify chữ ký — chỉ dùng cho điều hướng UI sau đăng nhập). */
+export function parseJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const seg = token.split('.')[1]
+    if (!seg) return null
+    const b64 = seg.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=')
+    const json = atob(padded)
+    return JSON.parse(json) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
+/** Claim `roles` trong access token (chuỗi Spring: ROLE_ADMIN, ROLE_USER, …). */
+export function rolesFromJwt(token: string | undefined | null): string[] {
+  if (!token) return []
+  const payload = parseJwtPayload(token)
+  const raw = payload?.roles
+  if (!Array.isArray(raw)) return []
+  return raw.map(String)
+}
+
 export type ApiErrorShape = { code?: number; message?: string }
 
 async function parseJsonSafe(res: Response): Promise<unknown> {

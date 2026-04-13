@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { loginRequest, persistUserDisplayName, registerRequest } from '../api/auth'
+import { loginRequest, persistUserDisplayName, registerRequest, rolesFromJwt } from '../api/auth'
 import './AuthPage.css'
 
 type AuthMode = 'signin' | 'signup'
@@ -61,7 +61,13 @@ function AuthPage() {
           localStorage.setItem('refreshToken', result.refreshToken)
         }
         persistUserDisplayName(result.firstName, result.lastName)
-        window.location.replace('/')
+        const roles = rolesFromJwt(result.accessToken)
+        console.log(rolesFromJwt(result.accessToken))
+        const normalizedRoles = roles.map((r) => r.trim().toUpperCase())
+        const isAdmin = normalizedRoles.some(
+          (r) => r === 'ROLE_ADMIN' || r === 'ADMIN' || r === 'ROLE_SUPER_ADMIN' || r === 'SUPER_ADMIN' || r.startsWith('ROLE_ADMIN')
+        )
+        window.location.replace(isAdmin ? '/admin' : '/')
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Có lỗi xảy ra.'

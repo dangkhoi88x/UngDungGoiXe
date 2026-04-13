@@ -54,7 +54,8 @@ public class AuthenticationService {
         var tokenPayload = jwtService.validateToken(refreshToken, TokenType.REFRESH);
         var userID= tokenPayload.userId();
 
-        User user = userRepository.findById(userID).orElseThrow(()->new IllegalArgumentException("User not found"));
+        User user = userRepository.findByIdWithUserRoles(userID)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         List<String> roles = user.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -65,6 +66,7 @@ public class AuthenticationService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .accessToken(accessToken)
+                .refreshToken(null)
                 .build();
 
     }
