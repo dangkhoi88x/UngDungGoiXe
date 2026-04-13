@@ -31,7 +31,7 @@ public class SecurityConfiguration {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers("/files/**").permitAll()
-                        .requestMatchers("/users/my-info", "/users/my-documents").authenticated()
+                        .requestMatchers("/users/my-info", "/users/my-documents", "/users/my-profile").authenticated()
                         .requestMatchers("/users","/users/**","/stations/**" ,"/vehicles/**" , "/auth/**").permitAll()
                         .requestMatchers("/bookings/vehicle-availability").permitAll()
                         .anyRequest().authenticated())

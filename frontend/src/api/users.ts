@@ -61,6 +61,13 @@ export type PagedUsersResponse = {
   size: number
 }
 
+/** PUT /users/my-profile — null = không gửi trường đó (giữ nguyên trên server). */
+export type UpdateMyProfilePayload = {
+  firstName?: string | null
+  lastName?: string | null
+  phone?: string | null
+}
+
 export type UserCreatePayload = {
   email: string
   password: string
@@ -158,6 +165,31 @@ export async function submitMyDocuments(formData: FormData): Promise<UserProfile
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
+  })
+  if (!res.ok) {
+    const message = await parseApiError(res)
+    const err = new Error(message) as ApiErrorWithStatus
+    err.status = res.status
+    throw err
+  }
+  return (await res.json()) as UserProfileDto
+}
+
+export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<UserProfileDto> {
+  const body: Record<string, string> = {}
+  if (payload.firstName !== undefined && payload.firstName !== null) {
+    body.firstName = payload.firstName
+  }
+  if (payload.lastName !== undefined && payload.lastName !== null) {
+    body.lastName = payload.lastName
+  }
+  if (payload.phone !== undefined && payload.phone !== null) {
+    body.phone = payload.phone
+  }
+  const res = await fetch(`${API_BASE}/users/my-profile`, {
+    method: 'PUT',
+    headers: bearerHeaders(true),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     const message = await parseApiError(res)

@@ -3,8 +3,10 @@ package com.example.ungdunggoixe.service;
 import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.example.ungdunggoixe.common.RoleName;
+import com.example.ungdunggoixe.dto.request.CreateAdminBootstrapRequest;
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
-import com.example.ungdunggoixe.dto.request.CreateUserWithRoleRequest;
+
+import com.example.ungdunggoixe.dto.request.UpdateMyProfileRequest;
 import com.example.ungdunggoixe.dto.request.UpdateUserRequest;
 import com.example.ungdunggoixe.dto.response.CreateUserResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
@@ -54,35 +56,43 @@ public class UserService {
         return UserMapper.INSTANCE.ToCreateUserResponse(user);
 }
 
-    /**
-     * Admin tạo tài khoản với role chỉ định (USER, ADMIN). Gán SUPER_ADMIN chỉ khi người gọi có ROLE_SUPER_ADMIN.
-     */
-    public CreateUserResponse createUserWithRole(CreateUserWithRoleRequest request) {
-        if (request.getEmail() == null || request.getEmail().isBlank()
-                || request.getPassword() == null || request.getPassword().isBlank()
-                || request.getFirstName() == null || request.getFirstName().isBlank()
-                || request.getLastName() == null || request.getLastName().isBlank()) {
-            throw new AppException(ErrorCode.CREATE_USER_INVALID);
+    @Transactional
+    public CreateUserResponse createPrivilegedUser(CreateAdminBootstrapRequest req) {
+        RoleName role = parseBootstrapRole(req.getRole());
+        String email = req.getEmail();
+        if (email == null || email.isBlank()
+                || req.getPassword() == null || req.getPassword().isBlank()
+                || req.getFirstName() == null || req.getFirstName().isBlank()
+                || req.getLastName() == null || req.getLastName().isBlank()) {
+            throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_BODY_INVALID);
         }
-        String email = request.getEmail().trim();
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmail(email.trim())) {
             throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
-        RoleName roleName = request.getRole() != null ? request.getRole() : RoleName.USER;
-        if (roleName == RoleName.SUPER_ADMIN && !currentAuthenticationHasAuthority("ROLE_SUPER_ADMIN")) {
-            throw new AppException(ErrorCode.FORBIDDEN);
-        }
-        CreateUserRequest core = new CreateUserRequest();
-        core.setEmail(email);
-        core.setPassword(request.getPassword());
-        core.setFirstName(request.getFirstName().trim());
-        core.setLastName(request.getLastName().trim());
-        User user = UserMapper.INSTANCE.ToUser(core);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        Role role = roleService.createRole(roleName);
-        user.addRole(role);
+        CreateUserRequest mapped = new CreateUserRequest();
+        mapped.setEmail(email.trim());
+        mapped.setPassword(req.getPassword());
+        mapped.setFirstName(req.getFirstName());
+        mapped.setLastName(req.getLastName());
+        User user = UserMapper.INSTANCE.ToUser(mapped);
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
+        user.addRole(roleService.createRole(role));
         userRepository.save(user);
         return UserMapper.INSTANCE.ToCreateUserResponse(user);
+    }
+
+    private static RoleName parseBootstrapRole(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_ROLE_INVALID);
+        }
+        String u = raw.trim().toUpperCase().replace('-', '_');
+        if ("SUPER_ADMIN".equals(u)) {
+            return RoleName.SUPER_ADMIN;
+        }
+        if ("ADMIN".equals(u)) {
+            return RoleName.ADMIN;
+        }
+        throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_ROLE_INVALID);
     }
 
     private static boolean currentAuthenticationHasAuthority(String authority) {
@@ -237,6 +247,38 @@ public class UserService {
             throw new RuntimeException("Authentication is null");
         Long userID = Long.parseLong(authentication.getName());
         User user = userRepository.findById(userID).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        return UserMapper.INSTANCE.ToUserResponse(user);
+    }
+
+    @Transactional
+    public UserResponse updateMyProfile(UpdateMyProfileRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        Long userId = Long.parseLong(authentication.getName());
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (request.getFirstName() != null) {
+            String f = request.getFirstName().trim();
+            if (f.isEmpty()) {
+                throw new AppException(ErrorCode.PROFILE_UPDATE_INVALID);
+            }
+            user.setFirstName(f);
+        }
+        if (request.getLastName() != null) {
+            String l = request.getLastName().trim();
+            if (l.isEmpty()) {
+                throw new AppException(ErrorCode.PROFILE_UPDATE_INVALID);
+            }
+            user.setLastName(l);
+        }
+        if (request.getPhone() != null) {
+            String p = request.getPhone().trim();
+            user.setPhone(p.isEmpty() ? null : p);
+        }
+
+        userRepository.save(user);
         return UserMapper.INSTANCE.ToUserResponse(user);
     }
 }

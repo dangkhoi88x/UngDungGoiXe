@@ -3,6 +3,7 @@ import { persistUserDisplayName } from '../api/auth'
 import {
   fetchMyInfo,
   licenseVerificationLabel,
+  updateMyProfile,
   userDisplayName,
   type ApiErrorWithStatus,
   type UserProfileDto,
@@ -23,12 +24,12 @@ function formatDateTime(iso: string | null | undefined): string {
   return d.toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-function initials(profile: UserProfileDto): string {
-  const a = (profile.firstName || '').trim().charAt(0)
-  const b = (profile.lastName || '').trim().charAt(0)
+function avatarInitials(firstName: string, lastName: string, fallbackEmail: string): string {
+  const a = firstName.trim().charAt(0)
+  const b = lastName.trim().charAt(0)
   const s = (a + b).toUpperCase()
   if (s) return s
-  return (profile.email || '?').charAt(0).toUpperCase()
+  return (fallbackEmail || '?').charAt(0).toUpperCase()
 }
 
 function truncateMiddle(s: string, head = 8, tail = 6): string {
@@ -124,9 +125,14 @@ function roleLabelVi(role: string): string {
 export default function UserAccountPage() {
   const [profile, setProfile] = useState<UserProfileDto | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [discardBusy, setDiscardBusy] = useState(false)
+  const [saveBusy, setSaveBusy] = useState(false)
   const [copyHint, setCopyHint] = useState<string | null>(null)
+  const [firstNameDraft, setFirstNameDraft] = useState('')
+  const [lastNameDraft, setLastNameDraft] = useState('')
+  const [phoneDraft, setPhoneDraft] = useState('')
 
   const loadProfile = useCallback(async () => {
     if (!localStorage.getItem('accessToken')) {
@@ -135,9 +141,13 @@ export default function UserAccountPage() {
     }
     setLoading(true)
     setError(null)
+    setFormError(null)
     try {
       const data = await fetchMyInfo()
       setProfile(data)
+      setFirstNameDraft(data.firstName?.trim() ?? '')
+      setLastNameDraft(data.lastName?.trim() ?? '')
+      setPhoneDraft(data.phone?.trim() ?? '')
       persistUserDisplayName(data.firstName ?? '', data.lastName ?? '')
     } catch (e) {
       const status = typeof e === 'object' && e && 'status' in e ? (e as ApiErrorWithStatus).status : undefined
@@ -157,7 +167,31 @@ export default function UserAccountPage() {
     void loadProfile()
   }, [loadProfile])
 
-  const displayName = profile ? userDisplayName(profile) : ''
+  useEffect(() => {
+    setFormError(null)
+  }, [firstNameDraft, lastNameDraft, phoneDraft])
+
+  const displayName = useMemo(() => {
+    if (!profile) return ''
+    return userDisplayName({
+      id: profile.id,
+      email: profile.email,
+      firstName: firstNameDraft,
+      lastName: lastNameDraft,
+    })
+  }, [profile, firstNameDraft, lastNameDraft])
+
+  const isDirty = useMemo(() => {
+    if (!profile) return false
+    const f = profile.firstName?.trim() ?? ''
+    const l = profile.lastName?.trim() ?? ''
+    const p = profile.phone?.trim() ?? ''
+    return (
+      firstNameDraft.trim() !== f ||
+      lastNameDraft.trim() !== l ||
+      phoneDraft.trim() !== p
+    )
+  }, [profile, firstNameDraft, lastNameDraft, phoneDraft])
   const rolePills = useMemo(() => {
     if (!profile?.roles?.length) return [] as string[]
     return [...new Set(profile.roles.map(roleLabelVi))]
@@ -173,6 +207,40 @@ export default function UserAccountPage() {
   async function handleDiscard() {
     setDiscardBusy(true)
     await loadProfile()
+  }
+
+  async function handleSave() {
+    if (!profile) return
+    const fn = firstNameDraft.trim()
+    const ln = lastNameDraft.trim()
+    if (!fn || !ln) {
+      setFormError('Vui lòng nhập đầy đủ họ và tên.')
+      return
+    }
+    setSaveBusy(true)
+    setFormError(null)
+    try {
+      const updated = await updateMyProfile({
+        firstName: fn,
+        lastName: ln,
+        phone: phoneDraft,
+      })
+      setProfile(updated)
+      setFirstNameDraft(updated.firstName?.trim() ?? '')
+      setLastNameDraft(updated.lastName?.trim() ?? '')
+      setPhoneDraft(updated.phone?.trim() ?? '')
+      persistUserDisplayName(updated.firstName ?? '', updated.lastName ?? '')
+    } catch (e) {
+      const status = typeof e === 'object' && e && 'status' in e ? (e as ApiErrorWithStatus).status : undefined
+      if (status === 401) {
+        clearSessionAndGoAuth()
+        return
+      }
+      const msg = e instanceof Error ? e.message : 'Không lưu được thay đổi.'
+      setFormError(msg)
+    } finally {
+      setSaveBusy(false)
+    }
   }
 
   return (
@@ -199,17 +267,23 @@ export default function UserAccountPage() {
             type="button"
             className="uacc__btn uacc__btn--ghost"
             onClick={() => void handleDiscard()}
-            disabled={loading || discardBusy}
+            disabled={loading || discardBusy || saveBusy}
           >
             {discardBusy ? 'Đang tải…' : 'Hủy thay đổi'}
           </button>
           <button
             type="button"
             className="uacc__btn uacc__btn--primary"
-            disabled
-            title="Cập nhật hồ sơ qua API sẽ được bổ sung sau"
+            disabled={
+              loading ||
+              saveBusy ||
+              !isDirty ||
+              !firstNameDraft.trim() ||
+              !lastNameDraft.trim()
+            }
+            onClick={() => void handleSave()}
           >
-            Lưu thay đổi
+            {saveBusy ? 'Đang lưu…' : 'Lưu thay đổi'}
           </button>
         </div>
       </header>
@@ -224,6 +298,7 @@ export default function UserAccountPage() {
         ) : null}
 
         {error && !profile && !loading ? <p className="uacc__error-banner">{error}</p> : null}
+        {formError && profile ? <p className="uacc__error-banner">{formError}</p> : null}
 
         {profile ? (
           <article className="uacc__card">
@@ -233,7 +308,7 @@ export default function UserAccountPage() {
 
             <div className="uacc__profile-block">
               <div className="uacc__avatar" aria-hidden>
-                <span>{initials(profile)}</span>
+                <span>{avatarInitials(firstNameDraft, lastNameDraft, profile.email)}</span>
               </div>
               <div className="uacc__identity">
                 <div className="uacc__name-row">
@@ -291,9 +366,42 @@ export default function UserAccountPage() {
                   <IconSection>◆</IconSection>
                   Thông tin tài khoản
                 </h2>
-                <InfoRow label="Họ và tên">{displayName}</InfoRow>
+                <InfoRow label="Họ">
+                  <input
+                    className="uacc__row-input"
+                    type="text"
+                    name="firstName"
+                    autoComplete="family-name"
+                    value={firstNameDraft}
+                    onChange={(ev) => setFirstNameDraft(ev.target.value)}
+                    aria-label="Họ"
+                  />
+                </InfoRow>
+                <InfoRow label="Tên">
+                  <input
+                    className="uacc__row-input"
+                    type="text"
+                    name="lastName"
+                    autoComplete="given-name"
+                    value={lastNameDraft}
+                    onChange={(ev) => setLastNameDraft(ev.target.value)}
+                    aria-label="Tên"
+                  />
+                </InfoRow>
                 <InfoRow label="Email">{profile.email}</InfoRow>
-                <InfoRow label="Số điện thoại">{profile.phone?.trim() || '—'}</InfoRow>
+                <InfoRow label="Số điện thoại">
+                  <input
+                    className="uacc__row-input"
+                    type="tel"
+                    inputMode="tel"
+                    name="phone"
+                    autoComplete="tel"
+                    placeholder="—"
+                    value={phoneDraft}
+                    onChange={(ev) => setPhoneDraft(ev.target.value)}
+                    aria-label="Số điện thoại"
+                  />
+                </InfoRow>
               </section>
 
               <section className="uacc-section">

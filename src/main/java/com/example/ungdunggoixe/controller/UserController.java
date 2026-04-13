@@ -1,12 +1,17 @@
 package com.example.ungdunggoixe.controller;
 
+import com.example.ungdunggoixe.dto.request.CreateAdminBootstrapRequest;
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
-import com.example.ungdunggoixe.dto.request.CreateUserWithRoleRequest;
+
+import com.example.ungdunggoixe.dto.request.UpdateMyProfileRequest;
 import com.example.ungdunggoixe.dto.request.UpdateUserRequest;
 import com.example.ungdunggoixe.dto.response.CreateUserResponse;
 import com.example.ungdunggoixe.dto.response.PagedUserResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
+import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.service.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +25,9 @@ public class UserController {
 
     private final UserService userService;
 
+    @Value("${app.bootstrap-admin-secret:}")
+    private String bootstrapAdminSecret;
+
     public UserController(UserService userService) {
         this.userService = userService;
     }
@@ -30,20 +38,36 @@ public class UserController {
     }
 
     /**
-     * Tạo user với role chỉ định (ví dụ ADMIN). Cần JWT của tài khoản đã có ROLE_ADMIN hoặc ROLE_SUPER_ADMIN.
-     * Body JSON: email, password, firstName, lastName, role (USER | ADMIN | SUPER_ADMIN — SUPER_ADMIN chỉ SUPER_ADMIN mới gán được).
+     * Tạo tài khoản với role ADMIN hoặc SUPER_ADMIN (chỉ khi đã cấu hình {@code app.bootstrap-admin-secret}).
+     * Postman: header {@code X-Bootstrap-Secret} trùng secret; body JSON xem tài liệu API.
      */
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
-    @PostMapping("/with-role")
-    public CreateUserResponse createUserWithRole(@RequestBody CreateUserWithRoleRequest body) {
-        return userService.createUserWithRole(body);
+    @PostMapping("/bootstrap-admin")
+    public CreateUserResponse bootstrapAdmin(
+            @RequestHeader(value = "X-Bootstrap-Secret", required = false) String secret,
+            @RequestBody CreateAdminBootstrapRequest body) {
+        if (bootstrapAdminSecret == null || bootstrapAdminSecret.isBlank()) {
+            throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_DISABLED);
+        }
+        if (secret == null || !bootstrapAdminSecret.equals(secret)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+        return userService.createPrivilegedUser(body);
     }
+
+    
 
     /** Không dùng <code>/page</code> — Spring có thể khớp nhầm với <code>/{id}</code> (id = "page"). */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/my-info")
     public UserResponse getMyInfo() {
         return userService.getMyInfo();
+    }
+
+    /** Người dùng đã đăng nhập: cập nhật họ ({@code firstName}), tên ({@code lastName}) và/hoặc số điện thoại. Dùng PUT (tránh lỗi PATCH không khớp handler trên một số cấu hình). */
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/my-profile")
+    public UserResponse updateMyProfile(@RequestBody UpdateMyProfileRequest request) {
+        return userService.updateMyProfile(request);
     }
 
     /** Gửi giấy tờ GPLX để admin duyệt (multipart: identityNumber, licenseNumber, frontImage, backImage). */

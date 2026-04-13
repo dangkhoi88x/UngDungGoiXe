@@ -466,6 +466,31 @@ a.uacc__crumb-link.uacc__crumb-muted:hover {
   word-break: break-word;
 }
 
+.uacc__row-input {
+  width: 100%;
+  max-width: 280px;
+  text-align: right;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--vex-line);
+  background: #fafaf8;
+  color: var(--vex-ink);
+}
+
+.uacc__row-input:focus {
+  outline: none;
+  border-color: rgba(255, 90, 31, 0.45);
+  box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.12);
+}
+
+.uacc__row-input::placeholder {
+  color: rgba(20, 18, 26, 0.35);
+  font-weight: 500;
+}
+
 .uacc-row__chevron {
   color: var(--vex-ink-soft);
   font-size: 0.75rem;
@@ -692,6 +717,11 @@ a.uacc__crumb-link.uacc__crumb-muted:hover {
   .uacc-row__value {
     text-align: left;
     justify-content: flex-start;
+  }
+
+  .uacc__row-input {
+    max-width: none;
+    text-align: left;
   }
 
   .uacc__footer-logout {
