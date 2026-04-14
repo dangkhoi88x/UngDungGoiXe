@@ -23,8 +23,8 @@ spring:
       mode: always
       continue-on-error: true
 jwt:
-  secret-key: ${JWT_SECRET:85e3639086fbe37d05d716242e1dba7372b7127156cfad772d04afa35ce68b16}
-
+  secret-key: ${JWT_SECRET}
+  audience: ${JWT_AUDIENCE}
 # Thư mục lưu ảnh GPLX (đường dẫn tương đối hoặc tuyệt đối)
 app:
   upload-dir: uploads

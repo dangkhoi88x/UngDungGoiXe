@@ -4,7 +4,9 @@ import com.example.ungdunggoixe.common.TokenType;
 import com.example.ungdunggoixe.dto.TokenPayload;
 import com.example.ungdunggoixe.dto.request.AuthenticationRequest;
 import com.example.ungdunggoixe.dto.response.AuthenticationResponse;
+import com.example.ungdunggoixe.entity.Token;
 import com.example.ungdunggoixe.entity.User;
+import com.example.ungdunggoixe.repository.TokenRepository;
 import com.example.ungdunggoixe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,6 +25,7 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
+    private final TokenRepository tokenRepository;
 
     public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest){
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken
@@ -69,5 +72,20 @@ public class AuthenticationService {
                 .refreshToken(null)
                 .build();
 
+    }
+    public void logOut(String accessToken){
+            try{
+                var tokenPayload = jwtService.validateToken(accessToken, TokenType.ACCESS);
+
+                Token token= Token.builder()
+                        .tokenID(tokenPayload.jti())
+                        .issuedAt(tokenPayload.issuedAt())
+                        .expireration(tokenPayload.expiration())
+
+                        .build();
+                tokenRepository.save(token);
+            } catch (RuntimeException e) {
+                throw new RuntimeException(e);
+            }
     }
 }

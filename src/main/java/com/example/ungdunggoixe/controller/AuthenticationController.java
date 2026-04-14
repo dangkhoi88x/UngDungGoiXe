@@ -35,4 +35,10 @@ public class AuthenticationController {
         return authenticationService.refreshToken(refreshToken);
 
     }
+    @PostMapping("/logout")
+    public void logout(@RequestHeader("Authorization") String authHeader,HttpServletResponse response) {
+        String token = authHeader.replace("Bearer ", "");
+        authenticationService.logOut(token);
+        response.addCookie(new Cookie("refresh_token",null));
+    }
 }
