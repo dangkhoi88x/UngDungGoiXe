@@ -22,6 +22,12 @@ spring:
     init:
       mode: always
       continue-on-error: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 12345678
+
 jwt:
   secret-key: ${JWT_SECRET}
   audience: ${JWT_AUDIENCE}

@@ -1,10 +1,12 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { loginRequest, persistUserDisplayName, registerRequest, rolesFromJwt } from '../api/auth'
 import './AuthPage.css'
 
 type AuthMode = 'signin' | 'signup'
 
 function AuthPage() {
+  const navigate = useNavigate()
   const [mode, setMode] = useState<AuthMode>('signin')
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(
@@ -57,9 +59,7 @@ function AuthPage() {
         if (result.accessToken) {
           localStorage.setItem('accessToken', result.accessToken)
         }
-        if (result.refreshToken) {
-          localStorage.setItem('refreshToken', result.refreshToken)
-        }
+
         persistUserDisplayName(result.firstName, result.lastName)
         const roles = rolesFromJwt(result.accessToken)
         console.log(rolesFromJwt(result.accessToken))
@@ -67,7 +67,7 @@ function AuthPage() {
         const isAdmin = normalizedRoles.some(
           (r) => r === 'ROLE_ADMIN' || r === 'ADMIN' || r === 'ROLE_SUPER_ADMIN' || r === 'SUPER_ADMIN' || r.startsWith('ROLE_ADMIN')
         )
-        window.location.replace(isAdmin ? '/admin' : '/')
+        navigate(isAdmin ? '/admin' : '/', { replace: true })
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Có lỗi xảy ra.'

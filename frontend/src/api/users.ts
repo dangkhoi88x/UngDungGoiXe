@@ -1,14 +1,7 @@
 import { parseApiError } from './vehicles'
+import { authFetch } from './authFetch'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
-
-function bearerHeaders(json = false): HeadersInit {
-  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null
-  const h: Record<string, string> = {}
-  if (json) h['Content-Type'] = 'application/json'
-  if (token) h.Authorization = `Bearer ${token}`
-  return h
-}
 
 /** Khớp `LicenseVerificationStatus` từ backend (JSON dạng chuỗi). */
 export type LicenseVerificationStatus =
@@ -100,9 +93,7 @@ export async function fetchUsersPage(params: {
   q.set('size', String(params.size ?? 10))
   q.set('sortBy', params.sortBy ?? 'id')
   q.set('sortDir', params.sortDir ?? 'desc')
-  const res = await fetch(`${API_BASE}/users/paged?${q}`, {
-    headers: bearerHeaders(),
-  })
+  const res = await authFetch(`${API_BASE}/users/paged?${q}`)
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
@@ -110,7 +101,7 @@ export async function fetchUsersPage(params: {
 }
 
 export async function fetchUserById(id: number): Promise<UserProfileDto> {
-  const res = await fetch(`${API_BASE}/users/${id}`, { headers: bearerHeaders() })
+  const res = await authFetch(`${API_BASE}/users/${id}`)
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
@@ -135,9 +126,9 @@ export async function updateUser(
   id: number,
   payload: UserUpdatePayload,
 ): Promise<UserDto> {
-  const res = await fetch(`${API_BASE}/users/${id}`, {
+  const res = await authFetch(`${API_BASE}/users/${id}`, {
     method: 'PUT',
-    headers: bearerHeaders(true),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
   if (!res.ok) {
@@ -147,9 +138,8 @@ export async function updateUser(
 }
 
 export async function deleteUser(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/users/${id}`, {
+  const res = await authFetch(`${API_BASE}/users/${id}`, {
     method: 'DELETE',
-    headers: bearerHeaders(),
   })
   if (!res.ok) {
     throw new Error(await parseApiError(res))
@@ -160,10 +150,8 @@ export type ApiErrorWithStatus = Error & { status: number }
 
 /** Gửi CMND/CCCD, số GPLX và ảnh 2 mặt (FormData: identityNumber, licenseNumber, frontImage, backImage). */
 export async function submitMyDocuments(formData: FormData): Promise<UserProfileDto> {
-  const token = localStorage.getItem('accessToken')
-  const res = await fetch(`${API_BASE}/users/my-documents`, {
+  const res = await authFetch(`${API_BASE}/users/my-documents`, {
     method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
   })
   if (!res.ok) {
@@ -186,9 +174,9 @@ export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<
   if (payload.phone !== undefined && payload.phone !== null) {
     body.phone = payload.phone
   }
-  const res = await fetch(`${API_BASE}/users/my-profile`, {
+  const res = await authFetch(`${API_BASE}/users/my-profile`, {
     method: 'PUT',
-    headers: bearerHeaders(true),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
   if (!res.ok) {
@@ -201,10 +189,7 @@ export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<
 }
 
 export async function fetchMyInfo(): Promise<UserProfileDto> {
-  const token = localStorage.getItem('accessToken')
-  const res = await fetch(`${API_BASE}/users/my-info`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  })
+  const res = await authFetch(`${API_BASE}/users/my-info`)
   if (!res.ok) {
     const message = await parseApiError(res)
     const err = new Error(message) as ApiErrorWithStatus

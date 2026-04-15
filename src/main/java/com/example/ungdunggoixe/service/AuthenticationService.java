@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
@@ -77,11 +78,15 @@ public class AuthenticationService {
             try{
                 var tokenPayload = jwtService.validateToken(accessToken, TokenType.ACCESS);
 
+                Instant now= Instant.now();
+                Instant expiration = tokenPayload.expiration();
+                long timeTolive = expiration.getEpochSecond() - now.getEpochSecond();
+                if (timeTolive <= 0) {
+                    return;
+                }
                 Token token= Token.builder()
                         .tokenID(tokenPayload.jti())
-                        .issuedAt(tokenPayload.issuedAt())
-                        .expireration(tokenPayload.expiration())
-
+                        .timeToLive(timeTolive)
                         .build();
                 tokenRepository.save(token);
             } catch (RuntimeException e) {

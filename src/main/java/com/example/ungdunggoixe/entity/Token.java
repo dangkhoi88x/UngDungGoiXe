@@ -1,11 +1,15 @@
 package com.example.ungdunggoixe.entity;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.TimeToLive;
 
 import java.time.Instant;
-@Entity
+import java.util.concurrent.TimeUnit;
+
+@RedisHash("token")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -14,7 +18,7 @@ import java.time.Instant;
 public class Token {
     @Id
     private String tokenID;
-    private Instant issuedAt;
-    private Instant expireration;
+    @TimeToLive(unit= TimeUnit.SECONDS)
+    private long timeToLive;
 
 }

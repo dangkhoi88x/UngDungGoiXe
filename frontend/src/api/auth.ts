@@ -64,6 +64,7 @@ export async function loginRequest(body: LoginBody): Promise<AuthLoginResult> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    credentials: 'include',
   })
   const data = await parseJsonSafe(res)
   if (!res.ok) {
@@ -76,6 +77,26 @@ export async function loginRequest(body: LoginBody): Promise<AuthLoginResult> {
     lastName: typeof o.lastName === 'string' ? o.lastName : '',
     accessToken: String(o.accessToken ?? ''),
     refreshToken: o.refreshToken != null ? String(o.refreshToken) : undefined,
+  }
+}
+
+export async function refreshAccessToken(): Promise<AuthLoginResult> {
+  const res = await fetch(`${API_BASE}/auth/refresh-token`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+
+  const data = await parseJsonSafe(res)
+  if (!res.ok) {
+    throw new Error(getErrorMessage(data, 'Refresh token không hợp lệ.'))
+  }
+
+  const o = data as Record<string, unknown>
+  return {
+    userId: Number(o.userId),
+    firstName: typeof o.firstName === 'string' ? o.firstName : '',
+    lastName: typeof o.lastName === 'string' ? o.lastName : '',
+    accessToken: String(o.accessToken ?? ''),
   }
 }
 
