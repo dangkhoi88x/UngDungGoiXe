@@ -21,4 +21,6 @@ public class Token {
     @TimeToLive(unit= TimeUnit.SECONDS)
     private long timeToLive;
 
+    private long userID;
+
 }

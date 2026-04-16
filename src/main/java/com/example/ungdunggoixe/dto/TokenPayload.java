@@ -6,11 +6,12 @@ import java.time.Instant;
 import java.util.List;
 @Builder
 public record TokenPayload(
+        String tokenValue,
         Long userId,
-        List<String> roles,
         String jti,
         Instant issuedAt,
-        Instant expiration
+        Instant expiration,
+        List<String> roles
 
 
 ) {

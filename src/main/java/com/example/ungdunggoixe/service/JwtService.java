@@ -45,23 +45,31 @@ public class JwtService {
         return jwtEncoder.encode(JwtEncoderParameters.from(header, jwtClaimsSet)).getTokenValue();
     }
 
-    public String generateRefreshToken(Long userId) {
+    public TokenPayload generateRefreshToken(Long userId) {
         // Header
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
 
         // Payload
         Instant now = Instant.now();
+        Instant expiresAt = now.plusSeconds(3600L * 24 * 14);
+        String jti = UUID.randomUUID().toString();
 
         JwtClaimsSet jwtClaimsSet = JwtClaimsSet.builder()
                 .subject(userId.toString())
+                .id(jti)
                 .audience(List.of(audience))
                 .issuedAt(now)
-                .expiresAt(now.plusSeconds(3600 * 24 * 14))
+                .expiresAt(expiresAt)
                 .issuer("http://localhost:8080")
                 .claim("typ", TokenType.REFRESH)
                 .build();
 
-        return jwtEncoder.encode(JwtEncoderParameters.from(header, jwtClaimsSet)).getTokenValue();
+        String token =jwtEncoder.encode(JwtEncoderParameters.from(header, jwtClaimsSet)).getTokenValue();
+            return TokenPayload.builder()
+                    .tokenValue(token)
+                    .jti(jti)
+                    .expiration(expiresAt)
+                    .build();
     }
         public TokenPayload validateToken(String token, TokenType type) {
             Jwt jwt = jwtDecoder.decode(token);
