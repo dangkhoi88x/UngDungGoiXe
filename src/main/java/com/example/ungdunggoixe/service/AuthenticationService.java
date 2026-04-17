@@ -105,9 +105,11 @@ public class AuthenticationService {
     public void logOut(String accessToken, String refreshToken){
             try{
                 var payloadAccess = jwtService.validateToken(accessToken, TokenType.ACCESS);
-                var payloadRefresh = jwtService.validateToken(accessToken, TokenType.REFRESH);
                 tokenService.saveToken(payloadAccess.jti(), payloadAccess.userId(), payloadAccess.expiration());
-                tokenService.deleteToken(payloadRefresh.jti());
+                if(refreshToken != null && !refreshToken.isBlank()){
+                    var payloadRefresh = jwtService.validateToken(refreshToken, TokenType.REFRESH);
+                    tokenService.deleteToken(payloadRefresh.jti());
+                }
 
             } catch (RuntimeException e) {
                 throw e;

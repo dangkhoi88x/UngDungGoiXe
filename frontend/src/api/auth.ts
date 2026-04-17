@@ -82,6 +82,20 @@ export async function refreshAccessToken(): Promise<AuthLoginResult> {
   }
 }
 
+export async function logoutRequest(accessToken: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/logout`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const data = await parseJsonSafe(res)
+    throw new Error(getApiMessage(data, 'Đăng xuất thất bại.'))
+  }
+}
+
 /** Lưu tên hiển thị sau đăng nhập (đọc ở landing header, v.v.). */
 export function persistUserDisplayName(firstName: string, lastName: string): void {
   const name = [firstName, lastName].map((s) => s.trim()).filter(Boolean).join(' ')

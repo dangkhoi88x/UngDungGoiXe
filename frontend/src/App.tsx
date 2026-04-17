@@ -1,12 +1,12 @@
 import StudioXLandingPage from './pages/studio-x-landing-page'
-import type { ReactElement } from 'react'
+import { useEffect, type ReactElement } from 'react'
 import AuthPage from './pages/AuthPage'
 import CarRentalPage from './pages/CarRentalPage'
 import VehicleDetailPage from './pages/VehicleDetailPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import UserAccountPage from './pages/UserAccountPage'
 import UserAccountUpdatePage from './pages/UserAccountUpdatePage'
-import { rolesFromJwt } from './api/auth'
+import { logoutRequest, rolesFromJwt } from './api/auth'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import './App.css'
 
@@ -37,15 +37,46 @@ function VehicleDetailRoute() {
   return <VehicleDetailPage vehicleId={vehicleId} />
 }
 
+function LogoutRoute() {
+  useEffect(() => {
+    let ignore = false
+
+    async function runLogout() {
+      const token = localStorage.getItem('accessToken')
+      try {
+        if (token) {
+          await logoutRequest(token)
+        }
+      } catch {
+        // Dù API logout lỗi vẫn xóa local session phía client.
+      } finally {
+        if (ignore) return
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+        localStorage.removeItem('userDisplayName')
+        window.location.replace('/auth')
+      }
+    }
+
+    void runLogout()
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  return <div style={{ padding: 24 }}>Đang đăng xuất…</div>
+}
+
 function App() {
   return (
     <Routes>
       <Route path="/" element={<StudioXLandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/logout" element={<LogoutRoute />} />
       <Route path="/account" element={<UserAccountPage />} />
       <Route path="/account/update" element={<UserAccountUpdatePage />} />
       <Route
-        path="/admin"
+        path="/admin/*"
         element={
           <RequireAdmin>
             <AdminDashboardPage />

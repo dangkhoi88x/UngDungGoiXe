@@ -8,11 +8,8 @@ import {
 } from '../api/users'
 import './UserAccountPage.css'
 
-function clearSessionAndGoAuth() {
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('refreshToken')
-  localStorage.removeItem('userDisplayName')
-  window.location.replace('/auth')
+function goLogoutRoute() {
+  window.location.replace('/logout')
 }
 
 function licenseStatusLabel(p: UserProfileDto | null): string {
@@ -47,7 +44,7 @@ export default function UserAccountUpdatePage() {
     } catch (e) {
       const status = typeof e === 'object' && e && 'status' in e ? (e as ApiErrorWithStatus).status : undefined
       if (status === 401) {
-        clearSessionAndGoAuth()
+        goLogoutRoute()
         return
       }
       setError(e instanceof Error ? e.message : 'Không tải được hồ sơ.')

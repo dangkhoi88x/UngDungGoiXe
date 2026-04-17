@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AdminBookingsSection from './AdminBookingsSection'
 import AdminStationsSection from './AdminStationsSection'
 import AdminUsersSection from './AdminUsersSection'
 import AdminVehiclesSection from './AdminVehiclesSection'
+import { useLocation, useNavigate } from 'react-router-dom'
 import './AdminDashboardPage.css'
 
 type NavId = 'home' | 'vehicles' | 'stations' | 'bookings' | 'users' | 'stats'
@@ -61,8 +62,30 @@ const BAR_MONTHS = ['T5', 'T6', 'T7', 'T8', 'T9']
 const BAR_HEIGHTS_BLUE = [45, 62, 55, 78, 70]
 const BAR_HEIGHTS_LIME = [38, 50, 48, 65, 58]
 
+const NAV_TO_ROUTE: Record<NavId, string> = {
+  home: '/admin/overview',
+  vehicles: '/admin/vehicles',
+  stations: '/admin/stations',
+  bookings: '/admin/bookings',
+  users: '/admin/users',
+  stats: '/admin/stats',
+}
+
+function navFromPath(pathname: string): NavId {
+  if (pathname === '/admin' || pathname === '/admin/') return 'home'
+  if (pathname.startsWith('/admin/vehicles')) return 'vehicles'
+  if (pathname.startsWith('/admin/stations')) return 'stations'
+  if (pathname.startsWith('/admin/bookings')) return 'bookings'
+  if (pathname.startsWith('/admin/users')) return 'users'
+  if (pathname.startsWith('/admin/stats')) return 'stats'
+  if (pathname.startsWith('/admin/overview')) return 'home'
+  return 'home'
+}
+
 export default function AdminDashboardPage() {
-  const [activeNav, setActiveNav] = useState<NavId>('bookings')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const activeNav = navFromPath(location.pathname)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [vehicleRefreshKey, setVehicleRefreshKey] = useState(0)
   const [stationRefreshKey, setStationRefreshKey] = useState(0)
@@ -80,10 +103,16 @@ export default function AdminDashboardPage() {
   const closeSidebar = useCallback(() => setSidebarOpen(false), [])
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), [])
 
+  useEffect(() => {
+    if (location.pathname === '/admin' || location.pathname === '/admin/') {
+      navigate('/admin/overview', { replace: true })
+    }
+  }, [location.pathname, navigate])
+
   const onNav = useCallback((id: NavId) => {
-    setActiveNav(id)
+    navigate(NAV_TO_ROUTE[id])
     setSidebarOpen(false)
-  }, [])
+  }, [navigate])
 
   return (
     <div className="adm">
@@ -99,7 +128,7 @@ export default function AdminDashboardPage() {
         className={`adm-sidebar${sidebarOpen ? ' is-open' : ''}`}
         aria-label="Menu quản trị"
       >
-        <a className="adm-sidebar__brand" href="/admin">
+        <a className="adm-sidebar__brand" href="/admin/overview">
           <span className="adm-sidebar__logo" aria-hidden>
             GX
           </span>

@@ -93,11 +93,20 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
   }, [vehicle])
 
   const mainSrc = images[Math.min(photoIndex, images.length - 1)] ?? PLACEHOLDER_IMG
+  const hasManyImages = images.length > 1
 
   const doorsGuess = (cap: number | null | undefined) => {
     if (cap == null || cap <= 0) return 4
     return cap <= 4 ? 4 : 5
   }
+
+  const goPrevPhoto = useCallback(() => {
+    setPhotoIndex((i) => (i - 1 + images.length) % images.length)
+  }, [images.length])
+
+  const goNextPhoto = useCallback(() => {
+    setPhotoIndex((i) => (i + 1) % images.length)
+  }, [images.length])
 
   if (loading) {
     return (
@@ -167,21 +176,62 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
             <div className="vd-gallery__main">
               <img src={mainSrc} alt={title} />
               <span className="vd-gallery__tag">{category}</span>
-            </div>
-            {images.length > 1 ? (
-              <div className="vd-thumbs" role="tablist" aria-label="Ảnh xe">
-                {images.map((src, i) => (
+              {hasManyImages ? (
+                <>
                   <button
-                    key={`${src}-${i}`}
                     type="button"
-                    className={`vd-thumb ${i === photoIndex ? 'is-active' : ''}`}
-                    onClick={() => setPhotoIndex(i)}
-                    aria-label={`Ảnh ${i + 1}`}
-                    aria-selected={i === photoIndex}
+                    className="vd-gallery__nav vd-gallery__nav--prev"
+                    onClick={goPrevPhoto}
+                    aria-label="Ảnh trước"
                   >
-                    <img src={src} alt="" loading="lazy" />
+                    ‹
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    className="vd-gallery__nav vd-gallery__nav--next"
+                    onClick={goNextPhoto}
+                    aria-label="Ảnh kế tiếp"
+                  >
+                    ›
+                  </button>
+                  <span className="vd-gallery__count">
+                    {photoIndex + 1} / {images.length}
+                  </span>
+                </>
+              ) : null}
+            </div>
+            {hasManyImages ? (
+              <div className="vd-thumbs-wrap">
+                <button
+                  type="button"
+                  className="vd-thumbs-nav"
+                  onClick={goPrevPhoto}
+                  aria-label="Thumbnail trước"
+                >
+                  ‹
+                </button>
+                <div className="vd-thumbs" role="tablist" aria-label="Ảnh xe">
+                  {images.map((src, i) => (
+                    <button
+                      key={`${src}-${i}`}
+                      type="button"
+                      className={`vd-thumb ${i === photoIndex ? 'is-active' : ''}`}
+                      onClick={() => setPhotoIndex(i)}
+                      aria-label={`Ảnh ${i + 1}`}
+                      aria-selected={i === photoIndex}
+                    >
+                      <img src={src} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="vd-thumbs-nav"
+                  onClick={goNextPhoto}
+                  aria-label="Thumbnail kế tiếp"
+                >
+                  ›
+                </button>
               </div>
             ) : null}
           </div>
