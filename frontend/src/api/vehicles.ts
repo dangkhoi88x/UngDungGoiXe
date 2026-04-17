@@ -1,3 +1,8 @@
+import {
+  parseApiErrorFromResponse,
+  unwrapApiData,
+} from './apiResponse'
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
 export type VehicleDto = {
@@ -29,9 +34,10 @@ export async function fetchAllVehicles(): Promise<VehicleDto[]> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  const data = (await res.json()) as unknown
-  if (!Array.isArray(data)) return []
-  return data as VehicleDto[]
+  const payload = (await res.json()) as unknown
+  const list = unwrapApiData<unknown>(payload)
+  if (!Array.isArray(list)) return []
+  return list as VehicleDto[]
 }
 
 export async function fetchAvailableVehicles(): Promise<VehicleDto[]> {
@@ -39,21 +45,14 @@ export async function fetchAvailableVehicles(): Promise<VehicleDto[]> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  const data = (await res.json()) as unknown
-  if (!Array.isArray(data)) return []
-  return data as VehicleDto[]
+  const payload = (await res.json()) as unknown
+  const list = unwrapApiData<unknown>(payload)
+  if (!Array.isArray(list)) return []
+  return list as VehicleDto[]
 }
 
 export async function parseApiError(res: Response): Promise<string> {
-  const text = await res.text()
-  if (!text) return `Lỗi ${res.status}`
-  try {
-    const j = JSON.parse(text) as { message?: string }
-    if (j?.message) return j.message
-  } catch {
-    /* ignore */
-  }
-  return text
+  return parseApiErrorFromResponse(res)
 }
 
 export type VehicleWritePayload = {
@@ -84,7 +83,10 @@ export async function createVehicle(
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as VehicleDto
+  const body = (await res.json()) as unknown
+  const vehicle = unwrapApiData<VehicleDto>(body)
+  if (!vehicle) throw new Error('Phản hồi tạo xe không hợp lệ.')
+  return vehicle
 }
 
 export async function updateVehicle(
@@ -99,7 +101,10 @@ export async function updateVehicle(
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as VehicleDto
+  const body = (await res.json()) as unknown
+  const vehicle = unwrapApiData<VehicleDto>(body)
+  if (!vehicle) throw new Error('Phản hồi cập nhật xe không hợp lệ.')
+  return vehicle
 }
 
 export async function deleteVehicle(id: number): Promise<void> {
@@ -114,7 +119,10 @@ export async function fetchVehicleById(id: number): Promise<VehicleDto> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as VehicleDto
+  const body = (await res.json()) as unknown
+  const vehicle = unwrapApiData<VehicleDto>(body)
+  if (!vehicle) throw new Error('Phản hồi chi tiết xe không hợp lệ.')
+  return vehicle
 }
 
 export function formatDailyPrice(v: VehicleDto): string {

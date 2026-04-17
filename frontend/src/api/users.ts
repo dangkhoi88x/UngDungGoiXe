@@ -1,5 +1,6 @@
 import { parseApiError } from './vehicles'
 import { authFetch } from './authFetch'
+import { unwrapApiData } from './apiResponse'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
@@ -97,7 +98,10 @@ export async function fetchUsersPage(params: {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as PagedUsersResponse
+  const payload = (await res.json()) as unknown
+  const paged = unwrapApiData<PagedUsersResponse>(payload)
+  if (!paged) throw new Error('Phản hồi danh sách người dùng không hợp lệ.')
+  return paged
 }
 
 export async function fetchUserById(id: number): Promise<UserProfileDto> {
@@ -105,7 +109,10 @@ export async function fetchUserById(id: number): Promise<UserProfileDto> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as UserProfileDto
+  const payload = (await res.json()) as unknown
+  const user = unwrapApiData<UserProfileDto>(payload)
+  if (!user) throw new Error('Phản hồi người dùng không hợp lệ.')
+  return user
 }
 
 export async function createUser(
@@ -119,7 +126,10 @@ export async function createUser(
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as UserDto
+  const responsePayload = (await res.json()) as unknown
+  const user = unwrapApiData<UserDto>(responsePayload)
+  if (!user) throw new Error('Phản hồi tạo người dùng không hợp lệ.')
+  return user
 }
 
 export async function updateUser(
@@ -134,7 +144,10 @@ export async function updateUser(
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as UserDto
+  const responsePayload = (await res.json()) as unknown
+  const user = unwrapApiData<UserDto>(responsePayload)
+  if (!user) throw new Error('Phản hồi cập nhật người dùng không hợp lệ.')
+  return user
 }
 
 export async function deleteUser(id: number): Promise<void> {
@@ -160,7 +173,10 @@ export async function submitMyDocuments(formData: FormData): Promise<UserProfile
     err.status = res.status
     throw err
   }
-  return (await res.json()) as UserProfileDto
+  const payload = (await res.json()) as unknown
+  const user = unwrapApiData<UserProfileDto>(payload)
+  if (!user) throw new Error('Phản hồi gửi giấy tờ không hợp lệ.')
+  return user
 }
 
 export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<UserProfileDto> {
@@ -185,7 +201,10 @@ export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<
     err.status = res.status
     throw err
   }
-  return (await res.json()) as UserProfileDto
+  const payloadData = (await res.json()) as unknown
+  const user = unwrapApiData<UserProfileDto>(payloadData)
+  if (!user) throw new Error('Phản hồi cập nhật hồ sơ không hợp lệ.')
+  return user
 }
 
 export async function fetchMyInfo(): Promise<UserProfileDto> {
@@ -196,7 +215,10 @@ export async function fetchMyInfo(): Promise<UserProfileDto> {
     err.status = res.status
     throw err
   }
-  return (await res.json()) as UserProfileDto
+  const payload = (await res.json()) as unknown
+  const user = unwrapApiData<UserProfileDto>(payload)
+  if (!user) throw new Error('Phản hồi thông tin tài khoản không hợp lệ.')
+  return user
 }
 
 export function userDisplayName(u: UserDto): string {

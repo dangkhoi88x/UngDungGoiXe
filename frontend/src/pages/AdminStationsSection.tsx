@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createStation,
   deleteStation,
@@ -64,6 +64,8 @@ type Props = {
 
 export default function AdminStationsSection({ refreshKey = 0 }: Props) {
   const [stations, setStations] = useState<StationDto[]>([])
+  const [filterKeyword, setFilterKeyword] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'ALL' | (typeof STATUSES)[number]>('ALL')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -93,6 +95,22 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
   useEffect(() => {
     void loadAll()
   }, [loadAll, refreshKey])
+
+  const filteredStations = useMemo(() => {
+    const q = filterKeyword.trim().toLowerCase()
+    return stations.filter((s) => {
+      if (filterStatus !== 'ALL' && (s.status || 'ACTIVE') !== filterStatus) {
+        return false
+      }
+      if (!q) return true
+      return (
+        String(s.id).includes(q) ||
+        (s.name || '').toLowerCase().includes(q) ||
+        (s.address || '').toLowerCase().includes(q) ||
+        (s.hotline || '').toLowerCase().includes(q)
+      )
+    })
+  }, [stations, filterKeyword, filterStatus])
 
   const openCreate = () => {
     setToast(null)
@@ -225,6 +243,52 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
         </p>
       ) : null}
 
+      <div className="adm-users__filters" aria-label="Bộ lọc trạm">
+        <div className="adm-veh__field" style={{ minWidth: 260, flex: '1 1 320px' }}>
+          <label className="adm-users__filter-label" htmlFor="sta-filter-keyword">
+            Từ khóa
+          </label>
+          <input
+            id="sta-filter-keyword"
+            type="search"
+            placeholder="Tên trạm, địa chỉ, hotline, ID..."
+            value={filterKeyword}
+            onChange={(e) => setFilterKeyword(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="adm-users__filter-label" htmlFor="sta-filter-status">
+            Trạng thái
+          </label>
+          <select
+            id="sta-filter-status"
+            value={filterStatus}
+            onChange={(e) =>
+              setFilterStatus(
+                e.target.value as 'ALL' | (typeof STATUSES)[number],
+              )
+            }
+          >
+            <option value="ALL">Tất cả</option>
+            {STATUSES.map((st) => (
+              <option key={st} value={st}>
+                {statusLabel(st)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          className="adm-veh__btn adm-veh__btn--ghost"
+          onClick={() => {
+            setFilterKeyword('')
+            setFilterStatus('ALL')
+          }}
+        >
+          Xóa lọc
+        </button>
+      </div>
+
       {stations.length === 0 && !loading ? (
         <p className="adm-veh__empty">Chưa có trạm. Nhấn «Thêm trạm» để tạo mới.</p>
       ) : null}
@@ -244,7 +308,7 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
               </tr>
             </thead>
             <tbody>
-              {stations.map((s) => (
+              {filteredStations.map((s) => (
                 <tr key={s.id}>
                   <td className="adm-veh__mono">{s.id}</td>
                   <td>{stationLabel(s)}</td>
@@ -295,6 +359,10 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
             </tbody>
           </table>
         </div>
+      ) : null}
+
+      {stations.length > 0 && filteredStations.length === 0 ? (
+        <p className="adm-veh__empty">Không có trạm nào khớp bộ lọc hiện tại.</p>
       ) : null}
 
       {modal ? (

@@ -50,7 +50,7 @@ public class AuthenticationService {
         String accessToken = jwtService.generateAccessToken(user.getId(),Roles);
         TokenPayload refreshToken = jwtService.generateRefreshToken(user.getId());
 
-        tokenService.saveToken(refreshToken.jti,user.getId(),refreshToken.expiration());
+        tokenService.saveToken(refreshToken.jti(), user.getId(), refreshToken.expiration());
 
         return AuthenticationResponse.builder()
                 .userId(user.getId())
@@ -98,7 +98,7 @@ public class AuthenticationService {
                    .build();
 
        }catch (ParseException | JOSEException e) {
-           log.error("Invalid refresh token: {}", e.getMessage());
+
            throw new RuntimeException("Unauthorized: Refresh token is invalid");
        }
     }
@@ -110,7 +110,7 @@ public class AuthenticationService {
                 tokenService.deleteToken(payloadRefresh.jti());
 
             } catch (RuntimeException e) {
-                log.error("Invalid token: {}", e.getMessage());
+                throw e;
             }
     }
 }

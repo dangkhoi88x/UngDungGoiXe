@@ -1,11 +1,13 @@
 package com.example.ungdunggoixe.controller;
 
 import com.example.ungdunggoixe.dto.request.CreatePaymentRequest;
+import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.PaymentResponse;
 import com.example.ungdunggoixe.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -19,8 +21,14 @@ public class PaymentController {
      * POST /payments
      */
     @PostMapping
-    public PaymentResponse create(@RequestBody CreatePaymentRequest request) {
-        return paymentService.createPayment(request);
+    public ApiResponse<PaymentResponse> create(@RequestBody CreatePaymentRequest request) {
+        PaymentResponse result = paymentService.createPayment(request);
+        return ApiResponse.<PaymentResponse>builder()
+                .status("success")
+                .message("Create payment successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     /**
@@ -28,8 +36,14 @@ public class PaymentController {
      * GET /payments?bookingId=1
      */
     @GetMapping
-    public List<PaymentResponse> getByBookingId(@RequestParam Long bookingId) {
-        return paymentService.getPaymentsByBookingId(bookingId);
+    public ApiResponse<List<PaymentResponse>> getByBookingId(@RequestParam Long bookingId) {
+        List<PaymentResponse> result = paymentService.getPaymentsByBookingId(bookingId);
+        return ApiResponse.<List<PaymentResponse>>builder()
+                .status("success")
+                .message("Get payments by booking successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     /**
@@ -37,8 +51,14 @@ public class PaymentController {
      * GET /payments/{id}
      */
     @GetMapping("/{id}")
-    public PaymentResponse getById(@PathVariable Long id) {
-        return paymentService.getPaymentById(id);
+    public ApiResponse<PaymentResponse> getById(@PathVariable Long id) {
+        PaymentResponse result = paymentService.getPaymentById(id);
+        return ApiResponse.<PaymentResponse>builder()
+                .status("success")
+                .message("Get payment by id successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     /**
@@ -46,8 +66,14 @@ public class PaymentController {
      * PATCH /payments/{id}/confirm
      */
     @PatchMapping("/{id}/confirm")
-    public PaymentResponse confirm(@PathVariable Long id) {
-        return paymentService.confirmPayment(id);
+    public ApiResponse<PaymentResponse> confirm(@PathVariable Long id) {
+        PaymentResponse result = paymentService.confirmPayment(id);
+        return ApiResponse.<PaymentResponse>builder()
+                .status("success")
+                .message("Confirm payment successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     /**
@@ -55,7 +81,13 @@ public class PaymentController {
      * PATCH /payments/{id}/fail
      */
     @PatchMapping("/{id}/fail")
-    public PaymentResponse fail(@PathVariable Long id) {
-        return paymentService.failPayment(id);
+    public ApiResponse<PaymentResponse> fail(@PathVariable Long id) {
+        PaymentResponse result = paymentService.failPayment(id);
+        return ApiResponse.<PaymentResponse>builder()
+                .status("success")
+                .message("Fail payment successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 }

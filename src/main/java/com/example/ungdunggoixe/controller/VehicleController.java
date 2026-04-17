@@ -4,12 +4,14 @@ import com.example.ungdunggoixe.common.FuelType;
 import com.example.ungdunggoixe.common.VehicleStatus;
 import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
+import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.CreateVehicleResponse;
 import com.example.ungdunggoixe.service.VehicleService;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -19,17 +21,23 @@ public class VehicleController {
     private final VehicleService vehicleService;
 
     @PostMapping
-    public CreateVehicleResponse create(@RequestBody CreateVehicleRequest request) {
-        return vehicleService.create(request);
-    }
+    public ApiResponse<CreateVehicleResponse> create(@RequestBody CreateVehicleRequest request) {
+        CreateVehicleResponse result = vehicleService.create(request);
 
+        return ApiResponse.<CreateVehicleResponse>builder()
+                .status("success")
+                .message("Create vehicle successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
+    }
     /**
      * Search xe nâng cao:
      * GET /vehicles?stationId=1&brand=Toyota&minCapacity=4&fuelType=GASOLINE&minPrice=50000&maxPrice=200000
      * Tất cả params đều optional.
      */
     @GetMapping
-    public List<CreateVehicleResponse> searchVehicles(
+    public ApiResponse<List<CreateVehicleResponse>> searchVehicles(
             @RequestParam(required = false) Long stationId,
             @RequestParam(required = false) VehicleStatus status,
             @RequestParam(required = false) FuelType fuelType,
@@ -38,17 +46,35 @@ public class VehicleController {
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice
     ) {
-        return vehicleService.searchVehicles(stationId, status, fuelType, brand, minCapacity, minPrice, maxPrice);
+        List<CreateVehicleResponse> result = vehicleService.searchVehicles(stationId, status, fuelType, brand, minCapacity, minPrice, maxPrice);
+        return ApiResponse.<List<CreateVehicleResponse>>builder()
+                .status("success")
+                .message("Search vehicles successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @GetMapping("/{id}")
-    public CreateVehicleResponse getById(@PathVariable Long id) {
-        return vehicleService.getVehicleById(id);
+    public ApiResponse<CreateVehicleResponse> getById(@PathVariable Long id) {
+        CreateVehicleResponse result = vehicleService.getVehicleById(id);
+        return ApiResponse.<CreateVehicleResponse>builder()
+                .status("success")
+                .message("Get vehicle successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @PutMapping("/{id}")
-    public CreateVehicleResponse update(@PathVariable Long id, @RequestBody UpdateVehicleRequest request) {
-        return vehicleService.updateVehicle(id, request);
+    public ApiResponse<CreateVehicleResponse> update(@PathVariable Long id, @RequestBody UpdateVehicleRequest request) {
+        CreateVehicleResponse result = vehicleService.updateVehicle(id, request);
+        return ApiResponse.<CreateVehicleResponse>builder()
+                .status("success")
+                .message("Update vehicle successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @DeleteMapping("/{id}")

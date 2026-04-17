@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createVehicle,
   deleteVehicle,
@@ -148,6 +148,10 @@ type Props = {
 export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
   const [stations, setStations] = useState<StationDto[]>([])
   const [vehicles, setVehicles] = useState<VehicleDto[]>([])
+  const [filterKeyword, setFilterKeyword] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'ALL' | (typeof STATUSES)[number]>('ALL')
+  const [filterFuel, setFilterFuel] = useState<'ALL' | (typeof FUELS)[number]>('ALL')
+  const [filterStationId, setFilterStationId] = useState<'ALL' | string>('ALL')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -183,6 +187,27 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
   useEffect(() => {
     void loadAll()
   }, [loadAll, refreshKey])
+
+  const filteredVehicles = useMemo(() => {
+    const q = filterKeyword.trim().toLowerCase()
+    return vehicles.filter((v) => {
+      if (filterStatus !== 'ALL' && v.status !== filterStatus) return false
+      if (filterFuel !== 'ALL' && v.fuelType !== filterFuel) return false
+      if (filterStationId !== 'ALL' && String(v.stationId) !== filterStationId) return false
+      if (!q) return true
+      const name = vehicleDisplayName(v).toLowerCase()
+      const brand = (v.brand || '').toLowerCase()
+      const plate = (v.licensePlate || '').toLowerCase()
+      const station = stationName(v.stationId).toLowerCase()
+      return (
+        String(v.id).includes(q) ||
+        name.includes(q) ||
+        brand.includes(q) ||
+        plate.includes(q) ||
+        station.includes(q)
+      )
+    })
+  }, [vehicles, filterKeyword, filterStatus, filterFuel, filterStationId])
 
   const openCreate = () => {
     setToast(null)
@@ -301,6 +326,86 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
         </p>
       ) : null}
 
+      <div className="adm-users__filters" aria-label="Bộ lọc phương tiện">
+        <div className="adm-veh__field" style={{ minWidth: 260, flex: '1 1 320px' }}>
+          <label className="adm-users__filter-label" htmlFor="veh-filter-keyword">
+            Tìm kiếm
+          </label>
+          <input
+            id="veh-filter-keyword"
+            type="search"
+            placeholder="ID, biển số, tên xe, hãng, trạm..."
+            value={filterKeyword}
+            onChange={(e) => setFilterKeyword(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="adm-users__filter-label" htmlFor="veh-filter-status">
+            Trạng thái
+          </label>
+          <select
+            id="veh-filter-status"
+            value={filterStatus}
+            onChange={(e) =>
+              setFilterStatus(e.target.value as 'ALL' | (typeof STATUSES)[number])
+            }
+          >
+            <option value="ALL">Tất cả</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {statusLabel(s)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="adm-users__filter-label" htmlFor="veh-filter-fuel">
+            Nhiên liệu
+          </label>
+          <select
+            id="veh-filter-fuel"
+            value={filterFuel}
+            onChange={(e) => setFilterFuel(e.target.value as 'ALL' | (typeof FUELS)[number])}
+          >
+            <option value="ALL">Tất cả</option>
+            {FUELS.map((f) => (
+              <option key={f} value={f}>
+                {fuelLabel(f)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="adm-users__filter-label" htmlFor="veh-filter-station">
+            Trạm
+          </label>
+          <select
+            id="veh-filter-station"
+            value={filterStationId}
+            onChange={(e) => setFilterStationId(e.target.value)}
+          >
+            <option value="ALL">Tất cả</option>
+            {stations.map((s) => (
+              <option key={s.id} value={String(s.id)}>
+                {stationLabel(s)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          className="adm-veh__btn adm-veh__btn--ghost"
+          onClick={() => {
+            setFilterKeyword('')
+            setFilterStatus('ALL')
+            setFilterFuel('ALL')
+            setFilterStationId('ALL')
+          }}
+        >
+          Xóa lọc
+        </button>
+      </div>
+
       {!firstStationId && !loading ? (
         <p className="adm-veh__msg adm-veh__msg--err">
           Chưa có trạm nào. Hãy tạo trạm qua API{' '}
@@ -328,7 +433,7 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
               </tr>
             </thead>
             <tbody>
-              {vehicles.map((v) => (
+              {filteredVehicles.map((v) => (
                 <tr key={v.id}>
                   <td className="adm-veh__mono">{v.id}</td>
                   <td className="adm-veh__mono">{v.licensePlate}</td>
@@ -370,6 +475,10 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
             </tbody>
           </table>
         </div>
+      ) : null}
+
+      {vehicles.length > 0 && filteredVehicles.length === 0 ? (
+        <p className="adm-veh__empty">Không có phương tiện nào khớp bộ lọc hiện tại.</p>
       ) : null}
 
       {modal ? (

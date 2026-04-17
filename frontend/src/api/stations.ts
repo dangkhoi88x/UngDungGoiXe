@@ -1,4 +1,5 @@
 import { parseApiError } from './vehicles'
+import { unwrapApiData } from './apiResponse'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
@@ -39,9 +40,10 @@ export async function fetchStations(): Promise<StationDto[]> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  const data = (await res.json()) as unknown
-  if (!Array.isArray(data)) return []
-  return data as StationDto[]
+  const payload = (await res.json()) as unknown
+  const list = unwrapApiData<unknown>(payload)
+  if (!Array.isArray(list)) return []
+  return list as StationDto[]
 }
 
 export async function fetchStationById(id: number): Promise<StationDto> {
@@ -49,7 +51,10 @@ export async function fetchStationById(id: number): Promise<StationDto> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as StationDto
+  const payload = (await res.json()) as unknown
+  const station = unwrapApiData<StationDto>(payload)
+  if (!station) throw new Error('Phản hồi trạm không hợp lệ.')
+  return station
 }
 
 export async function createStation(
@@ -63,7 +68,10 @@ export async function createStation(
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as StationDto
+  const responsePayload = (await res.json()) as unknown
+  const station = unwrapApiData<StationDto>(responsePayload)
+  if (!station) throw new Error('Phản hồi tạo trạm không hợp lệ.')
+  return station
 }
 
 export async function updateStation(
@@ -78,7 +86,10 @@ export async function updateStation(
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as StationDto
+  const responsePayload = (await res.json()) as unknown
+  const station = unwrapApiData<StationDto>(responsePayload)
+  if (!station) throw new Error('Phản hồi cập nhật trạm không hợp lệ.')
+  return station
 }
 
 /** Backend đặt trạng thái INACTIVE (soft delete). */

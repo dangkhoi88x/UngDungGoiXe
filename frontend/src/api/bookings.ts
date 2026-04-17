@@ -1,5 +1,6 @@
 import { parseApiError } from './vehicles'
 import { authFetch } from './authFetch'
+import { unwrapApiData } from './apiResponse'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
@@ -94,7 +95,10 @@ export async function fetchBookingsPaged(params: {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as PagedBookingsResponse
+  const payload = (await res.json()) as unknown
+  const paged = unwrapApiData<PagedBookingsResponse>(payload)
+  if (!paged) throw new Error('Phản hồi danh sách booking không hợp lệ.')
+  return paged
 }
 
 export async function createBooking(
@@ -108,7 +112,10 @@ export async function createBooking(
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as BookingDto
+  const responsePayload = (await res.json()) as unknown
+  const booking = unwrapApiData<BookingDto>(responsePayload)
+  if (!booking) throw new Error('Phản hồi tạo booking không hợp lệ.')
+  return booking
 }
 
 export async function updateBooking(
@@ -123,7 +130,10 @@ export async function updateBooking(
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as BookingDto
+  const responsePayload = (await res.json()) as unknown
+  const booking = unwrapApiData<BookingDto>(responsePayload)
+  if (!booking) throw new Error('Phản hồi cập nhật booking không hợp lệ.')
+  return booking
 }
 
 export async function deleteBooking(id: number): Promise<void> {
@@ -140,7 +150,10 @@ export async function confirmBooking(id: number): Promise<BookingDto> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as BookingDto
+  const payload = (await res.json()) as unknown
+  const booking = unwrapApiData<BookingDto>(payload)
+  if (!booking) throw new Error('Phản hồi xác nhận booking không hợp lệ.')
+  return booking
 }
 
 export async function pickupBooking(id: number): Promise<BookingDto> {
@@ -150,7 +163,10 @@ export async function pickupBooking(id: number): Promise<BookingDto> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as BookingDto
+  const payload = (await res.json()) as unknown
+  const booking = unwrapApiData<BookingDto>(payload)
+  if (!booking) throw new Error('Phản hồi nhận xe không hợp lệ.')
+  return booking
 }
 
 export async function returnBooking(id: number): Promise<BookingDto> {
@@ -160,7 +176,10 @@ export async function returnBooking(id: number): Promise<BookingDto> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as BookingDto
+  const payload = (await res.json()) as unknown
+  const booking = unwrapApiData<BookingDto>(payload)
+  if (!booking) throw new Error('Phản hồi trả xe không hợp lệ.')
+  return booking
 }
 
 export async function cancelBooking(id: number): Promise<BookingDto> {
@@ -170,7 +189,10 @@ export async function cancelBooking(id: number): Promise<BookingDto> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as BookingDto
+  const payload = (await res.json()) as unknown
+  const booking = unwrapApiData<BookingDto>(payload)
+  if (!booking) throw new Error('Phản hồi hủy booking không hợp lệ.')
+  return booking
 }
 
 export function formatBookingMoney(v: string | number | null | undefined): string {
