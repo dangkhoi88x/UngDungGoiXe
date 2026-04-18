@@ -4,6 +4,8 @@ package com.example.ungdunggoixe.repository;
 import com.example.ungdunggoixe.common.FuelType;
 import com.example.ungdunggoixe.common.VehicleStatus;
 import com.example.ungdunggoixe.entity.Vehicle;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -40,5 +42,30 @@ public interface VehicleRepository extends JpaRepository<Vehicle,Long> {
             @Param("minCapacity") Integer minCapacity,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice
+    );
+
+    /**
+     * Admin: phân trang + lọc; keyword rỗng = không lọc theo text.
+     */
+    @Query("""
+        SELECT v FROM Vehicle v
+        WHERE (:stationId IS NULL OR v.station.id = :stationId)
+          AND (:status IS NULL OR v.status = :status)
+          AND (:fuelType IS NULL OR v.fuelType = :fuelType)
+          AND (
+            LENGTH(TRIM(:keyword)) = 0
+            OR LOWER(v.licensePlate) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%'))
+            OR LOWER(COALESCE(v.name, '')) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%'))
+            OR LOWER(COALESCE(v.brand, '')) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%'))
+            OR LOWER(COALESCE(v.station.name, '')) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%'))
+            OR CAST(v.id AS string) LIKE CONCAT('%', TRIM(:keyword), '%')
+          )
+        """)
+    Page<Vehicle> findAdminPage(
+            @Param("stationId") Long stationId,
+            @Param("status") VehicleStatus status,
+            @Param("fuelType") FuelType fuelType,
+            @Param("keyword") String keyword,
+            Pageable pageable
     );
 }

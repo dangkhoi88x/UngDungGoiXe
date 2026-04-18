@@ -1,3 +1,5 @@
+import { getApiMessage, parseJsonSafe, unwrapApiData } from './apiResponse'
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
 type LoginBody = { email: string; password: string }
@@ -16,24 +18,27 @@ export type AuthLoginResult = {
   refreshToken?: string
 }
 
-export type ApiErrorShape = { code?: number; message?: string }
-
-async function parseJsonSafe(res: Response): Promise<unknown> {
-  const text = await res.text()
-  if (!text) return null
+/** Giải mã payload JWT (không verify chữ ký — chỉ dùng cho điều hướng UI sau đăng nhập). */
+export function parseJwtPayload(token: string): Record<string, unknown> | null {
   try {
-    return JSON.parse(text) as unknown
+    const seg = token.split('.')[1]
+    if (!seg) return null
+    const b64 = seg.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=')
+    const json = atob(padded)
+    return JSON.parse(json) as Record<string, unknown>
   } catch {
-    return { message: text }
+    return null
   }
 }
 
-function getErrorMessage(data: unknown, fallback: string): string {
-  if (data && typeof data === 'object' && 'message' in data) {
-    const m = (data as ApiErrorShape).message
-    if (typeof m === 'string' && m.length > 0) return m
-  }
-  return fallback
+/** Claim `roles` trong access token (chuỗi Spring: ROLE_ADMIN, ROLE_USER, …). */
+export function rolesFromJwt(token: string | undefined | null): string[] {
+  if (!token) return []
+  const payload = parseJwtPayload(token)
+  const raw = payload?.roles
+  if (!Array.isArray(raw)) return []
+  return raw.map(String)
 }
 
 export async function loginRequest(body: LoginBody): Promise<AuthLoginResult> {
@@ -41,18 +46,53 @@ export async function loginRequest(body: LoginBody): Promise<AuthLoginResult> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    credentials: 'include',
   })
   const data = await parseJsonSafe(res)
   if (!res.ok) {
-    throw new Error(getErrorMessage(data, res.status === 401 ? 'Email hoặc mật khẩu không đúng.' : 'Đăng nhập thất bại.'))
+    throw new Error(getApiMessage(data, res.status === 401 ? 'Email hoặc mật khẩu không đúng.' : 'Đăng nhập thất bại.'))
   }
-  const o = data as Record<string, unknown>
+  const o = unwrapApiData<Record<string, unknown>>(data) ?? {}
   return {
     userId: Number(o.userId),
     firstName: typeof o.firstName === 'string' ? o.firstName : '',
     lastName: typeof o.lastName === 'string' ? o.lastName : '',
     accessToken: String(o.accessToken ?? ''),
     refreshToken: o.refreshToken != null ? String(o.refreshToken) : undefined,
+  }
+}
+
+export async function refreshAccessToken(): Promise<AuthLoginResult> {
+  const res = await fetch(`${API_BASE}/auth/refresh-token`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+
+  const data = await parseJsonSafe(res)
+  if (!res.ok) {
+    throw new Error(getApiMessage(data, 'Refresh token không hợp lệ.'))
+  }
+
+  const o = unwrapApiData<Record<string, unknown>>(data) ?? {}
+  return {
+    userId: Number(o.userId),
+    firstName: typeof o.firstName === 'string' ? o.firstName : '',
+    lastName: typeof o.lastName === 'string' ? o.lastName : '',
+    accessToken: String(o.accessToken ?? ''),
+  }
+}
+
+export async function logoutRequest(accessToken: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/logout`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const data = await parseJsonSafe(res)
+    throw new Error(getApiMessage(data, 'Đăng xuất thất bại.'))
   }
 }
 
@@ -71,6 +111,6 @@ export async function registerRequest(body: RegisterBody): Promise<void> {
   })
   const data = await parseJsonSafe(res)
   if (!res.ok) {
-    throw new Error(getErrorMessage(data, 'Đăng ký thất bại.'))
+    throw new Error(getApiMessage(data, 'Đăng ký thất bại.'))
   }
 }

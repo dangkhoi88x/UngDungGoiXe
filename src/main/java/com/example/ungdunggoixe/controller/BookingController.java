@@ -4,6 +4,7 @@ import com.example.ungdunggoixe.common.BookingStatus;
 import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.request.CreateBookingRequest;
 import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
+import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
 import com.example.ungdunggoixe.dto.response.PagedBookingResponse;
 import com.example.ungdunggoixe.exception.AppException;
@@ -15,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -26,37 +28,55 @@ public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping
-    public BookingResponse create(@RequestBody CreateBookingRequest request) {
-        return bookingService.createBooking(request);
+    public ApiResponse<BookingResponse> create(@RequestBody CreateBookingRequest request) {
+        BookingResponse result = bookingService.createBooking(request);
+        return ApiResponse.<BookingResponse>builder()
+                .status("success")
+                .message("Create booking successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     /**
      * Các path cố định phải đứng trước <code>/{id}</code> để tránh nhầm (vd. id = "paged", "me").
      */
     @GetMapping("/vehicle-availability")
-    public ResponseEntity<Map<String, Object>> checkVehicleAvailability(
+    public ApiResponse<Map<String, Object>> checkVehicleAvailability(
             @RequestParam Long vehicleId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
         boolean available = bookingService.isVehicleAvailable(vehicleId, start, end);
-        return ResponseEntity.ok(Map.of(
+        Map<String, Object> result = Map.of(
                 "vehicleId", vehicleId,
                 "start", start.toString(),
                 "end", end.toString(),
-                "available", available));
+                "available", available);
+        return ApiResponse.<Map<String, Object>>builder()
+                .status("success")
+                .message("Check vehicle availability successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @GetMapping("/me")
-    public List<BookingResponse> getMyBookings(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<List<BookingResponse>> getMyBookings(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
         Long userId = Long.parseLong(jwt.getSubject());
-        return bookingService.getMyBookings(userId);
+        List<BookingResponse> result = bookingService.getMyBookings(userId);
+        return ApiResponse.<List<BookingResponse>>builder()
+                .status("success")
+                .message("Get my bookings successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @GetMapping("/paged")
-    public PagedBookingResponse getBookingsPaged(
+    public ApiResponse<PagedBookingResponse> getBookingsPaged(
             @RequestParam(required = false) Long renterId,
             @RequestParam(required = false) Long stationId,
             @RequestParam(required = false) BookingStatus status,
@@ -64,25 +84,49 @@ public class BookingController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
-        return bookingService.getBookingsPaged(renterId, stationId, status, page, size, sortBy, sortDir);
+        PagedBookingResponse result = bookingService.getBookingsPaged(renterId, stationId, status, page, size, sortBy, sortDir);
+        return ApiResponse.<PagedBookingResponse>builder()
+                .status("success")
+                .message("Get bookings page successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @GetMapping("/{id}")
-    public BookingResponse getById(@PathVariable Long id) {
-        return bookingService.getBookingById(id);
+    public ApiResponse<BookingResponse> getById(@PathVariable Long id) {
+        BookingResponse result = bookingService.getBookingById(id);
+        return ApiResponse.<BookingResponse>builder()
+                .status("success")
+                .message("Get booking by id successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @GetMapping
-    public List<BookingResponse> getAll(
+    public ApiResponse<List<BookingResponse>> getAll(
             @RequestParam(required = false) Long renterId,
             @RequestParam(required = false) Long stationId,
             @RequestParam(required = false) BookingStatus status) {
-        return bookingService.getBookings(renterId, stationId, status);
+        List<BookingResponse> result = bookingService.getBookings(renterId, stationId, status);
+        return ApiResponse.<List<BookingResponse>>builder()
+                .status("success")
+                .message("Get bookings successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @PutMapping("/{id}")
-    public BookingResponse update(@PathVariable Long id, @RequestBody UpdateBookingRequest request) {
-        return bookingService.updateBooking(id, request);
+    public ApiResponse<BookingResponse> update(@PathVariable Long id, @RequestBody UpdateBookingRequest request) {
+        BookingResponse result = bookingService.updateBooking(id, request);
+        return ApiResponse.<BookingResponse>builder()
+                .status("success")
+                .message("Update booking successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @DeleteMapping("/{id}")
@@ -91,22 +135,46 @@ public class BookingController {
     }
 
     @PatchMapping("/{id}/confirm")
-    public BookingResponse confirm(@PathVariable Long id) {
-        return bookingService.confirmBooking(id);
+    public ApiResponse<BookingResponse> confirm(@PathVariable Long id) {
+        BookingResponse result = bookingService.confirmBooking(id);
+        return ApiResponse.<BookingResponse>builder()
+                .status("success")
+                .message("Confirm booking successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @PatchMapping("/{id}/pickup")
-    public BookingResponse pickup(@PathVariable Long id) {
-        return bookingService.pickupBooking(id);
+    public ApiResponse<BookingResponse> pickup(@PathVariable Long id) {
+        BookingResponse result = bookingService.pickupBooking(id);
+        return ApiResponse.<BookingResponse>builder()
+                .status("success")
+                .message("Pickup booking successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @PatchMapping("/{id}/return")
-    public BookingResponse returnVehicle(@PathVariable Long id) {
-        return bookingService.returnBooking(id);
+    public ApiResponse<BookingResponse> returnVehicle(@PathVariable Long id) {
+        BookingResponse result = bookingService.returnBooking(id);
+        return ApiResponse.<BookingResponse>builder()
+                .status("success")
+                .message("Return booking successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 
     @PatchMapping("/{id}/cancel")
-    public BookingResponse cancel(@PathVariable Long id) {
-        return bookingService.cancelBooking(id);
+    public ApiResponse<BookingResponse> cancel(@PathVariable Long id) {
+        BookingResponse result = bookingService.cancelBooking(id);
+        return ApiResponse.<BookingResponse>builder()
+                .status("success")
+                .message("Cancel booking successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
     }
 }

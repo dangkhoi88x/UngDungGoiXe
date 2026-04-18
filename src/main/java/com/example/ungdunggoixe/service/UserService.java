@@ -3,7 +3,7 @@ package com.example.ungdunggoixe.service;
 import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.example.ungdunggoixe.common.RoleName;
-import com.example.ungdunggoixe.dto.request.CreateAdminBootstrapRequest;
+
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 
 import com.example.ungdunggoixe.dto.request.UpdateMyProfileRequest;
@@ -55,58 +55,6 @@ public class UserService {
         userRepository.save(user);
         return UserMapper.INSTANCE.ToCreateUserResponse(user);
 }
-
-    @Transactional
-    public CreateUserResponse createPrivilegedUser(CreateAdminBootstrapRequest req) {
-        RoleName role = parseBootstrapRole(req.getRole());
-        String email = req.getEmail();
-        if (email == null || email.isBlank()
-                || req.getPassword() == null || req.getPassword().isBlank()
-                || req.getFirstName() == null || req.getFirstName().isBlank()
-                || req.getLastName() == null || req.getLastName().isBlank()) {
-            throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_BODY_INVALID);
-        }
-        if (userRepository.existsByEmail(email.trim())) {
-            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
-        }
-        CreateUserRequest mapped = new CreateUserRequest();
-        mapped.setEmail(email.trim());
-        mapped.setPassword(req.getPassword());
-        mapped.setFirstName(req.getFirstName());
-        mapped.setLastName(req.getLastName());
-        User user = UserMapper.INSTANCE.ToUser(mapped);
-        user.setPassword(passwordEncoder.encode(req.getPassword()));
-        user.addRole(roleService.createRole(role));
-        userRepository.save(user);
-        return UserMapper.INSTANCE.ToCreateUserResponse(user);
-    }
-
-    private static RoleName parseBootstrapRole(String raw) {
-        if (raw == null || raw.isBlank()) {
-            throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_ROLE_INVALID);
-        }
-        String u = raw.trim().toUpperCase().replace('-', '_');
-        if ("SUPER_ADMIN".equals(u)) {
-            return RoleName.SUPER_ADMIN;
-        }
-        if ("ADMIN".equals(u)) {
-            return RoleName.ADMIN;
-        }
-        throw new AppException(ErrorCode.BOOTSTRAP_ADMIN_ROLE_INVALID);
-    }
-
-    private static boolean currentAuthenticationHasAuthority(String authority) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) {
-            return false;
-        }
-        for (GrantedAuthority ga : auth.getAuthorities()) {
-            if (authority.equals(ga.getAuthority())) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     public UserResponse getUserbyID(Long id){
         return userRepository.findById(id)

@@ -15,6 +15,200 @@
   scroll-behavior: smooth;
 }
 
+/* ── Rent-style top navigation on landing ─────────── */
+.sx-page .cr-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 220;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 clamp(1rem, 3vw, 2.5rem);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+.sx-page .cr-nav.cr-nav--solid {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.sx-page .cr-nav__left {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.9rem, 2.2vw, 2.2rem);
+  flex-shrink: 0;
+}
+
+.sx-page .cr-nav__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+.sx-page .cr-nav__logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #fff;
+  color: #1a1a1a;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.sx-page .cr-nav__links {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1.5vw, 1.25rem);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sx-page .cr-nav__links a {
+  color: rgba(255, 255, 255, 0.92);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sx-page .cr-nav__links a:hover {
+  color: #fff;
+}
+
+.sx-page .cr-nav__search-wrap {
+  flex: 1;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.sx-page .cr-nav__search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  padding: 0.48rem 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.sx-page .cr-nav__search span {
+  opacity: 0.45;
+  font-size: 0.9rem;
+}
+
+.sx-page .cr-nav__search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  min-width: 0;
+}
+
+.sx-page .cr-nav__search input:focus {
+  outline: none;
+}
+
+.sx-page .cr-nav__right {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-shrink: 0;
+}
+
+.sx-page .cr-nav__lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #fff;
+  font-size: 0.875rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+}
+
+.sx-page .cr-nav__login {
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sx-page .cr-nav__signup {
+  background: #fff;
+  color: #1a1a1a;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+}
+
+.sx-page .cr-nav__signup:hover {
+  filter: brightness(0.95);
+}
+
+.sx-page .cr-nav__account-btn {
+  display: inline-flex;
+  align-items: center;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.sx-page .cr-nav__account-btn:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.sx-page .cr-nav__logout-btn {
+  background: #fff;
+  color: #1a1a1a;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+}
+
+.sx-page .cr-nav__logout-btn:hover {
+  filter: brightness(0.95);
+}
+
+@media (max-width: 1024px) {
+  .sx-page .cr-nav__links {
+    display: none;
+  }
+
+  .sx-page .cr-nav__search-wrap {
+    display: none;
+  }
+}
+
 .sx-page main {
   position: relative;
   z-index: 1;

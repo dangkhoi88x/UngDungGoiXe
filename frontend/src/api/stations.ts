@@ -1,4 +1,6 @@
 import { parseApiError } from './vehicles'
+import { unwrapApiData } from './apiResponse'
+import { authFetch } from './authFetch'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
@@ -34,14 +36,51 @@ export type StationUpdatePayload = {
   endTime?: string | null
 }
 
+export type PagedStationsResponse = {
+  content: StationDto[]
+  totalElements: number
+  totalPages: number
+  page: number
+  size: number
+}
+
+/** Admin: phân trang + sort + lọc (JWT). */
+export async function fetchStationsPage(params: {
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: 'asc' | 'desc'
+  status?: string
+  keyword?: string
+}): Promise<PagedStationsResponse> {
+  const q = new URLSearchParams()
+  q.set('page', String(params.page ?? 0))
+  q.set('size', String(params.size ?? 10))
+  q.set('sortBy', params.sortBy ?? 'id')
+  q.set('sortDir', params.sortDir ?? 'desc')
+  if (params.status) q.set('status', params.status)
+  if (params.keyword != null && params.keyword.trim() !== '') {
+    q.set('keyword', params.keyword.trim())
+  }
+  const res = await authFetch(`${API_BASE}/stations/paged?${q}`)
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const payload = (await res.json()) as unknown
+  const paged = unwrapApiData<PagedStationsResponse>(payload)
+  if (!paged) throw new Error('Phản hồi danh sách trạm không hợp lệ.')
+  return paged
+}
+
 export async function fetchStations(): Promise<StationDto[]> {
   const res = await fetch(`${API_BASE}/stations`)
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  const data = (await res.json()) as unknown
-  if (!Array.isArray(data)) return []
-  return data as StationDto[]
+  const payload = (await res.json()) as unknown
+  const list = unwrapApiData<unknown>(payload)
+  if (!Array.isArray(list)) return []
+  return list as StationDto[]
 }
 
 export async function fetchStationById(id: number): Promise<StationDto> {
@@ -49,7 +88,10 @@ export async function fetchStationById(id: number): Promise<StationDto> {
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as StationDto
+  const payload = (await res.json()) as unknown
+  const station = unwrapApiData<StationDto>(payload)
+  if (!station) throw new Error('Phản hồi trạm không hợp lệ.')
+  return station
 }
 
 export async function createStation(
@@ -63,7 +105,10 @@ export async function createStation(
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as StationDto
+  const responsePayload = (await res.json()) as unknown
+  const station = unwrapApiData<StationDto>(responsePayload)
+  if (!station) throw new Error('Phản hồi tạo trạm không hợp lệ.')
+  return station
 }
 
 export async function updateStation(
@@ -78,7 +123,10 @@ export async function updateStation(
   if (!res.ok) {
     throw new Error(await parseApiError(res))
   }
-  return (await res.json()) as StationDto
+  const responsePayload = (await res.json()) as unknown
+  const station = unwrapApiData<StationDto>(responsePayload)
+  if (!station) throw new Error('Phản hồi cập nhật trạm không hợp lệ.')
+  return station
 }
 
 /** Backend đặt trạng thái INACTIVE (soft delete). */

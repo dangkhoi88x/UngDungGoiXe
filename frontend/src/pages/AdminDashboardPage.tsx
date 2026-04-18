@@ -1,9 +1,27 @@
-import { useCallback, useMemo, useState } from 'react'
-import AdminBookingsSection from './AdminBookingsSection'
-import AdminStationsSection from './AdminStationsSection'
-import AdminUsersSection from './AdminUsersSection'
-import AdminVehiclesSection from './AdminVehiclesSection'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import './AdminDashboardPage.css'
+
+const AdminVehiclesSection = lazy(() => import('./AdminVehiclesSection'))
+const AdminStationsSection = lazy(() => import('./AdminStationsSection'))
+const AdminUsersSection = lazy(() => import('./AdminUsersSection'))
+const AdminBookingsSection = lazy(() => import('./AdminBookingsSection'))
+
+function AdminSectionFallback() {
+  return (
+    <div className="adm-section-fallback" role="status" aria-live="polite">
+      <span className="adm-section-fallback__spinner" aria-hidden />
+      Đang tải màn quản trị…
+    </div>
+  )
+}
 
 type NavId = 'home' | 'vehicles' | 'stations' | 'bookings' | 'users' | 'stats'
 
@@ -61,8 +79,30 @@ const BAR_MONTHS = ['T5', 'T6', 'T7', 'T8', 'T9']
 const BAR_HEIGHTS_BLUE = [45, 62, 55, 78, 70]
 const BAR_HEIGHTS_LIME = [38, 50, 48, 65, 58]
 
+const NAV_TO_ROUTE: Record<NavId, string> = {
+  home: '/admin/overview',
+  vehicles: '/admin/vehicles',
+  stations: '/admin/stations',
+  bookings: '/admin/bookings',
+  users: '/admin/users',
+  stats: '/admin/stats',
+}
+
+function navFromPath(pathname: string): NavId {
+  if (pathname === '/admin' || pathname === '/admin/') return 'home'
+  if (pathname.startsWith('/admin/vehicles')) return 'vehicles'
+  if (pathname.startsWith('/admin/stations')) return 'stations'
+  if (pathname.startsWith('/admin/bookings')) return 'bookings'
+  if (pathname.startsWith('/admin/users')) return 'users'
+  if (pathname.startsWith('/admin/stats')) return 'stats'
+  if (pathname.startsWith('/admin/overview')) return 'home'
+  return 'home'
+}
+
 export default function AdminDashboardPage() {
-  const [activeNav, setActiveNav] = useState<NavId>('bookings')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const activeNav = navFromPath(location.pathname)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [vehicleRefreshKey, setVehicleRefreshKey] = useState(0)
   const [stationRefreshKey, setStationRefreshKey] = useState(0)
@@ -80,10 +120,35 @@ export default function AdminDashboardPage() {
   const closeSidebar = useCallback(() => setSidebarOpen(false), [])
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), [])
 
+  useEffect(() => {
+    if (location.pathname === '/admin' || location.pathname === '/admin/') {
+      navigate('/admin/overview', { replace: true })
+    }
+  }, [location.pathname, navigate])
+
   const onNav = useCallback((id: NavId) => {
-    setActiveNav(id)
+    navigate(NAV_TO_ROUTE[id])
     setSidebarOpen(false)
-  }, [])
+  }, [navigate])
+
+  const bumpActiveSectionRefresh = useCallback(() => {
+    switch (activeNav) {
+      case 'vehicles':
+        setVehicleRefreshKey((k) => k + 1)
+        break
+      case 'stations':
+        setStationRefreshKey((k) => k + 1)
+        break
+      case 'users':
+        setUserRefreshKey((k) => k + 1)
+        break
+      case 'bookings':
+        setBookingRefreshKey((k) => k + 1)
+        break
+      default:
+        break
+    }
+  }, [activeNav])
 
   return (
     <div className="adm">
@@ -99,7 +164,7 @@ export default function AdminDashboardPage() {
         className={`adm-sidebar${sidebarOpen ? ' is-open' : ''}`}
         aria-label="Menu quản trị"
       >
-        <a className="adm-sidebar__brand" href="/admin">
+        <a className="adm-sidebar__brand" href="/admin/overview">
           <span className="adm-sidebar__logo" aria-hidden>
             GX
           </span>
@@ -172,20 +237,7 @@ export default function AdminDashboardPage() {
               type="button"
               className="adm-icon-btn"
               aria-label="Làm mới dữ liệu"
-              onClick={() => {
-                if (activeNav === 'vehicles') {
-                  setVehicleRefreshKey((k) => k + 1)
-                }
-                if (activeNav === 'stations') {
-                  setStationRefreshKey((k) => k + 1)
-                }
-                if (activeNav === 'users') {
-                  setUserRefreshKey((k) => k + 1)
-                }
-                if (activeNav === 'bookings') {
-                  setBookingRefreshKey((k) => k + 1)
-                }
-              }}
+              onClick={bumpActiveSectionRefresh}
             >
               ↻
             </button>
@@ -202,21 +254,32 @@ export default function AdminDashboardPage() {
           </div>
         </header>
 
-        <main className="adm-content" id="admin-main">
+        <main
+          className={`adm-content${activeNav === 'users' ? ' adm-content--users' : ''}${activeNav === 'bookings' ? ' adm-content--bookings' : ''}`}
+          id="admin-main"
+        >
           {activeNav === 'vehicles' ? (
-            <AdminVehiclesSection refreshKey={vehicleRefreshKey} />
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminVehiclesSection refreshKey={vehicleRefreshKey} />
+            </Suspense>
           ) : null}
 
           {activeNav === 'stations' ? (
-            <AdminStationsSection refreshKey={stationRefreshKey} />
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminStationsSection refreshKey={stationRefreshKey} />
+            </Suspense>
           ) : null}
 
           {activeNav === 'users' ? (
-            <AdminUsersSection refreshKey={userRefreshKey} />
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminUsersSection refreshKey={userRefreshKey} />
+            </Suspense>
           ) : null}
 
           {activeNav === 'bookings' ? (
-            <AdminBookingsSection refreshKey={bookingRefreshKey} />
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminBookingsSection refreshKey={bookingRefreshKey} />
+            </Suspense>
           ) : null}
 
           {showDashboard ? (

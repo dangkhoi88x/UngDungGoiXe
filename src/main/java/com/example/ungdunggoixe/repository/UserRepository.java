@@ -18,7 +18,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT COUNT(u) FROM User u WHERE u.email = :email AND u.id <> :id")
     long countByEmailAndIdNot(@Param("email") String email, @Param("id") Long id);
 
+    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
     Optional<User> findByEmail(String email);
+
+    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
+    @Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findByIdWithUserRoles(@Param("id") Long id);
 
     @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
     @Override
