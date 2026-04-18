@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEscapeToClose } from '../hooks/useEscapeToClose'
+import {
+  ADMIN_SESSION_KEYS,
+  clampAdminPageSize,
+  readAdminSession,
+  writeAdminSession,
+} from '../lib/adminSessionStorage'
 import {
   cancelBooking,
   confirmBooking,
@@ -38,6 +45,41 @@ const SORT_OPTIONS = [
   { value: 'status', label: 'Trạng thái' },
 ] as const
 
+const SORT_OPTION_VALUES = new Set(
+  SORT_OPTIONS.map((o) => o.value as string),
+)
+
+function normalizeBookingSortBy(v: unknown): string {
+  return typeof v === 'string' && SORT_OPTION_VALUES.has(v) ? v : 'id'
+}
+
+function initialBookingsFilters() {
+  const d = readAdminSession(ADMIN_SESSION_KEYS.bookings, {
+    page: 0,
+    size: 10,
+    sortBy: 'id',
+    sortDir: 'desc' as 'asc' | 'desc',
+    filterStatus: '',
+    filterStationId: '',
+    filterRenterId: '',
+    searchQuery: '',
+  })
+  return {
+    page: Math.max(
+      0,
+      Number.isFinite(Number(d.page)) ? Math.trunc(Number(d.page)) : 0,
+    ),
+    size: clampAdminPageSize(d.size),
+    sortBy: normalizeBookingSortBy(d.sortBy),
+    sortDir: d.sortDir === 'asc' ? ('asc' as const) : ('desc' as const),
+    filterStatus: typeof d.filterStatus === 'string' ? d.filterStatus : '',
+    filterStationId:
+      typeof d.filterStationId === 'string' ? d.filterStationId : '',
+    filterRenterId: typeof d.filterRenterId === 'string' ? d.filterRenterId : '',
+    searchQuery: typeof d.searchQuery === 'string' ? d.searchQuery : '',
+  }
+}
+
 function statusVi(s: string): string {
   const m: Record<string, string> = {
     PENDING: 'Chờ xác nhận',
@@ -65,13 +107,19 @@ type Props = {
 }
 
 export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
-  const [page, setPage] = useState(0)
-  const [size, setSize] = useState(10)
-  const [sortBy, setSortBy] = useState('id')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [filterStatus, setFilterStatus] = useState('')
-  const [filterStationId, setFilterStationId] = useState('')
-  const [filterRenterId, setFilterRenterId] = useState('')
+  const initialFilters = useMemo(() => initialBookingsFilters(), [])
+  const [page, setPage] = useState(initialFilters.page)
+  const [size, setSize] = useState(initialFilters.size)
+  const [sortBy, setSortBy] = useState(initialFilters.sortBy)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(initialFilters.sortDir)
+  const [filterStatus, setFilterStatus] = useState(initialFilters.filterStatus)
+  const [filterStationId, setFilterStationId] = useState(
+    initialFilters.filterStationId,
+  )
+  const [filterRenterId, setFilterRenterId] = useState(
+    initialFilters.filterRenterId,
+  )
+  const [searchQuery, setSearchQuery] = useState(initialFilters.searchQuery)
 
   const [data, setData] = useState<PagedBookingsResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -168,6 +216,28 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
   useEffect(() => {
     void load()
   }, [load, refreshKey])
+
+  useEffect(() => {
+    writeAdminSession(ADMIN_SESSION_KEYS.bookings, {
+      page,
+      size,
+      sortBy,
+      sortDir,
+      filterStatus,
+      filterStationId,
+      filterRenterId,
+      searchQuery,
+    })
+  }, [
+    page,
+    size,
+    sortBy,
+    sortDir,
+    filterStatus,
+    filterStationId,
+    filterRenterId,
+    searchQuery,
+  ])
 
   const openCreate = () => {
     setToast(null)
@@ -290,8 +360,59 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
   const totalPages = data?.totalPages ?? 0
   const totalElements = data?.totalElements ?? 0
 
+  const filteredRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return content
+    return content.filter((b) => {
+      const code = (b.bookingCode || '').toLowerCase()
+      const renter = (b.renterName || '').toLowerCase()
+      const vehicle = (b.vehicleName || '').toLowerCase()
+      const station = (b.stationName || '').toLowerCase()
+      const st = (b.status || '').toLowerCase()
+      const stVi = statusVi(b.status).toLowerCase()
+      const pay = (b.paymentStatus || '').toLowerCase()
+      const payVi = paymentVi(b.paymentStatus).toLowerCase()
+      return (
+        code.includes(q) ||
+        renter.includes(q) ||
+        vehicle.includes(q) ||
+        station.includes(q) ||
+        st.includes(q) ||
+        stVi.includes(q) ||
+        pay.includes(q) ||
+        payVi.includes(q) ||
+        String(b.id).includes(q) ||
+        String(b.renterId).includes(q) ||
+        String(b.vehicleId).includes(q) ||
+        String(b.stationId).includes(q)
+      )
+    })
+  }, [content, searchQuery])
+
+  useEscapeToClose(
+    modalCreate,
+    () => {
+      if (!saving) setModalCreate(false)
+    },
+    !saving,
+  )
+  useEscapeToClose(
+    Boolean(notesBooking),
+    () => {
+      if (!saving) setNotesBooking(null)
+    },
+    !saving,
+  )
+  useEscapeToClose(
+    deleteId != null,
+    () => {
+      if (!deleting) setDeleteId(null)
+    },
+    !deleting,
+  )
+
   return (
-    <section className="adm-veh" aria-labelledby="adm-bk-title">
+    <section className="adm-veh adm-bookings-section" aria-labelledby="adm-bk-title">
       <div className="adm-veh__toolbar">
         <h2 id="adm-bk-title">Đặt xe</h2>
         <div className="adm-veh__actions">
@@ -320,6 +441,20 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
       </div>
 
       <div className="adm-users__filters">
+        <div className="adm-users__search-field">
+          <label className="adm-users__filter-label" htmlFor="adm-bk-search">
+            Tìm trên trang này
+          </label>
+          <input
+            id="adm-bk-search"
+            type="search"
+            className="adm-users__search-input"
+            placeholder="Mã đơn, người thuê, xe, trạm, trạng thái…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
         <label>
           <span className="adm-users__filter-label">Trạng thái</span>
           <select
@@ -338,42 +473,38 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
           </select>
         </label>
         <label>
-          <span className="adm-users__filter-label">Trạm (ID)</span>
-          <input
-            type="number"
-            min={1}
-            placeholder="Mọi trạm"
+          <span className="adm-users__filter-label">Trạm</span>
+          <select
             value={filterStationId}
             onChange={(e) => {
               setFilterStationId(e.target.value)
               setPage(0)
             }}
-            style={{
-              width: 120,
-              border: '1px solid var(--adm-border, #e8e8e8)',
-              borderRadius: 8,
-              padding: '8px 10px',
-            }}
-          />
+          >
+            <option value="">Tất cả trạm</option>
+            {stations.map((s) => (
+              <option key={s.id} value={String(s.id)}>
+                #{s.id} — {s.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
-          <span className="adm-users__filter-label">Người thuê (ID)</span>
-          <input
-            type="number"
-            min={1}
-            placeholder="Mọi người"
+          <span className="adm-users__filter-label">Người thuê</span>
+          <select
             value={filterRenterId}
             onChange={(e) => {
               setFilterRenterId(e.target.value)
               setPage(0)
             }}
-            style={{
-              width: 120,
-              border: '1px solid var(--adm-border, #e8e8e8)',
-              borderRadius: 8,
-              padding: '8px 10px',
-            }}
-          />
+          >
+            <option value="">Mọi người thuê</option>
+            {users.map((u) => (
+              <option key={u.id} value={String(u.id)}>
+                #{u.id} — {userDisplayName(u)}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           <span className="adm-users__filter-label">Sắp xếp</span>
@@ -433,17 +564,27 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
       ) : null}
 
       {loading && content.length === 0 ? (
-        <div className="adm-veh__loading">Đang tải…</div>
+        <div className="adm-veh__loading">Đang tải danh sách đặt xe…</div>
       ) : null}
 
       {!loading && content.length === 0 ? (
-        <p className="adm-veh__empty">Không có đặt xe trên trang này.</p>
+        <p className="adm-veh__empty">
+          Không có đặt xe khớp bộ lọc API trên trang này. Đổi trạng thái / trạm /
+          người thuê hoặc chuyển trang.
+        </p>
       ) : null}
 
-      {content.length > 0 ? (
+      {!loading && content.length > 0 && filteredRows.length === 0 ? (
+        <p className="adm-veh__empty">
+          Không có dòng nào khớp tìm kiếm trên trang hiện tại. Xóa từ khóa hoặc
+          đổi bộ lọc server.
+        </p>
+      ) : null}
+
+      {filteredRows.length > 0 ? (
         <>
           <div className="adm-veh__scroll">
-            <table className="adm-veh__table" style={{ minWidth: 1100 }}>
+            <table className="adm-veh__table adm-bk-table" style={{ minWidth: 1100 }}>
               <thead>
                 <tr>
                   <th>Mã</th>
@@ -458,7 +599,7 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {content.map((b) => (
+                {filteredRows.map((b) => (
                   <tr key={b.id}>
                     <td className="adm-veh__mono">{b.bookingCode}</td>
                     <td>
@@ -633,7 +774,7 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
         >
           <div
             className="adm-veh__modal"
-            style={{ maxWidth: 520 }}
+            style={{ maxWidth: 560 }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="adm-bk-create-title"
@@ -655,89 +796,99 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
                   {toast}
                 </p>
               ) : null}
-              <div className="adm-veh__field">
-                <label htmlFor="bk-renter">Người thuê *</label>
-                <select
-                  id="bk-renter"
-                  value={cRenter}
-                  onChange={(e) => setCRenter(e.target.value)}
-                  required
-                >
-                  {users.length === 0 ? (
-                    <option value="">— Chưa có người dùng —</option>
-                  ) : null}
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      #{u.id} — {userDisplayName(u)} ({u.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="adm-veh__field">
-                <label htmlFor="bk-veh">Xe *</label>
-                <select
-                  id="bk-veh"
-                  value={cVehicle}
-                  onChange={(e) => setCVehicle(e.target.value)}
-                  required
-                >
-                  {vehicles.length === 0 ? (
-                    <option value="">— Chưa có xe —</option>
-                  ) : null}
-                  {vehicles.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      #{v.id} — {v.name || v.licensePlate}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="adm-veh__field">
-                <label htmlFor="bk-st">Trạm *</label>
-                <select
-                  id="bk-st"
-                  value={cStation}
-                  onChange={(e) => setCStation(e.target.value)}
-                  required
-                >
-                  {stations.length === 0 ? (
-                    <option value="">— Chưa có trạm —</option>
-                  ) : null}
-                  {stations.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      #{s.id} — {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="adm-veh__form-row2">
+              <div className="adm-bk-modal__section">
+                <p className="adm-bk-modal__section-title">Người thuê &amp; phương tiện</p>
                 <div className="adm-veh__field">
-                  <label htmlFor="bk-s">Bắt đầu *</label>
-                  <input
-                    id="bk-s"
-                    type="datetime-local"
-                    value={cStart}
-                    onChange={(e) => setCStart(e.target.value)}
+                  <label htmlFor="bk-renter">Người thuê *</label>
+                  <select
+                    id="bk-renter"
+                    value={cRenter}
+                    onChange={(e) => setCRenter(e.target.value)}
                     required
-                  />
+                  >
+                    {users.length === 0 ? (
+                      <option value="">— Chưa có người dùng —</option>
+                    ) : null}
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        #{u.id} — {userDisplayName(u)} ({u.email})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="adm-veh__field">
-                  <label htmlFor="bk-e">Kết thúc dự kiến *</label>
-                  <input
-                    id="bk-e"
-                    type="datetime-local"
-                    value={cEnd}
-                    onChange={(e) => setCEnd(e.target.value)}
+                  <label htmlFor="bk-veh">Xe *</label>
+                  <select
+                    id="bk-veh"
+                    value={cVehicle}
+                    onChange={(e) => setCVehicle(e.target.value)}
                     required
-                  />
+                  >
+                    {vehicles.length === 0 ? (
+                      <option value="">— Chưa có xe —</option>
+                    ) : null}
+                    {vehicles.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        #{v.id} — {v.name || v.licensePlate}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <div className="adm-veh__field">
-                <label htmlFor="bk-n">Ghi chú lấy xe</label>
-                <textarea
-                  id="bk-n"
-                  value={cNote}
-                  onChange={(e) => setCNote(e.target.value)}
-                />
+              <div className="adm-bk-modal__section">
+                <p className="adm-bk-modal__section-title">Trạm &amp; thời gian</p>
+                <div className="adm-veh__field">
+                  <label htmlFor="bk-st">Trạm *</label>
+                  <select
+                    id="bk-st"
+                    value={cStation}
+                    onChange={(e) => setCStation(e.target.value)}
+                    required
+                  >
+                    {stations.length === 0 ? (
+                      <option value="">— Chưa có trạm —</option>
+                    ) : null}
+                    {stations.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        #{s.id} — {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="adm-veh__form-row2">
+                  <div className="adm-veh__field">
+                    <label htmlFor="bk-s">Bắt đầu *</label>
+                    <input
+                      id="bk-s"
+                      type="datetime-local"
+                      value={cStart}
+                      onChange={(e) => setCStart(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="adm-veh__field">
+                    <label htmlFor="bk-e">Kết thúc dự kiến *</label>
+                    <input
+                      id="bk-e"
+                      type="datetime-local"
+                      value={cEnd}
+                      onChange={(e) => setCEnd(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="adm-bk-modal__section">
+                <p className="adm-bk-modal__section-title">Ghi chú</p>
+                <div className="adm-veh__field">
+                  <label htmlFor="bk-n">Ghi chú lấy xe (tuỳ chọn)</label>
+                  <textarea
+                    id="bk-n"
+                    value={cNote}
+                    onChange={(e) => setCNote(e.target.value)}
+                    rows={3}
+                  />
+                </div>
               </div>
               <div className="adm-veh__form-actions">
                 <button
@@ -771,6 +922,7 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
         >
           <div
             className="adm-veh__modal"
+            style={{ maxWidth: 520 }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="adm-bk-notes-title"
@@ -794,21 +946,36 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
                   {toast}
                 </p>
               ) : null}
-              <div className="adm-veh__field">
-                <label htmlFor="bn-p">Lấy xe</label>
-                <textarea
-                  id="bn-p"
-                  value={nPickup}
-                  onChange={(e) => setNPickup(e.target.value)}
-                />
+              <div className="adm-bk-modal__section">
+                <p className="adm-bk-modal__section-title">Thông tin đơn</p>
+                <p className="adm-bk-modal__meta">
+                  <strong>{notesBooking.renterName}</strong> · {notesBooking.vehicleName} ·{' '}
+                  {notesBooking.stationName}
+                  <br />
+                  Trạng thái: <strong>{statusVi(notesBooking.status)}</strong> · Thanh toán:{' '}
+                  {paymentVi(notesBooking.paymentStatus)}
+                </p>
               </div>
-              <div className="adm-veh__field">
-                <label htmlFor="bn-r">Trả xe</label>
-                <textarea
-                  id="bn-r"
-                  value={nReturn}
-                  onChange={(e) => setNReturn(e.target.value)}
-                />
+              <div className="adm-bk-modal__section">
+                <p className="adm-bk-modal__section-title">Ghi chú giao nhận</p>
+                <div className="adm-veh__field">
+                  <label htmlFor="bn-p">Lấy xe</label>
+                  <textarea
+                    id="bn-p"
+                    value={nPickup}
+                    onChange={(e) => setNPickup(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+                <div className="adm-veh__field">
+                  <label htmlFor="bn-r">Trả xe</label>
+                  <textarea
+                    id="bn-r"
+                    value={nReturn}
+                    onChange={(e) => setNReturn(e.target.value)}
+                    rows={4}
+                  />
+                </div>
               </div>
               <div className="adm-veh__form-actions">
                 <button

@@ -7,6 +7,7 @@ import com.example.ungdunggoixe.common.VehicleStatus;
 import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
 import com.example.ungdunggoixe.dto.response.CreateVehicleResponse;
+import com.example.ungdunggoixe.dto.response.PagedVehicleResponse;
 import com.example.ungdunggoixe.entity.Station;
 import com.example.ungdunggoixe.entity.Vehicle;
 import com.example.ungdunggoixe.exception.AppException;
@@ -14,18 +15,41 @@ import com.example.ungdunggoixe.mapper.VehicleMapper;
 import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @AllArgsConstructor
 public class VehicleService {
+    private static final Set<String> VEHICLE_SORT_FIELDS = Set.of(
+            "id", "licensePlate", "name", "brand", "status", "fuelType", "capacity", "rentCount",
+            "hourlyRate", "dailyRate", "depositAmount", "rating", "createdAt", "updatedAt", "stationId"
+    );
+
     private final VehicleRepository vehicleRepository;
     private final StationRepository stationRepository;
+
+    private static String mapVehicleSortProperty(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "id";
+        }
+        if (!VEHICLE_SORT_FIELDS.contains(sortBy)) {
+            return "id";
+        }
+        if ("stationId".equals(sortBy)) {
+            return "station.id";
+        }
+        return sortBy;
+    }
 
     @Transactional
     public CreateVehicleResponse create(CreateVehicleRequest request) {
@@ -87,6 +111,37 @@ public class VehicleService {
         ).stream()
                 .map(VehicleMapper.INSTANCE::toCreateVehicleResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PagedVehicleResponse getVehiclesPaged(
+            int page,
+            int size,
+            String sortBy,
+            String sortDir,
+            Long stationId,
+            VehicleStatus status,
+            FuelType fuelType,
+            String keyword
+    ) {
+        String property = mapVehicleSortProperty(sortBy);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        int safePage = Math.max(page, 0);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, property));
+
+        Long sid = stationId != null && stationId > 0 ? stationId : null;
+        String kw = keyword != null ? keyword : "";
+
+        Page<Vehicle> result = vehicleRepository.findAdminPage(sid, status, fuelType, kw, pageable);
+        Page<CreateVehicleResponse> mapped = result.map(VehicleMapper.INSTANCE::toCreateVehicleResponse);
+        return PagedVehicleResponse.builder()
+                .content(mapped.getContent())
+                .totalElements(mapped.getTotalElements())
+                .totalPages(mapped.getTotalPages())
+                .page(mapped.getNumber())
+                .size(mapped.getSize())
+                .build();
     }
 
     @Transactional(readOnly = true)

@@ -2,6 +2,7 @@ import {
   parseApiErrorFromResponse,
   unwrapApiData,
 } from './apiResponse'
+import { authFetch } from './authFetch'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
@@ -27,6 +28,48 @@ function parseNum(v: string | number | null | undefined): number | null {
   if (v == null) return null
   const n = typeof v === 'number' ? v : parseFloat(String(v))
   return Number.isFinite(n) ? n : null
+}
+
+export type PagedVehiclesResponse = {
+  content: VehicleDto[]
+  totalElements: number
+  totalPages: number
+  page: number
+  size: number
+}
+
+/** Admin: phân trang + sort + lọc (JWT). */
+export async function fetchVehiclesPage(params: {
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: 'asc' | 'desc'
+  stationId?: number
+  status?: string
+  fuelType?: string
+  keyword?: string
+}): Promise<PagedVehiclesResponse> {
+  const q = new URLSearchParams()
+  q.set('page', String(params.page ?? 0))
+  q.set('size', String(params.size ?? 10))
+  q.set('sortBy', params.sortBy ?? 'id')
+  q.set('sortDir', params.sortDir ?? 'desc')
+  if (params.stationId != null && params.stationId > 0) {
+    q.set('stationId', String(params.stationId))
+  }
+  if (params.status) q.set('status', params.status)
+  if (params.fuelType) q.set('fuelType', params.fuelType)
+  if (params.keyword != null && params.keyword.trim() !== '') {
+    q.set('keyword', params.keyword.trim())
+  }
+  const res = await authFetch(`${API_BASE}/vehicles/paged?${q}`)
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const payload = (await res.json()) as unknown
+  const paged = unwrapApiData<PagedVehiclesResponse>(payload)
+  if (!paged) throw new Error('Phản hồi danh sách xe không hợp lệ.')
+  return paged
 }
 
 export async function fetchAllVehicles(): Promise<VehicleDto[]> {

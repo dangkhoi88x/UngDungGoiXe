@@ -120,6 +120,12 @@
   font-size: 12px;
 }
 
+.adm-veh__cell-sub {
+  font-size: 12px;
+  color: var(--adm-muted, #999);
+  margin-top: 2px;
+}
+
 .adm-veh__pill {
   display: inline-block;
   padding: 4px 8px;
@@ -295,6 +301,80 @@
   padding: 8px 10px;
   font-size: 13px;
   background: #fff;
+}
+
+.adm-users__search-field {
+  flex: 1 1 240px;
+  min-width: min(100%, 220px);
+  max-width: 360px;
+}
+
+.adm-users__search-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--adm-border, #e8e8e8);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.adm-users__search-input:focus {
+  outline: none;
+  border-color: var(--adm-blue, #1976d2);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.12);
+}
+
+.adm-users__filters-actions {
+  display: flex;
+  align-items: flex-end;
+  margin-left: auto;
+}
+
+.adm-users-section .adm-veh__toolbar h2 {
+  letter-spacing: -0.02em;
+}
+
+/* Admin bookings — modal sections & wider filter selects */
+.adm-bk-modal__section {
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--adm-border, #e8e8e8);
+}
+
+.adm-bk-modal__section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.adm-bk-modal__section-title {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--adm-muted, #999);
+}
+
+.adm-bk-modal__meta {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--adm-gray, #666);
+}
+
+.adm-bk-modal__meta strong {
+  color: var(--adm-dark, #1a1a1a);
+}
+
+.adm-bookings-section .adm-users__filters select {
+  min-width: min(100%, 200px);
+  max-width: 280px;
 }
 
 .adm-veh__pager {

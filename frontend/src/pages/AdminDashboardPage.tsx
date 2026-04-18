@@ -1,10 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import AdminBookingsSection from './AdminBookingsSection'
-import AdminStationsSection from './AdminStationsSection'
-import AdminUsersSection from './AdminUsersSection'
-import AdminVehiclesSection from './AdminVehiclesSection'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import './AdminDashboardPage.css'
+
+const AdminVehiclesSection = lazy(() => import('./AdminVehiclesSection'))
+const AdminStationsSection = lazy(() => import('./AdminStationsSection'))
+const AdminUsersSection = lazy(() => import('./AdminUsersSection'))
+const AdminBookingsSection = lazy(() => import('./AdminBookingsSection'))
+
+function AdminSectionFallback() {
+  return (
+    <div className="adm-section-fallback" role="status" aria-live="polite">
+      <span className="adm-section-fallback__spinner" aria-hidden />
+      Đang tải màn quản trị…
+    </div>
+  )
+}
 
 type NavId = 'home' | 'vehicles' | 'stations' | 'bookings' | 'users' | 'stats'
 
@@ -114,6 +131,25 @@ export default function AdminDashboardPage() {
     setSidebarOpen(false)
   }, [navigate])
 
+  const bumpActiveSectionRefresh = useCallback(() => {
+    switch (activeNav) {
+      case 'vehicles':
+        setVehicleRefreshKey((k) => k + 1)
+        break
+      case 'stations':
+        setStationRefreshKey((k) => k + 1)
+        break
+      case 'users':
+        setUserRefreshKey((k) => k + 1)
+        break
+      case 'bookings':
+        setBookingRefreshKey((k) => k + 1)
+        break
+      default:
+        break
+    }
+  }, [activeNav])
+
   return (
     <div className="adm">
       <div
@@ -201,20 +237,7 @@ export default function AdminDashboardPage() {
               type="button"
               className="adm-icon-btn"
               aria-label="Làm mới dữ liệu"
-              onClick={() => {
-                if (activeNav === 'vehicles') {
-                  setVehicleRefreshKey((k) => k + 1)
-                }
-                if (activeNav === 'stations') {
-                  setStationRefreshKey((k) => k + 1)
-                }
-                if (activeNav === 'users') {
-                  setUserRefreshKey((k) => k + 1)
-                }
-                if (activeNav === 'bookings') {
-                  setBookingRefreshKey((k) => k + 1)
-                }
-              }}
+              onClick={bumpActiveSectionRefresh}
             >
               ↻
             </button>
@@ -231,21 +254,32 @@ export default function AdminDashboardPage() {
           </div>
         </header>
 
-        <main className="adm-content" id="admin-main">
+        <main
+          className={`adm-content${activeNav === 'users' ? ' adm-content--users' : ''}${activeNav === 'bookings' ? ' adm-content--bookings' : ''}`}
+          id="admin-main"
+        >
           {activeNav === 'vehicles' ? (
-            <AdminVehiclesSection refreshKey={vehicleRefreshKey} />
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminVehiclesSection refreshKey={vehicleRefreshKey} />
+            </Suspense>
           ) : null}
 
           {activeNav === 'stations' ? (
-            <AdminStationsSection refreshKey={stationRefreshKey} />
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminStationsSection refreshKey={stationRefreshKey} />
+            </Suspense>
           ) : null}
 
           {activeNav === 'users' ? (
-            <AdminUsersSection refreshKey={userRefreshKey} />
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminUsersSection refreshKey={userRefreshKey} />
+            </Suspense>
           ) : null}
 
           {activeNav === 'bookings' ? (
-            <AdminBookingsSection refreshKey={bookingRefreshKey} />
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminBookingsSection refreshKey={bookingRefreshKey} />
+            </Suspense>
           ) : null}
 
           {showDashboard ? (

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEscapeToClose } from '../hooks/useEscapeToClose'
+import {
+  ADMIN_SESSION_KEYS,
+  clampAdminPageSize,
+  readAdminSession,
+  writeAdminSession,
+} from '../lib/adminSessionStorage'
 import {
   createUser,
   deleteUser,
@@ -63,15 +70,38 @@ function formatDateTime(iso: string | null | undefined): string {
   return d.toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function initialUserTableState() {
+  const d = readAdminSession(ADMIN_SESSION_KEYS.users, {
+    page: 0,
+    size: 10,
+    sortBy: 'id',
+    sortDir: 'desc' as 'asc' | 'desc',
+    searchQuery: '',
+  })
+  return {
+    page: Math.max(
+      0,
+      Number.isFinite(Number(d.page)) ? Math.trunc(Number(d.page)) : 0,
+    ),
+    size: clampAdminPageSize(d.size),
+    sortBy: typeof d.sortBy === 'string' && d.sortBy ? d.sortBy : 'id',
+    sortDir: d.sortDir === 'asc' ? ('asc' as const) : ('desc' as const),
+    searchQuery: typeof d.searchQuery === 'string' ? d.searchQuery : '',
+  }
+}
+
 export default function AdminUsersSection({ refreshKey = 0 }: Props) {
-  const [page, setPage] = useState(0)
-  const [size, setSize] = useState(10)
-  const [sortBy, setSortBy] = useState<string>('id')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const initialTable = useMemo(() => initialUserTableState(), [])
+  const [page, setPage] = useState(initialTable.page)
+  const [size, setSize] = useState(initialTable.size)
+  const [sortBy, setSortBy] = useState<string>(initialTable.sortBy)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(initialTable.sortDir)
+  const [searchQuery, setSearchQuery] = useState(initialTable.searchQuery)
   const [data, setData] = useState<PagedUsersResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const editFetchSeq = useRef(0)
 
   const [modal, setModal] = useState<'create' | 'edit' | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -113,35 +143,51 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
     void load()
   }, [load, refreshKey])
 
+  useEffect(() => {
+    writeAdminSession(ADMIN_SESSION_KEYS.users, {
+      page,
+      size,
+      sortBy,
+      sortDir,
+      searchQuery,
+    })
+  }, [page, size, sortBy, sortDir, searchQuery])
+
   const openCreate = () => {
     setToast(null)
     setFormCreate(emptyCreate())
     setModal('create')
   }
 
-  const openEdit = (u: UserDto) => {
+  const openEdit = useCallback((u: UserDto) => {
     setToast(null)
     setEditingId(u.id)
     setFormEdit(userToEditForm(u))
     setEditDetail(null)
     setEditDetailLoading(true)
     setModal('edit')
+    const seq = ++editFetchSeq.current
     void (async () => {
       try {
         const full = await fetchUserById(u.id)
+        if (seq !== editFetchSeq.current) return
         setEditDetail(full)
         setFormEdit(userToEditForm(full))
       } catch (e) {
+        if (seq !== editFetchSeq.current) return
         setToast(e instanceof Error ? e.message : 'Không tải chi tiết người dùng.')
         setEditDetail(null)
       } finally {
-        setEditDetailLoading(false)
+        if (seq === editFetchSeq.current) {
+          setEditDetailLoading(false)
+        }
       }
     })()
-  }
+  }, [])
 
   const closeModal = () => {
     if (saving) return
+    editFetchSeq.current += 1
     setModal(null)
     setEditingId(null)
     setEditDetail(null)
@@ -225,8 +271,33 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
   const totalPages = data?.totalPages ?? 0
   const totalElements = data?.totalElements ?? 0
 
+  const filteredRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return content
+    return content.filter((u) => {
+      const name = userDisplayName(u).toLowerCase()
+      const email = (u.email || '').toLowerCase()
+      const idStr = String(u.id)
+      return (
+        name.includes(q) ||
+        email.includes(q) ||
+        idStr.includes(q) ||
+        (u.roles ?? []).some((r) => r.toLowerCase().includes(q))
+      )
+    })
+  }, [content, searchQuery])
+
+  useEscapeToClose(modal !== null, closeModal, !saving)
+  useEscapeToClose(
+    deleteId != null,
+    () => {
+      if (!deleting) setDeleteId(null)
+    },
+    !deleting,
+  )
+
   return (
-    <section className="adm-veh" aria-labelledby="adm-users-title">
+    <section className="adm-veh adm-users-section" aria-labelledby="adm-users-title">
       <div className="adm-veh__toolbar">
         <h2 id="adm-users-title">Người dùng</h2>
         <div className="adm-veh__actions">
@@ -249,6 +320,20 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
       </div>
 
       <div className="adm-users__filters">
+        <div className="adm-users__search-field">
+          <label className="adm-users__filter-label" htmlFor="adm-users-search">
+            Tìm trên trang này
+          </label>
+          <input
+            id="adm-users-search"
+            type="search"
+            className="adm-users__search-input"
+            placeholder="Tên, email, ID, vai trò…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
         <label>
           <span className="adm-users__filter-label">Sắp xếp</span>
           <select
@@ -314,7 +399,13 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
         <p className="adm-veh__empty">Không có người dùng trên trang này.</p>
       ) : null}
 
-      {content.length > 0 ? (
+      {!loading && content.length > 0 && filteredRows.length === 0 ? (
+        <p className="adm-veh__empty">
+          Không có dòng nào khớp tìm kiếm. Đổi từ khóa hoặc chuyển trang.
+        </p>
+      ) : null}
+
+      {filteredRows.length > 0 ? (
         <>
           <div className="adm-veh__scroll">
             <table className="adm-veh__table">
@@ -329,7 +420,7 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {content.map((u) => (
+                {filteredRows.map((u) => (
                   <tr key={u.id}>
                     <td className="adm-veh__mono">{u.id}</td>
                     <td>{userDisplayName(u)}</td>

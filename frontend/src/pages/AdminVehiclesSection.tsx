@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEscapeToClose } from '../hooks/useEscapeToClose'
+import {
+  ADMIN_SESSION_KEYS,
+  clampAdminPageSize,
+  readAdminSession,
+  writeAdminSession,
+} from '../lib/adminSessionStorage'
 import {
   createVehicle,
   deleteVehicle,
-  fetchAllVehicles,
+  fetchVehiclesPage,
   formatDailyPrice,
   formatHourlyPrice,
   fuelLabel,
+  type PagedVehiclesResponse,
   type VehicleDto,
   type VehicleWritePayload,
   updateVehicle,
@@ -23,6 +31,21 @@ const STATUSES = [
 ] as const
 
 const FUELS = ['GASOLINE', 'ELECTRICITY'] as const
+
+const VEHICLE_SORT_OPTIONS = [
+  { value: 'id', label: 'ID' },
+  { value: 'licensePlate', label: 'Biển số' },
+  { value: 'name', label: 'Tên xe' },
+  { value: 'brand', label: 'Hãng' },
+  { value: 'stationId', label: 'Trạm' },
+  { value: 'status', label: 'Trạng thái' },
+  { value: 'fuelType', label: 'Nhiên liệu' },
+  { value: 'capacity', label: 'Số chỗ' },
+  { value: 'rentCount', label: 'Lượt thuê' },
+  { value: 'hourlyRate', label: 'Giá/giờ' },
+  { value: 'dailyRate', label: 'Giá/ngày' },
+  { value: 'createdAt', label: 'Ngày tạo' },
+] as const
 
 type FormState = {
   stationId: string
@@ -145,13 +168,82 @@ type Props = {
   refreshKey?: number
 }
 
+function parseVehiclesFilterStatus(
+  v: unknown,
+): 'ALL' | (typeof STATUSES)[number] {
+  if (v === 'ALL') return 'ALL'
+  if (typeof v === 'string' && (STATUSES as readonly string[]).includes(v)) {
+    return v as (typeof STATUSES)[number]
+  }
+  return 'ALL'
+}
+
+function parseVehiclesFilterFuel(v: unknown): 'ALL' | (typeof FUELS)[number] {
+  if (v === 'ALL') return 'ALL'
+  if (typeof v === 'string' && (FUELS as readonly string[]).includes(v)) {
+    return v as (typeof FUELS)[number]
+  }
+  return 'ALL'
+}
+
+function parseStationFilterId(v: unknown): 'ALL' | string {
+  if (v === 'ALL') return 'ALL'
+  if (typeof v === 'string' && /^\d+$/.test(v)) return v
+  return 'ALL'
+}
+
+const VEHICLE_SORT_VALUES = new Set(
+  VEHICLE_SORT_OPTIONS.map((o) => o.value as string),
+)
+
+function parseVehicleSortBy(v: unknown): string {
+  return typeof v === 'string' && VEHICLE_SORT_VALUES.has(v) ? v : 'id'
+}
+
+function initialVehiclesFilters() {
+  const d = readAdminSession(ADMIN_SESSION_KEYS.vehicles, {
+    filterKeyword: '',
+    filterStatus: 'ALL' as 'ALL' | (typeof STATUSES)[number],
+    filterFuel: 'ALL' as 'ALL' | (typeof FUELS)[number],
+    filterStationId: 'ALL' as 'ALL' | string,
+    page: 0,
+    size: 10,
+    sortBy: 'id',
+    sortDir: 'desc' as 'asc' | 'desc',
+  })
+  return {
+    filterKeyword: typeof d.filterKeyword === 'string' ? d.filterKeyword : '',
+    filterStatus: parseVehiclesFilterStatus(d.filterStatus),
+    filterFuel: parseVehiclesFilterFuel(d.filterFuel),
+    filterStationId: parseStationFilterId(d.filterStationId),
+    page: Math.max(
+      0,
+      Number.isFinite(Number(d.page)) ? Math.trunc(Number(d.page)) : 0,
+    ),
+    size: clampAdminPageSize(d.size),
+    sortBy: parseVehicleSortBy(d.sortBy),
+    sortDir: d.sortDir === 'asc' ? ('asc' as const) : ('desc' as const),
+  }
+}
+
 export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
+  const initialFilters = useMemo(() => initialVehiclesFilters(), [])
   const [stations, setStations] = useState<StationDto[]>([])
-  const [vehicles, setVehicles] = useState<VehicleDto[]>([])
-  const [filterKeyword, setFilterKeyword] = useState('')
-  const [filterStatus, setFilterStatus] = useState<'ALL' | (typeof STATUSES)[number]>('ALL')
-  const [filterFuel, setFilterFuel] = useState<'ALL' | (typeof FUELS)[number]>('ALL')
-  const [filterStationId, setFilterStationId] = useState<'ALL' | string>('ALL')
+  const [filterKeyword, setFilterKeyword] = useState(initialFilters.filterKeyword)
+  const [filterStatus, setFilterStatus] = useState<
+    'ALL' | (typeof STATUSES)[number]
+  >(initialFilters.filterStatus)
+  const [filterFuel, setFilterFuel] = useState<'ALL' | (typeof FUELS)[number]>(
+    initialFilters.filterFuel,
+  )
+  const [filterStationId, setFilterStationId] = useState<'ALL' | string>(
+    initialFilters.filterStationId,
+  )
+  const [page, setPage] = useState(initialFilters.page)
+  const [size, setSize] = useState(initialFilters.size)
+  const [sortBy, setSortBy] = useState<string>(initialFilters.sortBy)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(initialFilters.sortDir)
+  const [data, setData] = useState<PagedVehiclesResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -166,48 +258,110 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
 
   const firstStationId = stations[0]?.id != null ? String(stations[0].id) : ''
 
-  const loadAll = useCallback(async () => {
-    setError(null)
-    setLoading(true)
+  const loadStations = useCallback(async () => {
     try {
-      const [stList, vList] = await Promise.all([
-        fetchStations(),
-        fetchAllVehicles(),
-      ])
-      setStations(stList)
-      setVehicles(vList)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Không tải được dữ liệu')
-      setVehicles([])
-    } finally {
-      setLoading(false)
+      setStations(await fetchStations())
+    } catch {
+      setStations([])
     }
   }, [])
 
-  useEffect(() => {
-    void loadAll()
-  }, [loadAll, refreshKey])
-
-  const filteredVehicles = useMemo(() => {
-    const q = filterKeyword.trim().toLowerCase()
-    return vehicles.filter((v) => {
-      if (filterStatus !== 'ALL' && v.status !== filterStatus) return false
-      if (filterFuel !== 'ALL' && v.fuelType !== filterFuel) return false
-      if (filterStationId !== 'ALL' && String(v.stationId) !== filterStationId) return false
-      if (!q) return true
-      const name = vehicleDisplayName(v).toLowerCase()
-      const brand = (v.brand || '').toLowerCase()
-      const plate = (v.licensePlate || '').toLowerCase()
-      const station = stationName(v.stationId).toLowerCase()
-      return (
-        String(v.id).includes(q) ||
-        name.includes(q) ||
-        brand.includes(q) ||
-        plate.includes(q) ||
-        station.includes(q)
+  const loadVehicles = useCallback(async () => {
+    setError(null)
+    setLoading(true)
+    try {
+      const res = await fetchVehiclesPage({
+        page,
+        size,
+        sortBy,
+        sortDir,
+        stationId:
+          filterStationId !== 'ALL'
+            ? Number(filterStationId)
+            : undefined,
+        status: filterStatus !== 'ALL' ? filterStatus : undefined,
+        fuelType: filterFuel !== 'ALL' ? filterFuel : undefined,
+        keyword: filterKeyword.trim() || undefined,
+      })
+      setData(res)
+      if (res.totalPages > 0 && page >= res.totalPages) {
+        setPage(Math.max(0, res.totalPages - 1))
+      } else if (res.totalPages === 0) {
+        setPage(0)
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : 'Không tải được danh sách phương tiện.',
       )
+      setData(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [
+    page,
+    size,
+    sortBy,
+    sortDir,
+    filterKeyword,
+    filterStatus,
+    filterFuel,
+    filterStationId,
+  ])
+
+  useEffect(() => {
+    void loadStations()
+  }, [loadStations, refreshKey])
+
+  useEffect(() => {
+    void loadVehicles()
+  }, [loadVehicles, refreshKey])
+
+  useEffect(() => {
+    writeAdminSession(ADMIN_SESSION_KEYS.vehicles, {
+      filterKeyword,
+      filterStatus,
+      filterFuel,
+      filterStationId,
+      page,
+      size,
+      sortBy,
+      sortDir,
     })
-  }, [vehicles, filterKeyword, filterStatus, filterFuel, filterStationId])
+  }, [
+    filterKeyword,
+    filterStatus,
+    filterFuel,
+    filterStationId,
+    page,
+    size,
+    sortBy,
+    sortDir,
+  ])
+
+  const stationName = useCallback(
+    (id: number) =>
+      stationLabel(stations.find((s) => s.id === id) ?? { id, name: '' }),
+    [stations],
+  )
+
+  useEffect(() => {
+    setPage(0)
+  }, [filterKeyword, filterStatus, filterFuel, filterStationId])
+
+  const content = data?.content ?? []
+  const totalPages = data?.totalPages ?? 0
+  const totalElements = data?.totalElements ?? 0
+
+  const hasActiveFilters =
+    filterKeyword.trim() !== '' ||
+    filterStatus !== 'ALL' ||
+    filterFuel !== 'ALL' ||
+    filterStationId !== 'ALL'
+
+  const reload = useCallback(async () => {
+    await loadStations()
+    await loadVehicles()
+  }, [loadStations, loadVehicles])
 
   const openCreate = () => {
     setToast(null)
@@ -252,7 +406,7 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
         setToast('Đã cập nhật xe.')
       }
       closeModal()
-      await loadAll()
+      await reload()
     } catch (err) {
       setToast(err instanceof Error ? err.message : 'Lưu thất bại')
     } finally {
@@ -268,7 +422,7 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
       await deleteVehicle(deleteId)
       setToast('Đã xóa xe.')
       setDeleteId(null)
-      await loadAll()
+      await reload()
     } catch (err) {
       setToast(err instanceof Error ? err.message : 'Xóa thất bại')
     } finally {
@@ -276,26 +430,28 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
     }
   }
 
-  const stationName = (id: number) =>
-    stationLabel(stations.find((s) => s.id === id) ?? { id, name: '' })
-
-  if (loading && vehicles.length === 0 && stations.length === 0) {
-    return (
-      <section className="adm-veh" aria-busy="true">
-        <div className="adm-veh__loading">Đang tải danh sách xe…</div>
-      </section>
-    )
-  }
+  useEscapeToClose(modal !== null, closeModal, !saving)
+  useEscapeToClose(
+    deleteId != null,
+    () => {
+      if (!deleting) setDeleteId(null)
+    },
+    !deleting,
+  )
 
   return (
-    <section className="adm-veh" aria-labelledby="adm-veh-title">
+    <section
+      className="adm-veh adm-users-section adm-vehicles-section"
+      aria-labelledby="adm-veh-title"
+    >
       <div className="adm-veh__toolbar">
-        <h2 id="adm-veh-title">Danh sách phương tiện</h2>
+        <h2 id="adm-veh-title">Phương tiện</h2>
         <div className="adm-veh__actions">
           <button
             type="button"
             className="adm-veh__btn adm-veh__btn--ghost"
-            onClick={() => void loadAll()}
+            onClick={() => void reload()}
+            disabled={loading}
           >
             Tải lại
           </button>
@@ -315,28 +471,19 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
         </div>
       </div>
 
-      {error ? (
-        <p className="adm-veh__msg adm-veh__msg--err" role="alert">
-          {error}
-        </p>
-      ) : null}
-      {toast && !modal && !deleteId ? (
-        <p className="adm-veh__msg adm-veh__msg--ok" role="status">
-          {toast}
-        </p>
-      ) : null}
-
       <div className="adm-users__filters" aria-label="Bộ lọc phương tiện">
-        <div className="adm-veh__field" style={{ minWidth: 260, flex: '1 1 320px' }}>
+        <div className="adm-users__search-field">
           <label className="adm-users__filter-label" htmlFor="veh-filter-keyword">
-            Tìm kiếm
+            Từ khóa
           </label>
           <input
             id="veh-filter-keyword"
             type="search"
-            placeholder="ID, biển số, tên xe, hãng, trạm..."
+            className="adm-users__search-input"
+            placeholder="ID, biển số, tên xe, hãng, trạm…"
             value={filterKeyword}
             onChange={(e) => setFilterKeyword(e.target.value)}
+            autoComplete="off"
           />
         </div>
         <div>
@@ -392,34 +539,103 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
             ))}
           </select>
         </div>
-        <button
-          type="button"
-          className="adm-veh__btn adm-veh__btn--ghost"
-          onClick={() => {
-            setFilterKeyword('')
-            setFilterStatus('ALL')
-            setFilterFuel('ALL')
-            setFilterStationId('ALL')
-          }}
-        >
-          Xóa lọc
-        </button>
+        <label>
+          <span className="adm-users__filter-label">Sắp xếp</span>
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value)
+              setPage(0)
+            }}
+          >
+            {VEHICLE_SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className="adm-users__filter-label">Thứ tự</span>
+          <select
+            value={sortDir}
+            onChange={(e) => {
+              setSortDir(e.target.value as 'asc' | 'desc')
+              setPage(0)
+            }}
+          >
+            <option value="desc">Giảm dần</option>
+            <option value="asc">Tăng dần</option>
+          </select>
+        </label>
+        <label>
+          <span className="adm-users__filter-label">/ trang</span>
+          <select
+            value={size}
+            onChange={(e) => {
+              setSize(Number(e.target.value))
+              setPage(0)
+            }}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </label>
+        <div className="adm-users__filters-actions">
+          <button
+            type="button"
+            className="adm-veh__btn adm-veh__btn--ghost"
+            onClick={() => {
+              setFilterKeyword('')
+              setFilterStatus('ALL')
+              setFilterFuel('ALL')
+              setFilterStationId('ALL')
+              setPage(0)
+            }}
+          >
+            Xóa lọc
+          </button>
+        </div>
       </div>
 
-      {!firstStationId && !loading ? (
-        <p className="adm-veh__msg adm-veh__msg--err">
-          Chưa có trạm nào. Hãy tạo trạm qua API{' '}
-          <code>/stations</code> trước khi thêm xe.
+      {error ? (
+        <p className="adm-veh__msg adm-veh__msg--err" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {toast && !modal && !deleteId ? (
+        <p className="adm-veh__msg adm-veh__msg--ok" role="status">
+          {toast}
         </p>
       ) : null}
 
-      {vehicles.length === 0 && !loading ? (
-        <p className="adm-veh__empty">Chưa có xe. Nhấn «Thêm xe» để tạo mới.</p>
+      {!firstStationId && !loading ? (
+        <p className="adm-veh__msg adm-veh__msg--err" role="status">
+          Chưa có trạm nào. Hãy tạo trạm qua mục Trạm hoặc API <code>/stations</code>{' '}
+          trước khi thêm xe.
+        </p>
       ) : null}
 
-      {vehicles.length > 0 ? (
-        <div className="adm-veh__scroll">
-          <table className="adm-veh__table">
+      {loading && content.length === 0 ? (
+        <div className="adm-veh__loading">Đang tải danh sách xe…</div>
+      ) : null}
+
+      {!loading && !error && totalElements === 0 && !hasActiveFilters ? (
+        <p className="adm-veh__empty">Chưa có phương tiện trong hệ thống.</p>
+      ) : null}
+
+      {!loading && totalElements === 0 && hasActiveFilters ? (
+        <p className="adm-veh__empty">
+          Không có dòng nào khớp tìm kiếm hoặc bộ lọc. Đổi từ khóa hoặc nhấn «Xóa lọc».
+        </p>
+      ) : null}
+
+      {content.length > 0 ? (
+        <>
+          <div className="adm-veh__scroll">
+            <table className="adm-veh__table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -433,7 +649,7 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
               </tr>
             </thead>
             <tbody>
-              {filteredVehicles.map((v) => (
+              {content.map((v) => (
                 <tr key={v.id}>
                   <td className="adm-veh__mono">{v.id}</td>
                   <td className="adm-veh__mono">{v.licensePlate}</td>
@@ -442,12 +658,14 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
                   <td>
                     <span className="adm-veh__pill">{statusLabel(v.status)}</span>
                   </td>
-                  <td>{fuelLabel(v.fuelType)}</td>
+                  <td>
+                    <span className="adm-veh__pill" title="Loại nhiên liệu">
+                      {fuelLabel(v.fuelType)}
+                    </span>
+                  </td>
                   <td>
                     <div>{formatDailyPrice(v)}</div>
-                    <div style={{ fontSize: 12, color: '#999' }}>
-                      {formatHourlyPrice(v)}
-                    </div>
+                    <div className="adm-veh__cell-sub">{formatHourlyPrice(v)}</div>
                   </td>
                   <td>
                     <div className="adm-veh__row-actions">
@@ -474,11 +692,38 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
               ))}
             </tbody>
           </table>
-        </div>
-      ) : null}
+          </div>
 
-      {vehicles.length > 0 && filteredVehicles.length === 0 ? (
-        <p className="adm-veh__empty">Không có phương tiện nào khớp bộ lọc hiện tại.</p>
+          <nav className="adm-veh__pager" aria-label="Phân trang">
+            <span className="adm-veh__pager-info">
+              {totalElements === 0
+                ? '0 kết quả'
+                : `Trang ${page + 1} / ${Math.max(totalPages, 1)} · ${totalElements} phương tiện`}
+            </span>
+            <div className="adm-veh__pager-btns">
+              <button
+                type="button"
+                className="adm-veh__btn adm-veh__btn--ghost"
+                disabled={page <= 0 || loading}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                Trước
+              </button>
+              <button
+                type="button"
+                className="adm-veh__btn adm-veh__btn--ghost"
+                disabled={page >= totalPages - 1 || loading || totalPages === 0}
+                onClick={() =>
+                  setPage((p) =>
+                    totalPages > 0 ? Math.min(totalPages - 1, p + 1) : p,
+                  )
+                }
+              >
+                Sau
+              </button>
+            </div>
+          </nav>
+        </>
       ) : null}
 
       {modal ? (
@@ -486,7 +731,6 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
           className="adm-veh__overlay"
           role="presentation"
           onClick={(ev) => ev.target === ev.currentTarget && closeModal()}
-          onKeyDown={(e) => e.key === 'Escape' && closeModal()}
         >
           <div
             className="adm-veh__modal"

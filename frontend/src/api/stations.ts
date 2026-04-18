@@ -1,5 +1,6 @@
 import { parseApiError } from './vehicles'
 import { unwrapApiData } from './apiResponse'
+import { authFetch } from './authFetch'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
@@ -33,6 +34,42 @@ export type StationUpdatePayload = {
   status?: string | null
   startTime?: string | null
   endTime?: string | null
+}
+
+export type PagedStationsResponse = {
+  content: StationDto[]
+  totalElements: number
+  totalPages: number
+  page: number
+  size: number
+}
+
+/** Admin: phân trang + sort + lọc (JWT). */
+export async function fetchStationsPage(params: {
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: 'asc' | 'desc'
+  status?: string
+  keyword?: string
+}): Promise<PagedStationsResponse> {
+  const q = new URLSearchParams()
+  q.set('page', String(params.page ?? 0))
+  q.set('size', String(params.size ?? 10))
+  q.set('sortBy', params.sortBy ?? 'id')
+  q.set('sortDir', params.sortDir ?? 'desc')
+  if (params.status) q.set('status', params.status)
+  if (params.keyword != null && params.keyword.trim() !== '') {
+    q.set('keyword', params.keyword.trim())
+  }
+  const res = await authFetch(`${API_BASE}/stations/paged?${q}`)
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const payload = (await res.json()) as unknown
+  const paged = unwrapApiData<PagedStationsResponse>(payload)
+  if (!paged) throw new Error('Phản hồi danh sách trạm không hợp lệ.')
+  return paged
 }
 
 export async function fetchStations(): Promise<StationDto[]> {

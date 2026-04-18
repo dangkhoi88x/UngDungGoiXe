@@ -194,6 +194,7 @@
   height: var(--adm-header-h);
   background: var(--adm-white);
   border-bottom: 1px solid var(--adm-border);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
   padding: 0 clamp(16px, 3vw, 40px);
   display: flex;
   align-items: center;
@@ -304,6 +305,51 @@
 .adm-content {
   margin-top: var(--adm-header-h);
   padding: clamp(20px, 3vw, 40px);
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.adm-content--users {
+  max-width: 1280px;
+}
+
+.adm-content--bookings {
+  max-width: 1320px;
+}
+
+.adm-section-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 200px;
+  padding: 32px 20px;
+  margin: 0 auto;
+  max-width: 560px;
+  border-radius: 12px;
+  background: var(--adm-white);
+  border: 1px dashed var(--adm-border);
+  color: var(--adm-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.adm-section-fallback__spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--adm-border);
+  border-top-color: var(--adm-blue);
+  animation: adm-spin 0.7s linear infinite;
+}
+
+@keyframes adm-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .adm-metrics {

@@ -6,8 +6,10 @@ import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.CreateVehicleResponse;
+import com.example.ungdunggoixe.dto.response.PagedVehicleResponse;
 import com.example.ungdunggoixe.service.VehicleService;
 import lombok.AllArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -31,6 +33,28 @@ public class VehicleController {
                 .timestamp(Instant.now())
                 .build();
     }
+
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @GetMapping("/paged")
+    public ApiResponse<PagedVehicleResponse> getVehiclesPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) Long stationId,
+            @RequestParam(required = false) VehicleStatus status,
+            @RequestParam(required = false) FuelType fuelType,
+            @RequestParam(required = false) String keyword) {
+        PagedVehicleResponse result = vehicleService.getVehiclesPaged(
+                page, size, sortBy, sortDir, stationId, status, fuelType, keyword);
+        return ApiResponse.<PagedVehicleResponse>builder()
+                .status("success")
+                .message("Get vehicles page successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
+    }
+
     /**
      * Search xe nâng cao:
      * GET /vehicles?stationId=1&brand=Toyota&minCapacity=4&fuelType=GASOLINE&minPrice=50000&maxPrice=200000
