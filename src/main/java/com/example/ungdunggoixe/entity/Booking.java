@@ -59,6 +59,7 @@ public class Booking {
     @Column(name = "base_price", precision = 10, scale = 2)
     private BigDecimal basePrice;
 
+    /** Tổng số tiền đã thanh toán thành công (cọc + các lần trả) — đồng bộ từ các payment PAID. */
     @Column(name = "partially_paid", precision = 10, scale = 2)
     private BigDecimal partiallyPaid;
 

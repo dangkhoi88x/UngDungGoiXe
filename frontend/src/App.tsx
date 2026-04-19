@@ -3,6 +3,7 @@ import { useEffect, type ReactElement } from 'react'
 import AuthPage from './pages/AuthPage'
 import CarRentalPage from './pages/CarRentalPage'
 import VehicleDetailPage from './pages/VehicleDetailPage'
+import VehicleBookingPage from './pages/VehicleBookingPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import UserAccountPage from './pages/UserAccountPage'
 import UserAccountUpdatePage from './pages/UserAccountUpdatePage'
@@ -35,6 +36,15 @@ function VehicleDetailRoute() {
     return <Navigate to="/rent" replace />
   }
   return <VehicleDetailPage vehicleId={vehicleId} />
+}
+
+function VehicleBookingRoute() {
+  const { vehicleId } = useParams<{ vehicleId: string }>()
+  const id = Number(vehicleId)
+  if (!Number.isInteger(id) || id <= 0) {
+    return <Navigate to="/rent" replace />
+  }
+  return <VehicleBookingPage vehicleId={id} />
 }
 
 function LogoutRoute() {
@@ -85,6 +95,7 @@ function App() {
       />
       <Route path="/rent" element={<CarRentalPage />} />
       <Route path="/rent/:id" element={<VehicleDetailRoute />} />
+      <Route path="/booking/:vehicleId" element={<VehicleBookingRoute />} />
       <Route path="*" element={<StudioXLandingPage />} />
     </Routes>
   )

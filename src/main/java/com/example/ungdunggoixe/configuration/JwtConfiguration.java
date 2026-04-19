@@ -5,10 +5,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -16,8 +22,9 @@ import javax.crypto.spec.SecretKeySpec;
 @Configuration
 @RequiredArgsConstructor
 public class JwtConfiguration {
+
     @Value("${jwt.secret-key}")
-    private String secretKey ;
+    private String secretKey;
 
     private final CustomJwtValidator customJwtValidator;
 
@@ -32,15 +39,28 @@ public class JwtConfiguration {
                 .algorithm(MacAlgorithm.HS256)
                 .build();
     }
-    @Bean
-    public JwtDecoder jwtDecoder() {
-            NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withSecretKey(getSecretKey()) .macAlgorithm(MacAlgorithm.HS256)
-                    .build();
-        OAuth2TokenValidator<Jwt> jwtTimestampValidator = JwtValidators.createDefault();
-        OAuth2TokenValidator<Jwt> withTokenTypeAndTimeStamp= new DelegatingOAuth2TokenValidator<>(jwtTimestampValidator, customJwtValidator);
-        jwtDecoder.setJwtValidator(withTokenTypeAndTimeStamp);
 
-        return jwtDecoder;
+    /** Decoder cho ACCESS: timestamp + {@link CustomJwtValidator} (typ, aud, blacklist). */
+    @Bean(name = "accessTokenDecoder")
+    @Primary
+    public JwtDecoder accessTokenDecoder() {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(getSecretKey())
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+        OAuth2TokenValidator<Jwt> timestampValidator = JwtValidators.createDefault();
+        OAuth2TokenValidator<Jwt> combined =
+                new DelegatingOAuth2TokenValidator<>(timestampValidator, customJwtValidator);
+        decoder.setJwtValidator(combined);
+        return decoder;
     }
 
+    /** Decoder cho REFRESH trong service: chỉ timestamp, không blacklist/typ=ACCESS. */
+    @Bean(name = "refreshTokenDecoder")
+    public JwtDecoder refreshTokenDecoder() {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(getSecretKey())
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+        decoder.setJwtValidator(JwtValidators.createDefault());
+        return decoder;
+    }
 }

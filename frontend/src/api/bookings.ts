@@ -1,6 +1,6 @@
-import { parseApiError } from './vehicles'
+import { parseApiError, type VehicleDto } from './vehicles'
 import { authFetch } from './authFetch'
-import { unwrapApiData } from './apiResponse'
+import { parseApiErrorFromResponse, unwrapApiData } from './apiResponse'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
@@ -99,6 +99,48 @@ export async function fetchBookingsPaged(params: {
   const paged = unwrapApiData<PagedBookingsResponse>(payload)
   if (!paged) throw new Error('Phản hồi danh sách booking không hợp lệ.')
   return paged
+}
+
+/** Khớp `BookingService#calculateBasePrice`: max(1, floor(giờ)) × hourlyRate. */
+export function computeBookingEstimate(
+  vehicle: VehicleDto,
+  startLocal: string,
+  endLocal: string,
+): { hours: number; subtotal: number } {
+  const rateRaw = vehicle.hourlyRate
+  const rate =
+    rateRaw == null
+      ? 0
+      : typeof rateRaw === 'number'
+        ? rateRaw
+        : parseFloat(String(rateRaw))
+  const hourly = Number.isFinite(rate) ? rate : 0
+  if (!startLocal?.trim() || !endLocal?.trim()) return { hours: 0, subtotal: 0 }
+  const start = new Date(startLocal)
+  const end = new Date(endLocal)
+  if (!(end.getTime() > start.getTime())) return { hours: 0, subtotal: 0 }
+  const rawHours = Math.floor((end.getTime() - start.getTime()) / 3600000)
+  const hours = Math.max(1, rawHours)
+  return { hours, subtotal: hours * hourly }
+}
+
+export async function checkVehicleAvailability(params: {
+  vehicleId: number
+  start: string
+  end: string
+}): Promise<boolean> {
+  const q = new URLSearchParams({
+    vehicleId: String(params.vehicleId),
+    start: params.start,
+    end: params.end,
+  })
+  const res = await fetch(`${API_BASE}/bookings/vehicle-availability?${q}`)
+  if (!res.ok) {
+    throw new Error(await parseApiErrorFromResponse(res))
+  }
+  const payload = (await res.json()) as unknown
+  const data = unwrapApiData<{ available?: boolean }>(payload)
+  return Boolean(data?.available)
 }
 
 export async function createBooking(

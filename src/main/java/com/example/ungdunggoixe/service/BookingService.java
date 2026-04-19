@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,6 +44,9 @@ import java.util.UUID;
 public class BookingService {
     private static final Set<String> BOOKING_SORT_FIELDS = Set.of(
             "id", "startTime", "expectedEndTime", "createdAt", "bookingCode", "totalAmount", "status");
+
+    /** Tối thiểu cọc (tiền mặt đã vào) so với tổng booking trước khi PENDING → CONFIRMED. */
+    private static final BigDecimal MIN_DEPOSIT_RATE = new BigDecimal("0.10");
 
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
@@ -115,6 +119,7 @@ public class BookingService {
         Booking booking = findBookingById(id);
 
         validateStatusTransition(booking.getStatus(), BookingStatus.CONFIRMED);
+        assertDepositCollected(booking);
 
         booking.setStatus(BookingStatus.CONFIRMED);
 
@@ -368,6 +373,21 @@ public class BookingService {
      *   CONFIRMED  → ONGOING,   CANCELLED
      *   ONGOING    → COMPLETED, CANCELLED
      */
+    /**
+     * Đã thu đủ cọc tại trạm: {@code partiallyPaid} (tổng PAID) ≥ 10% {@code totalAmount}.
+     */
+    private void assertDepositCollected(Booking booking) {
+        BigDecimal total = booking.getTotalAmount() == null ? BigDecimal.ZERO : booking.getTotalAmount();
+        if (total.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        BigDecimal minDeposit = total.multiply(MIN_DEPOSIT_RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal paid = booking.getPartiallyPaid() == null ? BigDecimal.ZERO : booking.getPartiallyPaid();
+        if (paid.compareTo(minDeposit) < 0) {
+            throw new AppException(ErrorCode.BOOKING_DEPOSIT_REQUIRED);
+        }
+    }
+
     private void validateStatusTransition(BookingStatus current, BookingStatus target) {
         boolean valid = switch (current) {
             case PENDING   -> target == BookingStatus.CONFIRMED || target == BookingStatus.CANCELLED;

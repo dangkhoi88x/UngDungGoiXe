@@ -161,6 +161,41 @@
   filter: brightness(0.95);
 }
 
+.cr-page .cr-nav__account-btn {
+  display: inline-flex;
+  align-items: center;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.cr-page .cr-nav__account-btn:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.cr-page .cr-nav__logout-btn {
+  background: var(--cr-white);
+  color: var(--cr-dark);
+  text-decoration: none;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+}
+
+.cr-page .cr-nav__logout-btn:hover {
+  filter: brightness(0.95);
+}
+
 @media (max-width: 1024px) {
   .cr-nav__links {
     display: none;

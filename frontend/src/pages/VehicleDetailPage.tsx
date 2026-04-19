@@ -1,4 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import LicenseRequiredModal from '../components/LicenseRequiredModal'
+import {
+  fetchMyInfo,
+  isLicenseApprovedForRent,
+  type LicenseVerificationStatus,
+} from '../api/users'
 import {
   type VehicleDto,
   fetchAvailableVehicles,
@@ -37,11 +44,30 @@ function suggestRating(v: VehicleDto): string {
 type Props = { vehicleId: number }
 
 export default function VehicleDetailPage({ vehicleId }: Props) {
+  const navigate = useNavigate()
   const [vehicle, setVehicle] = useState<VehicleDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [photoIndex, setPhotoIndex] = useState(0)
   const [suggestions, setSuggestions] = useState<VehicleDto[]>([])
+  const [authUi, setAuthUi] = useState<{ loggedIn: boolean; displayName: string | null }>({
+    loggedIn: false,
+    displayName: null,
+  })
+  const [licenseModalOpen, setLicenseModalOpen] = useState(false)
+  const [licenseModalStatus, setLicenseModalStatus] = useState<LicenseVerificationStatus | null>(null)
+  const [licenseCheckLoading, setLicenseCheckLoading] = useState(false)
+
+  useEffect(() => {
+    const sync = () => {
+      const token = localStorage.getItem('accessToken')
+      const displayName = localStorage.getItem('userDisplayName')?.trim() || null
+      setAuthUi({ loggedIn: Boolean(token), displayName })
+    }
+    sync()
+    window.addEventListener('storage', sync)
+    return () => window.removeEventListener('storage', sync)
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -108,6 +134,23 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
     setPhotoIndex((i) => (i + 1) % images.length)
   }, [images.length])
 
+  const authNav = authUi.loggedIn ? (
+    <div className="vd-topbar__auth">
+      <a className="vd-auth vd-auth--account" href="/account" title={authUi.displayName ?? 'Tài khoản'}>
+        {authUi.displayName ? `Hi, ${authUi.displayName}` : 'Tài khoản'}
+      </a>
+      <a className="vd-auth vd-auth--logout" href="/logout">
+        Log Out
+      </a>
+    </div>
+  ) : (
+    <div className="vd-topbar__auth">
+      <a className="vd-auth" href="/auth">
+        Đăng nhập
+      </a>
+    </div>
+  )
+
   if (loading) {
     return (
       <div className="vd-page">
@@ -119,7 +162,7 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
             <span className="vd-logo-mark">H</span>
             Horizon
           </a>
-          <span />
+          {authNav}
         </div>
         <p className="vd-loading">Đang tải chi tiết xe…</p>
       </div>
@@ -137,9 +180,7 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
             <span className="vd-logo-mark">H</span>
             Horizon
           </a>
-          <a className="vd-auth" href="/auth">
-            Đăng nhập
-          </a>
+          {authNav}
         </div>
         <div className="vd-error">
           <p>{error ?? 'Không tìm thấy xe.'}</p>
@@ -155,7 +196,25 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
   const category = inferCategory(vehicle)
   const isAvailable = vehicle.status === 'AVAILABLE'
 
+  async function handleBookClick() {
+    setLicenseCheckLoading(true)
+    try {
+      const me = await fetchMyInfo()
+      if (!isLicenseApprovedForRent(me.licenseVerificationStatus)) {
+        setLicenseModalStatus(me.licenseVerificationStatus ?? 'NOT_SUBMITTED')
+        setLicenseModalOpen(true)
+        return
+      }
+      navigate(`/booking/${vehicleId}`)
+    } catch {
+      // fetchMyInfo: lỗi mạng / 401 (authFetch có thể redirect); không mở modal GPLX
+    } finally {
+      setLicenseCheckLoading(false)
+    }
+  }
+
   return (
+    <>
     <div className="vd-page">
       <header className="vd-topbar">
         <a className="vd-back" href="/rent">
@@ -165,9 +224,7 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
           <span className="vd-logo-mark">H</span>
           Horizon
         </a>
-        <a className="vd-auth" href="/auth">
-          Đăng nhập
-        </a>
+        {authNav}
       </header>
 
       <main className="vd-main">
@@ -275,9 +332,26 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
               </div>
             </div>
 
-            <a className="vd-cta" href="/auth">
-              Đặt xe — đăng nhập để tiếp tục
-            </a>
+            {isAvailable ? (
+              authUi.loggedIn ? (
+                <button
+                  type="button"
+                  className="vd-cta"
+                  disabled={licenseCheckLoading}
+                  onClick={() => void handleBookClick()}
+                >
+                  {licenseCheckLoading ? 'Đang kiểm tra…' : 'Đặt xe'}
+                </button>
+              ) : (
+                <a className="vd-cta" href="/auth">
+                  Đặt xe — đăng nhập để tiếp tục
+                </a>
+              )
+            ) : (
+              <span className="vd-cta vd-cta--disabled" role="status">
+                Không thể đặt xe
+              </span>
+            )}
             <a className="vd-cta-secondary" href="/rent">
               Xem thêm xe khác
             </a>
@@ -365,5 +439,14 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
         ) : null}
       </main>
     </div>
+    <LicenseRequiredModal
+      open={licenseModalOpen}
+      onDismiss={() => {
+        setLicenseModalOpen(false)
+        setLicenseModalStatus(null)
+      }}
+      currentStatus={licenseModalStatus}
+    />
+    </>
   )
 }

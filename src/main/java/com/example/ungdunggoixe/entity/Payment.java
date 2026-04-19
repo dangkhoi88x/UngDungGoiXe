@@ -53,6 +53,7 @@ public class Payment {
     // Enums
     // ───────────────────────────────────────────
     public enum PaymentMethod {
+        /** Tiền mặt — thanh toán / cọc tại trạm (luồng đồ án). */
         CASH,
         MOMO
     }

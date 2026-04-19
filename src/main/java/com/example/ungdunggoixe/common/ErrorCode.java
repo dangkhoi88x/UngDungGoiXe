@@ -29,8 +29,13 @@ public enum ErrorCode {
     VEHICLE_NOT_AVAILABLE(4004, "Vehicle is not available for the requested time range", HttpStatus.CONFLICT),
     BOOKING_STATUS_TRANSITION_INVALID(4005, "Invalid booking status transition", HttpStatus.BAD_REQUEST),
     VEHICLE_NOT_IN_CORRECT_STATUS(4006, "Vehicle is not in the correct status for this operation", HttpStatus.CONFLICT),
+    BOOKING_DEPOSIT_REQUIRED(4007, "Cần thu cọc (tiền mặt tại trạm) trước khi xác nhận booking.", HttpStatus.BAD_REQUEST),
     // ── Payment errors ────────────────────────
     PAYMENT_NOT_FOUND(5001, "Payment not found", HttpStatus.NOT_FOUND),
+    PAYMENT_METHOD_NOT_ALLOWED(5002, "Thanh toán tại trạm chỉ dùng tiền mặt (CASH).", HttpStatus.BAD_REQUEST),
+    PAYMENT_AMOUNT_INVALID(5003, "Số tiền thanh toán không hợp lệ.", HttpStatus.BAD_REQUEST),
+    PAYMENT_STATUS_INVALID(5004, "Trạng thái thanh toán không cho phép thao tác này.", HttpStatus.BAD_REQUEST),
+    PAYMENT_BOOKING_NOT_PAYABLE(5005, "Booking không ở trạng thái cho phép ghi nhận thanh toán.", HttpStatus.BAD_REQUEST),
     // ── Generic errors ────────────────────────
     UNAUTHORIZED(9001, "Unauthorized", HttpStatus.UNAUTHORIZED),
     FORBIDDEN(9002, "Forbidden", HttpStatus.FORBIDDEN),

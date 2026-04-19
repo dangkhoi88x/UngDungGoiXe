@@ -1,8 +1,7 @@
 package com.example.ungdunggoixe.security;
 
 import com.example.ungdunggoixe.common.TokenType;
-import com.example.ungdunggoixe.repository.TokenRepository;
-import lombok.AllArgsConstructor;
+import com.example.ungdunggoixe.repository.BlacklistedTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -17,39 +16,43 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CustomJwtValidator implements OAuth2TokenValidator<Jwt> {
 
+    private static final OAuth2Error INVALID = new OAuth2Error(
+            "invalid_token",
+            "Token is invalid or revoked",
+            null);
 
     @Value("${jwt.audience}")
     private String audience;
-    private final TokenRepository tokenRepository;
+
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
+
     @Override
     public OAuth2TokenValidatorResult validate(Jwt jwt) {
-        OAuth2Error invalidToken = new OAuth2Error(
-                "invalid_token",
-                "Token is invalid or revoked",
-                null
-        );
-        OAuth2Error error = new OAuth2Error("custom_code", "Custom error message", null);
-        List<String> audienceList= jwt.getAudience();
-        if(!audienceList.contains(audience)){
-            return OAuth2TokenValidatorResult.failure(error);
+        List<String> audienceList = jwt.getAudience();
+        if (audienceList == null || !audienceList.contains(audience)) {
+            return OAuth2TokenValidatorResult.failure(INVALID);
         }
 
-        String typ = jwt.getClaim("typ").toString();
-        if(TokenType.valueOf(typ) != TokenType.ACCESS ){
-            return OAuth2TokenValidatorResult.failure(error);
+        Object typClaim = jwt.getClaim("typ");
+        if (typClaim == null) {
+            return OAuth2TokenValidatorResult.failure(INVALID);
         }
+        try {
+            if (TokenType.valueOf(typClaim.toString()) != TokenType.ACCESS) {
+                return OAuth2TokenValidatorResult.failure(INVALID);
+            }
+        } catch (IllegalArgumentException ex) {
+            return OAuth2TokenValidatorResult.failure(INVALID);
+        }
+
         String jti = jwt.getId();
         if (jti == null || jti.isBlank()) {
-            return OAuth2TokenValidatorResult.failure(invalidToken);
+            return OAuth2TokenValidatorResult.failure(INVALID);
         }
 
-        if (tokenRepository.existsById(jti)) {
-            return OAuth2TokenValidatorResult.failure(
-                    new OAuth2Error("invalid_token", "Token has been revoked", null)
-            );
+        if (blacklistedTokenRepository.existsById(jti)) {
+            return OAuth2TokenValidatorResult.failure(INVALID);
         }
         return OAuth2TokenValidatorResult.success();
     }
-
-
 }

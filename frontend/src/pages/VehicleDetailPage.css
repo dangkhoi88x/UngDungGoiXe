@@ -74,6 +74,31 @@
   background: var(--vd-bg);
 }
 
+.vd-topbar__auth {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.vd-auth--account {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vd-auth--logout {
+  background: var(--vd-dark);
+  color: #fff;
+  border-color: var(--vd-dark);
+}
+
+.vd-auth--logout:hover {
+  filter: brightness(1.08);
+  background: var(--vd-dark);
+}
+
 .vd-main {
   max-width: 1200px;
   margin: 0 auto;
@@ -314,6 +339,19 @@
 
 .vd-cta:hover {
   filter: brightness(1.08);
+}
+
+.vd-cta:disabled {
+  opacity: 0.72;
+  cursor: wait;
+  filter: none;
+}
+
+.vd-cta--disabled {
+  background: #e0e0e0;
+  color: #888;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .vd-cta-secondary {

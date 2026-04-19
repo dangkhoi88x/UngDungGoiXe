@@ -4,15 +4,16 @@ import com.example.ungdunggoixe.dto.request.AuthenticationRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.AuthenticationResponse;
 import com.example.ungdunggoixe.service.AuthenticationService;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseCookie;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 
@@ -20,64 +21,81 @@ import java.time.Instant;
 @RequiredArgsConstructor
 @RequestMapping("/auth")
 public class AuthenticationController {
+
+    private static final long REFRESH_MAX_AGE_SECONDS = 3600L * 24 * 14;
+
     private final AuthenticationService authenticationService;
-    @PostMapping("/login")
-    public ApiResponse<AuthenticationResponse> login(@RequestBody AuthenticationRequest authenticationRequest, HttpServletResponse response) {
-        var result = authenticationService.authenticate(authenticationRequest);
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", result.refreshToken())
+
+    private ResponseCookie buildRefreshCookie(String value, long maxAgeSeconds) {
+        return ResponseCookie.from("refresh_token", value)
                 .httpOnly(true)
-                .secure(false)// deploy thật thì true
+                .secure(false) // deploy thật thì true
                 .path("/")
-                .maxAge(3600*24*14)
+                .maxAge(maxAgeSeconds)
                 .sameSite("Lax")
                 .build();
+    }
 
-        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+    @PostMapping("/login")
+    public ApiResponse<AuthenticationResponse> login(
+            @RequestBody AuthenticationRequest request,
+            HttpServletResponse response) {
 
-       return ApiResponse.<AuthenticationResponse>builder()
-               .status("success")
-               .message("Login successful")
-               .data(AuthenticationResponse.builder()
-                       .userId(result.userId())
-                       .firstName(result.firstName())
-                       .lastName(result.lastName())
-                       .accessToken(result.accessToken())
-                       .refreshToken(null)
-                       .build())
-               .timestamp(Instant.now())
-               .build();
+        var result = authenticationService.authenticate(request);
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
+                buildRefreshCookie(result.refreshToken(), REFRESH_MAX_AGE_SECONDS).toString());
+
+        return ApiResponse.<AuthenticationResponse>builder()
+                .status("success")
+                .message("Login successful")
+                .data(AuthenticationResponse.builder()
+                        .userId(result.userId())
+                        .firstName(result.firstName())
+                        .lastName(result.lastName())
+                        .accessToken(result.accessToken())
+                        .refreshToken(null)
+                        .build())
+                .timestamp(Instant.now())
+                .build();
     }
 
     @PostMapping("/refresh-token")
     public ApiResponse<AuthenticationResponse> refreshToken(
-            @CookieValue(name = "refresh_token") String refreshToken
-    ) {
+            @CookieValue(name = "refresh_token") String refreshToken,
+            HttpServletResponse response) {
+
         AuthenticationResponse result = authenticationService.refreshToken(refreshToken);
+
+        if (result.refreshToken() != null) {
+            response.addHeader(
+                    HttpHeaders.SET_COOKIE,
+                    buildRefreshCookie(result.refreshToken(), REFRESH_MAX_AGE_SECONDS).toString());
+        }
 
         return ApiResponse.<AuthenticationResponse>builder()
                 .status("success")
                 .message("Token refreshed")
-                .data(result)
+                .data(AuthenticationResponse.builder()
+                        .userId(result.userId())
+                        .firstName(result.firstName())
+                        .lastName(result.lastName())
+                        .accessToken(result.accessToken())
+                        .refreshToken(null)
+                        .build())
                 .timestamp(Instant.now())
                 .build();
     }
+
     @PostMapping("/logout")
     public void logout(
-    @RequestHeader("Authorization") String authHeader,
-    @CookieValue(name = "refresh_token", required = false) String refreshToken,
-    HttpServletResponse response)
-    {
+            @RequestHeader("Authorization") String authHeader,
+            @CookieValue(name = "refresh_token", required = false) String refreshToken,
+            HttpServletResponse response) {
+
         String token = authHeader.replace("Bearer ", "");
         authenticationService.logOut(token, refreshToken);
 
-        ResponseCookie deleteCookie = ResponseCookie.from("refresh_token", "")
-                .httpOnly(true)
-                .secure(false) // deploy thật thì true
-                .path("/")
-                .maxAge(0)
-                .sameSite("Lax")
-                .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, buildRefreshCookie("", 0).toString());
     }
 }

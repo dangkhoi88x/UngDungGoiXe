@@ -25,6 +25,11 @@ export function licenseVerificationLabel(s: LicenseVerificationStatus | null | u
   }
 }
 
+/** Cho phép đặt xe khi GPLX đã duyệt (APPROVED) hoặc đã gửi chờ admin (PENDING). */
+export function isLicenseApprovedForRent(s: LicenseVerificationStatus | null | undefined): boolean {
+  return s === 'APPROVED' || s === 'PENDING'
+}
+
 export type UserDto = {
   id: number
   email: string

@@ -5,6 +5,7 @@ import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.PaymentResponse;
 import com.example.ungdunggoixe.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -66,6 +67,7 @@ public class PaymentController {
      * PATCH /payments/{id}/confirm
      */
     @PatchMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     public ApiResponse<PaymentResponse> confirm(@PathVariable Long id) {
         PaymentResponse result = paymentService.confirmPayment(id);
         return ApiResponse.<PaymentResponse>builder()
@@ -81,6 +83,7 @@ public class PaymentController {
      * PATCH /payments/{id}/fail
      */
     @PatchMapping("/{id}/fail")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     public ApiResponse<PaymentResponse> fail(@PathVariable Long id) {
         PaymentResponse result = paymentService.failPayment(id);
         return ApiResponse.<PaymentResponse>builder()

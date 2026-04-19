@@ -55,6 +55,21 @@ export default function CarRentalPage() {
   const [navQuery, setNavQuery] = useState('')
   const [roundTrip, setRoundTrip] = useState(true)
   const [driverMode, setDriverMode] = useState<'without' | 'with'>('without')
+  const [authUi, setAuthUi] = useState<{ loggedIn: boolean; displayName: string | null }>({
+    loggedIn: false,
+    displayName: null,
+  })
+
+  useEffect(() => {
+    const sync = () => {
+      const token = localStorage.getItem('accessToken')
+      const displayName = localStorage.getItem('userDisplayName')?.trim() || null
+      setAuthUi({ loggedIn: Boolean(token), displayName })
+    }
+    sync()
+    window.addEventListener('storage', sync)
+    return () => window.removeEventListener('storage', sync)
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -150,12 +165,29 @@ export default function CarRentalPage() {
           <button type="button" className="cr-nav__lang" aria-label="Language English">
             🌐 EN
           </button>
-          <a className="cr-nav__login" href="/auth">
-            Log In
-          </a>
-          <a className="cr-nav__signup" href="/auth">
-            Sign Up
-          </a>
+          {authUi.loggedIn ? (
+            <>
+              <a
+                className="cr-nav__account-btn"
+                href="/account"
+                title={authUi.displayName ?? 'Tài khoản'}
+              >
+                {authUi.displayName ? `Hi, ${authUi.displayName}` : 'My Account'}
+              </a>
+              <a className="cr-nav__logout-btn" href="/logout">
+                Log Out
+              </a>
+            </>
+          ) : (
+            <>
+              <a className="cr-nav__login" href="/auth">
+                Log In
+              </a>
+              <a className="cr-nav__signup" href="/auth">
+                Sign Up
+              </a>
+            </>
+          )}
         </div>
       </header>
 
