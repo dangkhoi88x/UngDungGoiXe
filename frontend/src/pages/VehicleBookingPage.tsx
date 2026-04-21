@@ -8,6 +8,7 @@ import {
   fromDateTimeLocalValue,
 } from '../api/bookings'
 import LicenseRequiredModal from '../components/LicenseRequiredModal'
+import GoogleStationsMap from '../components/GoogleStationsMap'
 import { fetchMyInfo, isLicenseApprovedForRent, type UserProfileDto } from '../api/users'
 import { fetchStationById, stationLabel, type StationDto } from '../api/stations'
 import {
@@ -69,6 +70,10 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
 
   const [pickupMode, setPickupMode] = useState<'station' | 'delivery'>('station')
   const [extraNote, setExtraNote] = useState('')
+  /** Chỉnh cho lần đặt này — gửi kèm pickupNote, không cập nhật hồ sơ tài khoản. */
+  const [nameInput, setNameInput] = useState('')
+  const [emailInput, setEmailInput] = useState('')
+  const [phoneInput, setPhoneInput] = useState('')
   const [paymentDemo, setPaymentDemo] = useState<'card' | 'transfer' | 'cash'>('cash')
 
   const [slotAvailable, setSlotAvailable] = useState<boolean | null>(null)
@@ -97,6 +102,14 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    if (profile) {
+      setNameInput([profile.firstName, profile.lastName].filter(Boolean).join(' ').trim())
+      setEmailInput(profile.email?.trim() ?? '')
+      setPhoneInput(profile.phone?.trim() ?? '')
+    }
+  }, [profile])
 
   const estimate = useMemo(() => {
     if (!vehicle) return { hours: 0, subtotal: 0 }
@@ -159,7 +172,16 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
     const endIso = fromDateTimeLocalValue(end)
     const modeLabel =
       pickupMode === 'station' ? 'Nhận xe tại trạm' : 'Yêu cầu giao xe / làm việc với trạm'
-    const pickupNote = [modeLabel, extraNote.trim()].filter(Boolean).join(' — ').slice(0, 8000)
+    const nameTrim = nameInput.trim()
+    const emailTrim = emailInput.trim()
+    const phoneTrim = phoneInput.trim()
+    const nameLine = nameTrim ? `Họ tên: ${nameTrim}` : ''
+    const emailLine = emailTrim ? `Email: ${emailTrim}` : ''
+    const phoneLine = phoneTrim ? `SĐT liên hệ: ${phoneTrim}` : ''
+    const pickupNote = [modeLabel, nameLine, emailLine, phoneLine, extraNote.trim()]
+      .filter(Boolean)
+      .join(' — ')
+      .slice(0, 8000)
 
     setSubmitting(true)
     try {
@@ -238,8 +260,21 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
 
   const title = vehicleDisplayName(vehicle)
   const thumb = resolvePhotoUrl(vehicle.photos?.[0] ?? '')
-  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || '—'
   const stationName = station ? stationLabel(station) : `Trạm #${vehicle.stationId}`
+
+  const stationMapMarkers = useMemo(() => {
+    if (
+      station == null ||
+      station.latitude == null ||
+      station.longitude == null
+    ) {
+      return []
+    }
+    const lat = Number(station.latitude)
+    const lng = Number(station.longitude)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return []
+    return [{ lat, lng, title: stationLabel(station) }]
+  }, [station])
 
   const slotMsg = !timesValid ? null : checkingSlot ? (
     <p className="vb-slot-msg vb-slot-msg--wait">Đang kiểm tra lịch trống…</p>
@@ -282,13 +317,31 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
                 <label className="vb-label" htmlFor="vb-fullname">
                   Họ và tên
                 </label>
-                <input id="vb-fullname" className="vb-input" type="text" value={fullName} readOnly />
+                <input
+                  id="vb-fullname"
+                  className="vb-input"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Họ và tên người liên hệ"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  maxLength={120}
+                />
               </div>
               <div className="vb-field">
                 <label className="vb-label" htmlFor="vb-email">
                   Email
                 </label>
-                <input id="vb-email" className="vb-input" type="email" value={profile.email} readOnly />
+                <input
+                  id="vb-email"
+                  className="vb-input"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="email@example.com"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  maxLength={120}
+                />
               </div>
               <div className="vb-field">
                 <label className="vb-label" htmlFor="vb-phone">
@@ -297,16 +350,37 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
                 <input
                   id="vb-phone"
                   className="vb-input"
-                  type="text"
-                  value={profile.phone?.trim() || '—'}
-                  readOnly
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="Ví dụ: 0912345678"
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value)}
+                  maxLength={20}
                 />
-                <p className="vb-hint">Cập nhật SĐT trong trang tài khoản nếu cần.</p>
+                <p className="vb-hint">
+                  Họ tên, email và SĐT có thể chỉnh chỉ cho lần đặt này — không cập nhật hồ sơ tài khoản. Nội dung
+                  có điền sẽ được ghi vào ghi chú nhận xe kèm booking.
+                </p>
               </div>
               <div className="vb-field">
                 <span className="vb-label">Trạm giao xe</span>
                 <input className="vb-input" type="text" value={stationName} readOnly />
                 {station?.address ? <p className="vb-hint">{station.address}</p> : null}
+                {stationMapMarkers.length > 0 ? (
+                  <div className="vb-field vb-field--map">
+                    <span className="vb-label">Vị trí trên bản đồ</span>
+                    <GoogleStationsMap
+                      markers={stationMapMarkers}
+                      height={260}
+                      className="vb-station-map"
+                    />
+                  </div>
+                ) : (
+                  <p className="vb-hint vb-hint--map">
+                    Trạm chưa khai báo tọa độ bản đồ — dùng địa chỉ hoặc hotline để liên hệ.
+                  </p>
+                )}
               </div>
             </section>
 

@@ -38,6 +38,8 @@ type FormState = {
   address: string
   hotline: string
   photo: string
+  latitude: string
+  longitude: string
   startTime: string
   endTime: string
   status: string
@@ -49,10 +51,42 @@ function emptyForm(): FormState {
     address: '',
     hotline: '',
     photo: '',
+    latitude: '',
+    longitude: '',
     startTime: '',
     endTime: '',
     status: 'ACTIVE',
   }
+}
+
+function formatCoord(v: number | null | undefined): string {
+  if (v == null || Number.isNaN(v)) return ''
+  return String(v)
+}
+
+/** Cả hai rỗng → null; cả hai có giá trị hợp lệ → cặp số; một bên rỗng → lỗi. */
+function parseStationCoords(
+  latStr: string,
+  lngStr: string,
+): { ok: true; lat: number | null; lng: number | null } | { ok: false; message: string } {
+  const lt = latStr.trim()
+  const lg = lngStr.trim()
+  if (!lt && !lg) return { ok: true, lat: null, lng: null }
+  if (!lt || !lg) {
+    return {
+      ok: false,
+      message: 'Vĩ độ và kinh độ phải cùng điền hoặc cùng để trống.',
+    }
+  }
+  const lat = Number(lt.replace(',', '.'))
+  const lng = Number(lg.replace(',', '.'))
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { ok: false, message: 'Tọa độ không hợp lệ.' }
+  }
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return { ok: false, message: 'Tọa độ ngoài phạm vi WGS84.' }
+  }
+  return { ok: true, lat, lng }
 }
 
 function stationToForm(s: StationDto): FormState {
@@ -61,6 +95,8 @@ function stationToForm(s: StationDto): FormState {
     address: s.address ?? '',
     hotline: s.hotline ?? '',
     photo: s.photo ?? '',
+    latitude: formatCoord(s.latitude ?? undefined),
+    longitude: formatCoord(s.longitude ?? undefined),
     startTime: stationTimeToInput(s.startTime ?? undefined),
     endTime: stationTimeToInput(s.endTime ?? undefined),
     status: s.status || 'ACTIVE',
@@ -236,6 +272,12 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
     const hotline = form.hotline.trim() || null
     const photo = form.photo.trim() || null
 
+    const coords = parseStationCoords(form.latitude, form.longitude)
+    if (!coords.ok) {
+      setToast(coords.message)
+      return
+    }
+
     setSaving(true)
     try {
       if (modal === 'create') {
@@ -246,6 +288,10 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
           photo,
           startTime: startT,
           endTime: endT,
+        }
+        if (coords.lat != null && coords.lng != null) {
+          body.latitude = coords.lat
+          body.longitude = coords.lng
         }
         await createStation(body)
         setToast('Đã thêm trạm.')
@@ -258,6 +304,12 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
           status: form.status || null,
           startTime: startT,
           endTime: endT,
+        }
+        if (coords.lat == null && coords.lng == null) {
+          body.clearCoordinates = true
+        } else {
+          body.latitude = coords.lat
+          body.longitude = coords.lng
         }
         await updateStation(editingId, body)
         setToast('Đã cập nhật trạm.')
@@ -452,6 +504,7 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
                 <th>Tên trạm</th>
                 <th>Địa chỉ</th>
                 <th>Hotline</th>
+                <th className="adm-veh__mono">Lat / Lng</th>
                 <th>Giờ mở — đóng</th>
                 <th>Trạng thái</th>
                 <th />
@@ -464,6 +517,11 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
                   <td>{stationLabel(s)}</td>
                   <td>{s.address ?? '—'}</td>
                   <td>{s.hotline ?? '—'}</td>
+                  <td className="adm-veh__mono" title="WGS84 — dùng cho marker bản đồ">
+                    {s.latitude != null && s.longitude != null
+                      ? `${s.latitude}, ${s.longitude}`
+                      : '—'}
+                  </td>
                   <td className="adm-veh__mono">
                     {[
                       stationTimeToInput(s.startTime ?? undefined),
@@ -628,6 +686,42 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
                   </div>
                 ) : null}
               </div>
+
+              <div className="adm-veh__form-row2">
+                <div className="adm-veh__field">
+                  <label htmlFor="sta-lat">Vĩ độ (latitude)</label>
+                  <input
+                    id="sta-lat"
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    placeholder="Ví dụ 10.7769"
+                    value={form.latitude}
+                    onChange={(e) =>
+                      setForm((x) => ({ ...x, latitude: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="adm-veh__field">
+                  <label htmlFor="sta-lng">Kinh độ (longitude)</label>
+                  <input
+                    id="sta-lng"
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    placeholder="Ví dụ 106.7009"
+                    value={form.longitude}
+                    onChange={(e) =>
+                      setForm((x) => ({ ...x, longitude: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+              <p
+                style={{ margin: '-0.25rem 0 0.5rem', fontSize: '0.85rem', opacity: 0.85 }}
+              >
+                WGS84 — để trống nếu chưa có; điền đủ hai trường để hiển thị marker trên bản đồ.
+              </p>
 
               <div className="adm-veh__form-row2">
                 <div className="adm-veh__field">

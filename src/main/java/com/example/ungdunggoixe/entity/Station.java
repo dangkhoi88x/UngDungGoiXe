@@ -34,6 +34,12 @@ public class Station {
     private String photo;
     private LocalTime startTime;
     private LocalTime endTime;
+
+    /** Vĩ độ WGS84 — dùng cho bản đồ (Google Maps, …). Nullable nếu chưa gán. */
+    private Double latitude;
+    /** Kinh độ WGS84 — nullable nếu chưa gán. */
+    private Double longitude;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp

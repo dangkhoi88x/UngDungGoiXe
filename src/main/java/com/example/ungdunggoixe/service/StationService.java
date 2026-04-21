@@ -96,8 +96,20 @@ public class StationService {
     public StationResponse updateStation(Long id, UpdateStationRequest request) {
         Station station = stationRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.STATION_NOT_FOUND));
-        // 🔥 dùng mapper để update (auto ignore null)
+        // Merge bỏ qua null; latitude/longitude xử lý riêng (cho phép xóa qua clearCoordinates).
         StationMapper.INSTANCE.updateEntity(request, station);
+
+        if (Boolean.TRUE.equals(request.getClearCoordinates())) {
+            station.setLatitude(null);
+            station.setLongitude(null);
+        } else {
+            if (request.getLatitude() != null) {
+                station.setLatitude(request.getLatitude());
+            }
+            if (request.getLongitude() != null) {
+                station.setLongitude(request.getLongitude());
+            }
+        }
 
         // nếu không dùng @UpdateTimestamp thì set thủ công
         station.setUpdatedAt(LocalDateTime.now());

@@ -20,7 +20,11 @@ public interface StationMapper {
     Station toStation(CreateStationRequest request);
     CreateStationResponse toCreateStationResponse(Station station);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(
+            nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+            ignoreUnmappedSourceProperties = "clearCoordinates")
+    @Mapping(target = "latitude", ignore = true)
+    @Mapping(target = "longitude", ignore = true)
     void updateEntity(UpdateStationRequest request, @MappingTarget Station station);
     StationResponse toStationResponse(Station staion);
 }

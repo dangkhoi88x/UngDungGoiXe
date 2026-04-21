@@ -13,6 +13,11 @@ dist
 dist-ssr
 *.local
 
+# Secret env — không commit (Vite đọc .env.local)
+.env
+.env.local
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

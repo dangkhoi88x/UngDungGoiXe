@@ -21,4 +21,10 @@ public class UpdateStationRequest {
 
     private LocalTime startTime;
     private LocalTime endTime;
+
+    private Double latitude;
+    private Double longitude;
+
+    /** Khi true, xóa tọa độ trạm (cả hai cột null). Dùng vì merge update bỏ qua null thông thường. */
+    private Boolean clearCoordinates;
 }

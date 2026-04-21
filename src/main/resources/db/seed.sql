@@ -63,15 +63,17 @@ ON DUPLICATE KEY UPDATE role_id = VALUES(role_id);
 -- -----------------------------------------------------------------------------
 -- stations (StationStatus: ACTIVE | INACTIVE | MAINTENANCE)
 -- -----------------------------------------------------------------------------
-INSERT INTO stations (id, name, address, rating, hotline, status, photo, start_time, end_time, created_at, updated_at) VALUES
-  (1, N'Trạm Quận 1',     N'123 Nguyễn Huệ, P. Bến Nghé, Q.1, TP.HCM',        4.6, '02838123456', 'ACTIVE', NULL, '07:00:00', '22:00:00', NOW(6), NOW(6)),
-  (2, N'Trạm Thủ Đức',   N'456 Võ Văn Ngân, TP. Thủ Đức, TP.HCM',            4.4, '02838234567', 'ACTIVE', NULL, '06:30:00', '21:30:00', NOW(6), NOW(6)),
-  (3, N'Trạm Tân Bình',  N'789 Hoàng Văn Thụ, P.4, Q.Tân Bình, TP.HCM',      4.5, '02838345678', 'ACTIVE', NULL, '08:00:00', '23:00:00', NOW(6), NOW(6))
+INSERT INTO stations (id, name, address, rating, hotline, status, photo, start_time, end_time, latitude, longitude, created_at, updated_at) VALUES
+  (1, N'Trạm Quận 1',     N'123 Nguyễn Huệ, P. Bến Nghé, Q.1, TP.HCM',        4.6, '02838123456', 'ACTIVE', NULL, '07:00:00', '22:00:00', 10.7769, 106.7009, NOW(6), NOW(6)),
+  (2, N'Trạm Thủ Đức',   N'456 Võ Văn Ngân, TP. Thủ Đức, TP.HCM',            4.4, '02838234567', 'ACTIVE', NULL, '06:30:00', '21:30:00', 10.8501, 106.7717, NOW(6), NOW(6)),
+  (3, N'Trạm Tân Bình',  N'789 Hoàng Văn Thụ, P.4, Q.Tân Bình, TP.HCM',      4.5, '02838345678', 'ACTIVE', NULL, '08:00:00', '23:00:00', 10.8016, 106.6669, NOW(6), NOW(6))
 ON DUPLICATE KEY UPDATE
   address = VALUES(address),
   rating = VALUES(rating),
   hotline = VALUES(hotline),
-  status = VALUES(status);
+  status = VALUES(status),
+  latitude = VALUES(latitude),
+  longitude = VALUES(longitude);
 
 -- -----------------------------------------------------------------------------
 -- vehicles (FuelType: GASOLINE | ELECTRICITY; VehicleStatus: AVAILABLE, …)

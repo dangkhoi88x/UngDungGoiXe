@@ -18,4 +18,7 @@ public class CreateStationRequest {
     private LocalTime startTime;
     private LocalTime endTime;
 
+    private Double latitude;
+    private Double longitude;
+
 }

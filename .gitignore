@@ -32,3 +32,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Secrets (Vite / local env) ###
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+frontend/.env.*
+!frontend/.env.example

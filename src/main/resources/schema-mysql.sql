@@ -21,3 +21,7 @@ END WHERE is_license_verified = 0 OR is_license_verified IS NULL;
 -- Cột cũ NOT NULL không DEFAULT → JPA không gửi giá trị sẽ lỗi; sửa tạm rồi xóa hẳn (lệnh bỏ qua nếu cột đã không tồn tại).
 ALTER TABLE users MODIFY COLUMN is_license_verified TINYINT(1) NOT NULL DEFAULT 0;
 ALTER TABLE users DROP COLUMN is_license_verified;
+
+-- Tọa độ trạm (bản đồ). Nullable để tương thích dữ liệu cũ.
+ALTER TABLE stations ADD COLUMN latitude DOUBLE NULL;
+ALTER TABLE stations ADD COLUMN longitude DOUBLE NULL;

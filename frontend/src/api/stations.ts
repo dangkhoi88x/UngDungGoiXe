@@ -12,6 +12,9 @@ export type StationDto = {
   status?: string | null
   rating?: number | null
   photo?: string | null
+  /** WGS84 — dùng marker Google Map; có thể null. */
+  latitude?: number | null
+  longitude?: number | null
   /** ISO local time từ API, ví dụ "08:00:00" */
   startTime?: string | null
   endTime?: string | null
@@ -22,6 +25,8 @@ export type StationCreatePayload = {
   address: string
   hotline?: string | null
   photo?: string | null
+  latitude?: number | null
+  longitude?: number | null
   startTime?: string | null
   endTime?: string | null
 }
@@ -31,6 +36,10 @@ export type StationUpdatePayload = {
   address?: string | null
   hotline?: string | null
   photo?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  /** Gửi true khi muốn xóa tọa độ (backend merge bỏ qua null). */
+  clearCoordinates?: boolean | null
   status?: string | null
   startTime?: string | null
   endTime?: string | null

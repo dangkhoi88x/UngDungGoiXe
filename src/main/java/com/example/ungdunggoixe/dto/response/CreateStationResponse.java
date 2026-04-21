@@ -32,6 +32,10 @@ public class CreateStationResponse {
 
     private LocalTime endTime;
 
+    private Double latitude;
+
+    private Double longitude;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

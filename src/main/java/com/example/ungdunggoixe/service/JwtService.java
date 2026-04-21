@@ -39,9 +39,12 @@ public class JwtService {
     }
 
     public String generateAccessToken(Long userId, List<String> roles) {
+
+        //header
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         Instant now = Instant.now();
-
+        String jti = UUID.randomUUID().toString();
+        //payload
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(userId.toString())
                 .audience(List.of(audience))
@@ -50,7 +53,7 @@ public class JwtService {
                 .issuer("http://localhost:8080")
                 .claim("roles", roles)
                 .claim("typ", TokenType.ACCESS)
-                .id(UUID.randomUUID().toString())
+                .id(jti)
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
