@@ -7,6 +7,7 @@ import VehicleBookingPage from './pages/VehicleBookingPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import UserAccountPage from './pages/UserAccountPage'
 import UserAccountUpdatePage from './pages/UserAccountUpdatePage'
+import MapStationPage from './pages/MapStationPage'
 import { logoutRequest, rolesFromJwt } from './api/auth'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import './App.css'
@@ -96,6 +97,7 @@ function App() {
       <Route path="/rent" element={<CarRentalPage />} />
       <Route path="/rent/:id" element={<VehicleDetailRoute />} />
       <Route path="/booking/:vehicleId" element={<VehicleBookingRoute />} />
+      <Route path="/mapstation" element={<MapStationPage />} />
       <Route path="*" element={<StudioXLandingPage />} />
     </Routes>
   )

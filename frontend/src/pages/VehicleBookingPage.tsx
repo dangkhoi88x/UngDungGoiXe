@@ -8,7 +8,6 @@ import {
   fromDateTimeLocalValue,
 } from '../api/bookings'
 import LicenseRequiredModal from '../components/LicenseRequiredModal'
-import GoogleStationsMap from '../components/GoogleStationsMap'
 import { fetchMyInfo, isLicenseApprovedForRent, type UserProfileDto } from '../api/users'
 import { fetchStationById, stationLabel, type StationDto } from '../api/stations'
 import {
@@ -262,20 +261,6 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
   const thumb = resolvePhotoUrl(vehicle.photos?.[0] ?? '')
   const stationName = station ? stationLabel(station) : `Trạm #${vehicle.stationId}`
 
-  const stationMapMarkers = useMemo(() => {
-    if (
-      station == null ||
-      station.latitude == null ||
-      station.longitude == null
-    ) {
-      return []
-    }
-    const lat = Number(station.latitude)
-    const lng = Number(station.longitude)
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return []
-    return [{ lat, lng, title: stationLabel(station) }]
-  }, [station])
-
   const slotMsg = !timesValid ? null : checkingSlot ? (
     <p className="vb-slot-msg vb-slot-msg--wait">Đang kiểm tra lịch trống…</p>
   ) : slotAvailable === true ? (
@@ -367,20 +352,9 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
                 <span className="vb-label">Trạm giao xe</span>
                 <input className="vb-input" type="text" value={stationName} readOnly />
                 {station?.address ? <p className="vb-hint">{station.address}</p> : null}
-                {stationMapMarkers.length > 0 ? (
-                  <div className="vb-field vb-field--map">
-                    <span className="vb-label">Vị trí trên bản đồ</span>
-                    <GoogleStationsMap
-                      markers={stationMapMarkers}
-                      height={260}
-                      className="vb-station-map"
-                    />
-                  </div>
-                ) : (
-                  <p className="vb-hint vb-hint--map">
-                    Trạm chưa khai báo tọa độ bản đồ — dùng địa chỉ hoặc hotline để liên hệ.
-                  </p>
-                )}
+                <p className="vb-hint">
+                  Trạm chưa khai báo tọa độ bản đồ — dùng địa chỉ hoặc hotline để liên hệ.
+                </p>
               </div>
             </section>
 
