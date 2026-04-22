@@ -2,7 +2,9 @@ package com.example.ungdunggoixe.mapper;
 
 import com.example.ungdunggoixe.dto.request.CreateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateOwnerVehicleRequest;
+import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestHistoryItemResponse;
 import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestResponse;
+import com.example.ungdunggoixe.entity.OwnerVehicleRequestHistoryItem;
 import com.example.ungdunggoixe.entity.OwnerVehicleRequest;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
@@ -37,4 +39,6 @@ public interface OwnerVehicleRequestMapper {
     @Mapping(target = "stationId", source = "station.id")
     @Mapping(target = "approvedVehicleId", source = "approvedVehicle.id")
     OwnerVehicleRequestResponse toResponse(OwnerVehicleRequest entity);
+
+    OwnerVehicleRequestHistoryItemResponse toHistoryResponse(OwnerVehicleRequestHistoryItem item);
 }

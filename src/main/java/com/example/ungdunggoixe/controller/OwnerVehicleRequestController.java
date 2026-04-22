@@ -78,4 +78,16 @@ public class OwnerVehicleRequestController {
                 .timestamp(Instant.now())
                 .build();
     }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/{id}/cancel")
+    public ApiResponse<OwnerVehicleRequestResponse> cancel(@PathVariable Long id) {
+        OwnerVehicleRequestResponse result = ownerVehicleRequestService.cancel(id);
+        return ApiResponse.<OwnerVehicleRequestResponse>builder()
+                .status("success")
+                .message("Cancel owner vehicle request successful")
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
+    }
 }

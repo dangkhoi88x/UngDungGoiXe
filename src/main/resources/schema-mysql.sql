@@ -66,3 +66,13 @@ CREATE TABLE IF NOT EXISTS owner_vehicle_request_policies (
     policy_text TEXT NULL,
     CONSTRAINT fk_ovr_policy_request FOREIGN KEY (request_id) REFERENCES owner_vehicle_requests(id)
 );
+
+CREATE TABLE IF NOT EXISTS owner_vehicle_request_history (
+    request_id BIGINT NOT NULL,
+    event_type VARCHAR(64) NULL,
+    status VARCHAR(32) NULL,
+    actor_role VARCHAR(32) NULL,
+    note TEXT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT fk_ovr_history_request FOREIGN KEY (request_id) REFERENCES owner_vehicle_requests(id)
+);

@@ -492,6 +492,12 @@
   border-color: rgba(25, 118, 210, 0.35);
 }
 
+.adm-veh__doc-preview-btn--broken {
+  border-color: rgba(229, 57, 53, 0.5);
+  color: #b71c1c;
+  background: #fff3f3;
+}
+
 .adm-veh__doc-missing {
   display: inline-block;
   font-size: 11px;
@@ -571,6 +577,10 @@
   object-fit: cover;
   display: block;
   background: #eee;
+}
+
+.adm-veh__vehicle-photo-img[alt][src=""] {
+  display: none;
 }
 
 .adm-veh__vehicle-photo-label {

@@ -9,6 +9,10 @@ import {
   type UpdateOwnerVehicleRequestPayload,
 } from '../api/ownerVehicleRequests'
 import {
+  uploadOwnerVehicleDocument,
+  uploadOwnerVehiclePhotoWithProgress,
+} from '../api/uploads'
+import {
   intToFormString,
   joinLines,
   moneyToFormString,
@@ -19,6 +23,13 @@ import {
   validateOwnerVehicleFormStrings,
 } from '../lib/ownerVehicleRequestForm'
 import './OwnerRegisterVehiclePage.css'
+
+type PhotoUploadItem = {
+  id: string
+  name: string
+  progress: number
+  status: 'uploading' | 'done' | 'error'
+}
 
 function fuelFromDto(raw: string | null | undefined): OwnerVehicleFuelType {
   return raw === 'ELECTRICITY' ? 'ELECTRICITY' : 'GASOLINE'
@@ -63,14 +74,28 @@ export default function OwnerEditVehicleRequestPage() {
   const [longitude, setLongitude] = useState('')
   const [registrationDocUrl, setRegistrationDocUrl] = useState('')
   const [insuranceDocUrl, setInsuranceDocUrl] = useState('')
-  const [photosBlock, setPhotosBlock] = useState('')
+  const [photoUrlsState, setPhotoUrlsState] = useState<string[]>([])
   const [policiesBlock, setPoliciesBlock] = useState('')
 
   const [submitErr, setSubmitErr] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [uploadingDoc, setUploadingDoc] = useState<'registration' | 'insurance' | null>(null)
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+  const [uploadErr, setUploadErr] = useState<string | null>(null)
+  const [photoUploads, setPhotoUploads] = useState<PhotoUploadItem[]>([])
+  const [registrationPreviewUrl, setRegistrationPreviewUrl] = useState<string | null>(null)
+  const [insurancePreviewUrl, setInsurancePreviewUrl] = useState<string | null>(null)
 
-  const photoUrls = useMemo(() => splitLinesUrls(photosBlock), [photosBlock])
+  const photoUrls = useMemo(() => photoUrlsState.filter(Boolean), [photoUrlsState])
   const policyLines = useMemo(() => splitLinesUrls(policiesBlock), [policiesBlock])
+  const stationAddressOptions = useMemo(
+    () =>
+      stations
+        .map((s) => (s.address ?? '').trim())
+        .filter(Boolean)
+        .filter((addr, idx, arr) => arr.indexOf(addr) === idx),
+    [stations],
+  )
 
   useEffect(() => {
     if (!localStorage.getItem('accessToken')) {
@@ -126,7 +151,9 @@ export default function OwnerEditVehicleRequestPage() {
       setLongitude(dto.longitude != null ? String(dto.longitude) : '')
       setRegistrationDocUrl(dto.registrationDocUrl?.trim() ?? '')
       setInsuranceDocUrl(dto.insuranceDocUrl?.trim() ?? '')
-      setPhotosBlock(joinLines(dto.photos))
+      setRegistrationPreviewUrl(dto.registrationDocUrl?.trim() || null)
+      setInsurancePreviewUrl(dto.insuranceDocUrl?.trim() || null)
+      setPhotoUrlsState(splitLinesUrls(joinLines(dto.photos)))
       setPoliciesBlock(joinLines(dto.policies))
     } catch (e) {
       setLoadErr(e instanceof Error ? e.message : 'Không tải được yêu cầu.')
@@ -211,6 +238,93 @@ export default function OwnerEditVehicleRequestPage() {
     }
   }
 
+  async function onUploadDocument(
+    type: 'registration' | 'insurance',
+    file: File | null,
+  ) {
+    if (!file) return
+    setUploadErr(null)
+    setUploadingDoc(type)
+    try {
+      const url = await uploadOwnerVehicleDocument(file)
+      if (type === 'registration') {
+        setRegistrationDocUrl(url)
+        setRegistrationPreviewUrl(URL.createObjectURL(file))
+      } else {
+        setInsuranceDocUrl(url)
+        setInsurancePreviewUrl(URL.createObjectURL(file))
+      }
+    } catch (e) {
+      setUploadErr(e instanceof Error ? e.message : 'Upload file thất bại.')
+    } finally {
+      setUploadingDoc(null)
+    }
+  }
+
+  async function onUploadPhotos(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setUploadErr(null)
+    setPhotoUploads([])
+    setUploadingPhotos(true)
+    try {
+      for (const file of Array.from(files)) {
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        setPhotoUploads((prev) => [
+          ...prev,
+          { id, name: file.name, progress: 0, status: 'uploading' },
+        ])
+        try {
+          const url = await uploadOwnerVehiclePhotoWithProgress(file, (percent) => {
+            setPhotoUploads((prev) =>
+              prev.map((it) => (it.id === id ? { ...it, progress: percent } : it)),
+            )
+          })
+          setPhotoUploads((prev) =>
+            prev.map((it) =>
+              it.id === id ? { ...it, progress: 100, status: 'done' } : it,
+            ),
+          )
+          setPhotoUrlsState((prev) => [...prev, url])
+        } catch (e) {
+          setPhotoUploads((prev) =>
+            prev.map((it) => (it.id === id ? { ...it, status: 'error' } : it)),
+          )
+          throw e
+        }
+      }
+    } catch (e) {
+      setUploadErr(e instanceof Error ? e.message : 'Upload ảnh xe thất bại.')
+    } finally {
+      setUploadingPhotos(false)
+    }
+  }
+
+  function removePhotoAt(index: number) {
+    setPhotoUrlsState((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function movePhoto(index: number, direction: 'left' | 'right') {
+    setPhotoUrlsState((prev) => {
+      const target = direction === 'left' ? index - 1 : index + 1
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      const temp = next[index]
+      next[index] = next[target]
+      next[target] = temp
+      return next
+    })
+  }
+
+  function setAsCover(index: number) {
+    setPhotoUrlsState((prev) => {
+      if (index <= 0 || index >= prev.length) return prev
+      const next = [...prev]
+      const [picked] = next.splice(index, 1)
+      next.unshift(picked)
+      return next
+    })
+  }
+
   const badId = !Number.isInteger(requestId) || requestId <= 0
 
   return (
@@ -269,6 +383,11 @@ export default function OwnerEditVehicleRequestPage() {
             {submitErr ? (
               <p className="owreg__err" role="alert">
                 {submitErr}
+              </p>
+            ) : null}
+            {uploadErr ? (
+              <p className="owreg__err" role="alert">
+                {uploadErr}
               </p>
             ) : null}
 
@@ -342,12 +461,17 @@ export default function OwnerEditVehicleRequestPage() {
                   </label>
                   <label className="owreg__field">
                     <span className="owreg__label">Số chỗ (tùy chọn)</span>
-                    <input
+                    <select
                       className="owreg__input"
-                      inputMode="numeric"
                       value={capacity}
                       onChange={(e) => setCapacity(e.target.value)}
-                    />
+                    >
+                      <option value="">— Chọn số chỗ —</option>
+                      <option value="2">2</option>
+                      <option value="4">4</option>
+                      <option value="8">8</option>
+                      <option value="16">16</option>
+                    </select>
                   </label>
                 </div>
               </section>
@@ -401,11 +525,18 @@ export default function OwnerEditVehicleRequestPage() {
                 </label>
                 <label className="owreg__field">
                   <span className="owreg__label">Địa chỉ giao xe (tùy chọn)</span>
-                  <input
+                  <select
                     className="owreg__input"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                  />
+                  >
+                    <option value="">— Chọn địa chỉ từ trạm —</option>
+                    {stationAddressOptions.map((addr) => (
+                      <option key={addr} value={addr}>
+                        {addr}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <div className="owreg__grid2">
                   <label className="owreg__field">
@@ -428,26 +559,70 @@ export default function OwnerEditVehicleRequestPage() {
               </section>
 
               <section className="owreg__section">
-                <h2 className="owreg__section-title">Giấy tờ (URL)</h2>
+                <h2 className="owreg__section-title">Giấy tờ (upload ảnh)</h2>
                 <label className="owreg__field">
                   <span className="owreg__label">Giấy đăng ký / đăng kiểm</span>
                   <input
-                    className="owreg__input"
-                    type="url"
-                    value={registrationDocUrl}
-                    onChange={(e) => setRegistrationDocUrl(e.target.value)}
-                    required
+                    className="owreg__file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) =>
+                      void onUploadDocument('registration', e.currentTarget.files?.[0] ?? null)
+                    }
                   />
+                  <p className="owreg__hint">
+                    {uploadingDoc === 'registration'
+                      ? 'Đang upload giấy đăng ký...'
+                      : registrationDocUrl
+                        ? 'Đã upload. Bạn có thể chọn file khác để thay.'
+                        : 'Chọn ảnh để upload.'}
+                  </p>
+                  {registrationPreviewUrl ? (
+                    <a
+                      href={registrationPreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="owreg__doc-preview"
+                    >
+                      <img
+                        src={registrationPreviewUrl}
+                        alt="Preview giấy đăng ký"
+                        className="owreg__doc-preview-img"
+                      />
+                    </a>
+                  ) : null}
                 </label>
                 <label className="owreg__field">
                   <span className="owreg__label">Giấy bảo hiểm</span>
                   <input
-                    className="owreg__input"
-                    type="url"
-                    value={insuranceDocUrl}
-                    onChange={(e) => setInsuranceDocUrl(e.target.value)}
-                    required
+                    className="owreg__file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) =>
+                      void onUploadDocument('insurance', e.currentTarget.files?.[0] ?? null)
+                    }
                   />
+                  <p className="owreg__hint">
+                    {uploadingDoc === 'insurance'
+                      ? 'Đang upload giấy bảo hiểm...'
+                      : insuranceDocUrl
+                        ? 'Đã upload. Bạn có thể chọn file khác để thay.'
+                        : 'Chọn ảnh để upload.'}
+                  </p>
+                  {insurancePreviewUrl ? (
+                    <a
+                      href={insurancePreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="owreg__doc-preview"
+                    >
+                      <img
+                        src={insurancePreviewUrl}
+                        alt="Preview giấy bảo hiểm"
+                        className="owreg__doc-preview-img"
+                      />
+                    </a>
+                  ) : null}
                 </label>
               </section>
 
@@ -461,12 +636,102 @@ export default function OwnerEditVehicleRequestPage() {
                 </p>
                 <label className="owreg__field">
                   <span className="owreg__label">Danh sách URL ảnh</span>
-                  <textarea
-                    className="owreg__textarea owreg__textarea--tall"
-                    value={photosBlock}
-                    onChange={(e) => setPhotosBlock(e.target.value)}
-                    spellCheck={false}
+                  <input
+                    className="owreg__file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={(e) => void onUploadPhotos(e.currentTarget.files)}
                   />
+                  <p className="owreg__hint">
+                    {uploadingPhotos
+                      ? 'Đang upload ảnh xe...'
+                      : 'Chọn nhiều ảnh để upload, URL sẽ tự thêm vào danh sách bên dưới.'}
+                  </p>
+                  {photoUploads.length > 0 ? (
+                    <div className="owreg__upload-list" role="status" aria-live="polite">
+                      {photoUploads.map((it) => (
+                        <div key={it.id} className="owreg__upload-item">
+                          <div className="owreg__upload-head">
+                            <span className="owreg__upload-name">{it.name}</span>
+                            <span className="owreg__upload-meta">
+                              {it.status === 'error'
+                                ? 'Lỗi'
+                                : it.status === 'done'
+                                  ? 'Hoàn tất'
+                                  : `${it.progress}%`}
+                            </span>
+                          </div>
+                          <div className="owreg__upload-bar">
+                            <span style={{ width: `${it.progress}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {photoUrls.length > 0 ? (
+                    <div className="owreg__thumb-grid">
+                      {photoUrls.map((url, idx) => (
+                        <div key={`${url}-${idx}`} className="owreg__thumb-card-wrap">
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="owreg__thumb-card"
+                            title={`Ảnh ${idx + 1}`}
+                          >
+                            <img
+                              src={url}
+                              alt={`Ảnh xe ${idx + 1}`}
+                              className="owreg__thumb-img"
+                              loading="lazy"
+                            />
+                          </a>
+                          <div className="owreg__thumb-tools">
+                            {idx === 0 ? (
+                              <span className="owreg__thumb-cover">Ảnh đại diện</span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="owreg__thumb-btn"
+                                onClick={() => setAsCover(idx)}
+                              >
+                                Đặt đại diện
+                              </button>
+                            )}
+                            <div className="owreg__thumb-move">
+                              <button
+                                type="button"
+                                className="owreg__thumb-btn"
+                                onClick={() => movePhoto(idx, 'left')}
+                                disabled={idx === 0}
+                              >
+                                ←
+                              </button>
+                              <button
+                                type="button"
+                                className="owreg__thumb-btn"
+                                onClick={() => movePhoto(idx, 'right')}
+                                disabled={idx === photoUrls.length - 1}
+                              >
+                                →
+                              </button>
+                              <button
+                                type="button"
+                                className="owreg__thumb-btn owreg__thumb-btn--danger"
+                                onClick={() => removePhotoAt(idx)}
+                              >
+                                Xóa
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  <p className="owreg__hint">
+                    URL ảnh được hệ thống lưu tự động sau khi upload; không cần nhập tay.
+                  </p>
                 </label>
               </section>
 

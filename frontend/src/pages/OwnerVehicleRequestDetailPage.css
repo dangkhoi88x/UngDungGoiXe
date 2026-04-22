@@ -1,0 +1,101 @@
+.owrd-main {
+  max-width: 900px;
+}
+
+.owrd-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 680px) {
+  .owrd-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.owrd-kv {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(232, 236, 241, 0.86);
+}
+
+.owrd-muted {
+  color: rgba(232, 236, 241, 0.58);
+}
+
+.owrd-timeline {
+  margin: 0;
+  padding: 0 0 0 20px;
+  display: grid;
+  gap: 12px;
+}
+
+.owrd-step {
+  border-left: 2px solid rgba(138, 180, 255, 0.35);
+  padding-left: 12px;
+}
+
+.owrd-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.owrd-step-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.owrd-step-time {
+  color: rgba(232, 236, 241, 0.6);
+  font-size: 12px;
+}
+
+.owrd-step-sub {
+  margin: 4px 0 0;
+  color: rgba(232, 236, 241, 0.76);
+  font-size: 13px;
+}
+
+.owrd-step-note {
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(232, 236, 241, 0.92);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.owrd-notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.owrd-note-item {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.owrd-note-meta {
+  margin: 0 0 4px;
+  color: rgba(232, 236, 241, 0.62);
+  font-size: 12px;
+}
+
+.owrd-note-text {
+  margin: 0;
+  color: rgba(232, 236, 241, 0.92);
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+

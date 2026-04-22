@@ -26,6 +26,49 @@
   gap: 10px;
 }
 
+.owmr-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+  margin: 8px 0 14px;
+}
+
+.owmr-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.owmr-filter > span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(232, 236, 241, 0.75);
+}
+
+.owmr-filter select {
+  min-width: 170px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.25);
+  color: #eef3ff;
+  font-size: 13px;
+}
+
+.owmr-filter select:focus {
+  outline: none;
+  border-color: rgba(138, 180, 255, 0.7);
+  box-shadow: 0 0 0 3px rgba(138, 180, 255, 0.18);
+}
+
+.owmr-count {
+  margin-left: auto;
+  font-size: 13px;
+  color: rgba(232, 236, 241, 0.68);
+}
+
 .owmr-toast {
   margin: 0 0 16px;
   padding: 12px 14px;
@@ -33,6 +76,13 @@
   background: rgba(46, 125, 50, 0.2);
   border: 1px solid rgba(129, 199, 132, 0.45);
   font-size: 14px;
+}
+
+.owmr-toast__link {
+  color: #e8f6ea;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .owmr-muted {
@@ -160,23 +210,33 @@
 }
 
 .owmr-pill--pending {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffe082;
+  background: rgba(255, 214, 102, 0.18);
+  color: #ffe28a;
+  border: 1px solid rgba(255, 214, 102, 0.45);
 }
 
-.owmr-pill--warn {
-  background: rgba(255, 152, 0, 0.2);
-  color: #ffcc80;
+.owmr-pill--need-info {
+  background: rgba(255, 145, 77, 0.22);
+  color: #ffd3ad;
+  border: 1px solid rgba(255, 145, 77, 0.55);
 }
 
-.owmr-pill--ok {
-  background: rgba(76, 175, 80, 0.2);
-  color: #a5d6a7;
+.owmr-pill--approved {
+  background: rgba(76, 175, 80, 0.22);
+  color: #b8efba;
+  border: 1px solid rgba(76, 175, 80, 0.52);
 }
 
-.owmr-pill--bad {
-  background: rgba(239, 83, 80, 0.2);
-  color: #ffcdd2;
+.owmr-pill--rejected {
+  background: rgba(244, 67, 54, 0.22);
+  color: #ffc7c3;
+  border: 1px solid rgba(244, 67, 54, 0.55);
+}
+
+.owmr-pill--cancelled {
+  background: rgba(158, 158, 158, 0.2);
+  color: #d6d6d6;
+  border: 1px solid rgba(189, 189, 189, 0.45);
 }
 
 .owmr-footnote {
@@ -184,4 +244,11 @@
   font-size: 12px;
   line-height: 1.5;
   color: rgba(232, 236, 241, 0.55);
+}
+
+@media (max-width: 720px) {
+  .owmr-count {
+    width: 100%;
+    margin-left: 0;
+  }
 }

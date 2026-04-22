@@ -7,6 +7,7 @@ import com.example.ungdunggoixe.dto.request.CreateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestResponse;
 import com.example.ungdunggoixe.entity.OwnerVehicleRequest;
+import com.example.ungdunggoixe.entity.OwnerVehicleRequestHistoryItem;
 import com.example.ungdunggoixe.entity.Station;
 import com.example.ungdunggoixe.entity.User;
 import com.example.ungdunggoixe.entity.Vehicle;
@@ -23,9 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +38,8 @@ public class OwnerVehicleRequestService {
     private final UserRepository userRepository;
     private final StationRepository stationRepository;
     private final VehicleRepository vehicleRepository;
+    private final LocalOwnerVehicleFileStorage localOwnerVehicleFileStorage;
+    private static final int MAX_PHOTOS_PER_REQUEST = 20;
 
     private static String normalizePlate(String raw) {
         return raw == null ? "" : raw.trim().toUpperCase(Locale.ROOT);
@@ -93,10 +99,60 @@ public class OwnerVehicleRequestService {
         if (photos.size() < 3) {
             throw new AppException(ErrorCode.OWNER_VEHICLE_REQUEST_PHOTOS_INSUFFICIENT);
         }
+        if (photos.size() > MAX_PHOTOS_PER_REQUEST) {
+            throw new AppException(ErrorCode.OWNER_VEHICLE_REQUEST_PHOTOS_TOO_MANY);
+        }
         String reg = req.getRegistrationDocUrl() == null ? "" : req.getRegistrationDocUrl().trim();
         String ins = req.getInsuranceDocUrl() == null ? "" : req.getInsuranceDocUrl().trim();
         if (reg.isEmpty() || ins.isEmpty()) {
             throw new AppException(ErrorCode.OWNER_VEHICLE_REQUEST_DOCS_REQUIRED);
+        }
+    }
+
+    private void cleanupRemovedFiles(
+            String previousRegistration,
+            String previousInsurance,
+            List<String> previousPhotos,
+            OwnerVehicleRequest req
+    ) {
+        String currentRegistration = req.getRegistrationDocUrl();
+        String currentInsurance = req.getInsuranceDocUrl();
+        List<String> currentPhotos = req.getPhotos() == null ? List.of() : req.getPhotos();
+
+        if (previousRegistration != null
+                && !previousRegistration.equals(currentRegistration)
+                && localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(previousRegistration)) {
+            localOwnerVehicleFileStorage.deleteStoredFileIfPresent(previousRegistration);
+        }
+        if (previousInsurance != null
+                && !previousInsurance.equals(currentInsurance)
+                && localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(previousInsurance)) {
+            localOwnerVehicleFileStorage.deleteStoredFileIfPresent(previousInsurance);
+        }
+
+        Set<String> currentSet = new HashSet<>(currentPhotos);
+        for (String oldPhoto : previousPhotos) {
+            if (oldPhoto == null || currentSet.contains(oldPhoto)) continue;
+            if (localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(oldPhoto)) {
+                localOwnerVehicleFileStorage.deleteStoredFileIfPresent(oldPhoto);
+            }
+        }
+    }
+
+    private void cleanupAllFilesForRequest(OwnerVehicleRequest req) {
+        if (req.getRegistrationDocUrl() != null
+                && localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(req.getRegistrationDocUrl())) {
+            localOwnerVehicleFileStorage.deleteStoredFileIfPresent(req.getRegistrationDocUrl());
+        }
+        if (req.getInsuranceDocUrl() != null
+                && localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(req.getInsuranceDocUrl())) {
+            localOwnerVehicleFileStorage.deleteStoredFileIfPresent(req.getInsuranceDocUrl());
+        }
+        List<String> photos = req.getPhotos() == null ? List.of() : req.getPhotos();
+        for (String photo : photos) {
+            if (localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(photo)) {
+                localOwnerVehicleFileStorage.deleteStoredFileIfPresent(photo);
+            }
         }
     }
 
@@ -123,6 +179,29 @@ public class OwnerVehicleRequestService {
         }
     }
 
+    private void appendHistory(
+            OwnerVehicleRequest req,
+            String eventType,
+            String actorRole,
+            OwnerVehicleRequestStatus status,
+            String note
+    ) {
+        if (req.getHistory() == null) {
+            req.setHistory(new ArrayList<>());
+        }
+        String normalizedNote = note == null ? null : note.trim();
+        if (normalizedNote != null && normalizedNote.isEmpty()) {
+            normalizedNote = null;
+        }
+        req.getHistory().add(OwnerVehicleRequestHistoryItem.builder()
+                .eventType(eventType)
+                .actorRole(actorRole)
+                .status(status)
+                .note(normalizedNote)
+                .createdAt(LocalDateTime.now())
+                .build());
+    }
+
     @Transactional
     public OwnerVehicleRequestResponse create(CreateOwnerVehicleRequest request) {
         if (request == null) throw new AppException(ErrorCode.INTERNAL_ERROR);
@@ -145,6 +224,13 @@ public class OwnerVehicleRequestService {
         }
         trimDocumentUrlsOnEntity(entity);
         validateSubmissionIntegrity(entity);
+        appendHistory(
+                entity,
+                "SUBMITTED",
+                "OWNER",
+                OwnerVehicleRequestStatus.PENDING,
+                "Owner gửi yêu cầu đăng xe cho thuê."
+        );
 
         return OwnerVehicleRequestMapper.INSTANCE.toResponse(
                 ownerVehicleRequestRepository.save(entity)
@@ -193,6 +279,9 @@ public class OwnerVehicleRequestService {
             validateUniquePlateForRequests(normalizedPlate, req.getId());
             req.setLicensePlate(normalizedPlate);
         }
+        String previousRegistration = req.getRegistrationDocUrl();
+        String previousInsurance = req.getInsuranceDocUrl();
+        List<String> previousPhotos = req.getPhotos() == null ? List.of() : new ArrayList<>(req.getPhotos());
 
         OwnerVehicleRequestMapper.INSTANCE.updateEntity(request, req);
         if (req.getPhotos() == null) {
@@ -205,6 +294,14 @@ public class OwnerVehicleRequestService {
         }
         trimDocumentUrlsOnEntity(req);
         validateSubmissionIntegrity(req);
+        cleanupRemovedFiles(previousRegistration, previousInsurance, previousPhotos, req);
+        appendHistory(
+                req,
+                "UPDATED_BY_OWNER",
+                "OWNER",
+                req.getStatus(),
+                "Owner cập nhật thông tin hồ sơ xe."
+        );
 
         return OwnerVehicleRequestMapper.INSTANCE.toResponse(
                 ownerVehicleRequestRepository.save(req)
@@ -225,6 +322,42 @@ public class OwnerVehicleRequestService {
         validateSubmissionIntegrity(req);
         req.setStatus(OwnerVehicleRequestStatus.PENDING);
         req.setAdminNote(null);
+        appendHistory(
+                req,
+                "RESUBMITTED",
+                "OWNER",
+                OwnerVehicleRequestStatus.PENDING,
+                "Owner gửi lại hồ sơ sau khi chỉnh sửa."
+        );
+        return OwnerVehicleRequestMapper.INSTANCE.toResponse(
+                ownerVehicleRequestRepository.save(req)
+        );
+    }
+
+    @Transactional
+    public OwnerVehicleRequestResponse cancel(Long id) {
+        Long ownerId = currentUserId();
+        OwnerVehicleRequest req = requireById(id);
+        if (!req.getOwner().getId().equals(ownerId)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+        if (req.getStatus() == OwnerVehicleRequestStatus.APPROVED
+                || req.getStatus() == OwnerVehicleRequestStatus.CANCELLED) {
+            throw new AppException(ErrorCode.OWNER_VEHICLE_REQUEST_STATUS_INVALID);
+        }
+        req.setStatus(OwnerVehicleRequestStatus.CANCELLED);
+        req.setAdminNote("Owner đã hủy yêu cầu.");
+        appendHistory(
+                req,
+                "CANCELLED_BY_OWNER",
+                "OWNER",
+                OwnerVehicleRequestStatus.CANCELLED,
+                "Owner hủy yêu cầu và hệ thống dọn file upload cũ."
+        );
+        cleanupAllFilesForRequest(req);
+        req.setRegistrationDocUrl(null);
+        req.setInsuranceDocUrl(null);
+        req.setPhotos(new ArrayList<>());
         return OwnerVehicleRequestMapper.INSTANCE.toResponse(
                 ownerVehicleRequestRepository.save(req)
         );
@@ -277,6 +410,13 @@ public class OwnerVehicleRequestService {
         req.setApprovedVehicle(savedVehicle);
         req.setStatus(OwnerVehicleRequestStatus.APPROVED);
         req.setAdminNote(adminNote);
+        appendHistory(
+                req,
+                "APPROVED_BY_ADMIN",
+                "ADMIN",
+                OwnerVehicleRequestStatus.APPROVED,
+                adminNote
+        );
         return OwnerVehicleRequestMapper.INSTANCE.toResponse(
                 ownerVehicleRequestRepository.save(req)
         );
@@ -291,6 +431,13 @@ public class OwnerVehicleRequestService {
         }
         req.setStatus(OwnerVehicleRequestStatus.REJECTED);
         req.setAdminNote(adminNote);
+        appendHistory(
+                req,
+                "REJECTED_BY_ADMIN",
+                "ADMIN",
+                OwnerVehicleRequestStatus.REJECTED,
+                adminNote
+        );
         return OwnerVehicleRequestMapper.INSTANCE.toResponse(
                 ownerVehicleRequestRepository.save(req)
         );
@@ -304,6 +451,13 @@ public class OwnerVehicleRequestService {
         }
         req.setStatus(OwnerVehicleRequestStatus.NEED_MORE_INFO);
         req.setAdminNote(adminNote);
+        appendHistory(
+                req,
+                "NEED_MORE_INFO_BY_ADMIN",
+                "ADMIN",
+                OwnerVehicleRequestStatus.NEED_MORE_INFO,
+                adminNote
+        );
         return OwnerVehicleRequestMapper.INSTANCE.toResponse(
                 ownerVehicleRequestRepository.save(req)
         );

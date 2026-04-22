@@ -78,6 +78,12 @@ public class OwnerVehicleRequest {
     @Builder.Default
     private List<String> policies = new ArrayList<>();
 
+    @ElementCollection
+    @CollectionTable(name = "owner_vehicle_request_history", joinColumns = @JoinColumn(name = "request_id"))
+    @OrderBy("createdAt ASC")
+    @Builder.Default
+    private List<OwnerVehicleRequestHistoryItem> history = new ArrayList<>();
+
     @Enumerated(EnumType.STRING)
     @Column(length = 32, nullable = false)
     @Builder.Default

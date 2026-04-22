@@ -10,6 +10,14 @@ export type OwnerVehicleRequestStatus =
   | 'REJECTED'
   | 'CANCELLED'
 
+export type OwnerVehicleRequestHistoryItemDto = {
+  eventType?: string | null
+  status?: OwnerVehicleRequestStatus | null
+  actorRole?: string | null
+  note?: string | null
+  createdAt?: string | null
+}
+
 export type OwnerVehicleRequestDto = {
   id: number
   ownerId: number
@@ -33,6 +41,7 @@ export type OwnerVehicleRequestDto = {
   policies?: string[] | null
   status: OwnerVehicleRequestStatus
   adminNote?: string | null
+  history?: OwnerVehicleRequestHistoryItemDto[] | null
   createdAt?: string | null
   updatedAt?: string | null
 }
@@ -209,6 +218,14 @@ export async function updateOwnerVehicleRequest(
 
 export async function resubmitOwnerVehicleRequest(id: number): Promise<OwnerVehicleRequestDto> {
   const res = await authFetch(`${OWNER_VEHICLE_REQUESTS}/${id}/resubmit`, {
+    method: 'POST',
+  })
+  if (!res.ok) throw new Error(await parseApiError(res))
+  return parseOwnerVehicleRequestItem(await res.json())
+}
+
+export async function cancelOwnerVehicleRequest(id: number): Promise<OwnerVehicleRequestDto> {
+  const res = await authFetch(`${OWNER_VEHICLE_REQUESTS}/${id}/cancel`, {
     method: 'POST',
   })
   if (!res.ok) throw new Error(await parseApiError(res))

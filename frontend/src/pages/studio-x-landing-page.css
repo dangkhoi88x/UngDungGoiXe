@@ -181,6 +181,23 @@
   border: 1px solid rgba(255, 255, 255, 0.55);
 }
 
+.sx-page .cr-nav__owner-btn {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1a1a1a;
+  text-decoration: none;
+  font-size: 0.83rem;
+  font-weight: 700;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.sx-page .cr-nav__owner-btn:hover {
+  filter: brightness(0.95);
+}
+
 .sx-page .cr-nav__account-btn:hover {
   background: rgba(255, 255, 255, 0.24);
 }

@@ -33,6 +33,12 @@ public enum ErrorCode {
             3007,
             "Vui lòng gửi URL giấy đăng ký và giấy bảo hiểm.",
             HttpStatus.BAD_REQUEST),
+    FILE_UPLOAD_INVALID(3008, "File upload không hợp lệ.", HttpStatus.BAD_REQUEST),
+    FILE_UPLOAD_TOO_LARGE(3009, "File vượt quá kích thước cho phép.", HttpStatus.BAD_REQUEST),
+    OWNER_VEHICLE_REQUEST_PHOTOS_TOO_MANY(
+            3010,
+            "Số lượng ảnh xe vượt quá giới hạn cho phép.",
+            HttpStatus.BAD_REQUEST),
     // ── Booking errors ────────────────────────
     BOOKING_NOT_FOUND(4001, "Booking not found", HttpStatus.NOT_FOUND),
     BOOKING_CODE_ALREADY_EXISTS(4002, "Booking code already exists", HttpStatus.CONFLICT),

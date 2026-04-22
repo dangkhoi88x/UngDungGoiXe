@@ -36,3 +36,6 @@ jwt:
 # Thư mục lưu ảnh GPLX (đường dẫn tương đối hoặc tuyệt đối)
 app:
   upload-dir: uploads
+  owner-vehicle-upload:
+    # Giới hạn kích thước từng file upload owner vehicle (bytes), có thể override bằng env.
+    max-file-size-bytes: ${OWNER_VEHICLE_MAX_FILE_SIZE_BYTES:6291456}

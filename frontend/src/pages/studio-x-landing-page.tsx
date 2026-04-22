@@ -3,7 +3,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
 import {
@@ -20,103 +19,11 @@ import {
   inferCategory,
   vehicleDisplayName,
 } from '../api/vehicles'
+import TopNav from '../components/TopNav'
 import './studio-x-landing-page.css'
 
 const VEX_HERO_VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260403_050628_c4e32401-fab4-4a27-b7a8-6e9291cd5959.mp4'
-
-function TopNav({ solid }: { solid: boolean }) {
-  const [authUi, setAuthUi] = useState<{ loggedIn: boolean; displayName: string | null }>({
-    loggedIn: false,
-    displayName: null,
-  })
-  const [navQuery, setNavQuery] = useState('')
-
-  useEffect(() => {
-    const sync = () => {
-      const token = localStorage.getItem('accessToken')
-      const displayName = localStorage.getItem('userDisplayName')?.trim() || null
-      setAuthUi({ loggedIn: Boolean(token), displayName })
-    }
-    sync()
-    window.addEventListener('storage', sync)
-    return () => window.removeEventListener('storage', sync)
-  }, [])
-
-  function handleNavSearchSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const q = navQuery.trim()
-    if (!q) return
-    window.location.href = `/rent?q=${encodeURIComponent(q)}`
-  }
-
-  return (
-    <header className={`cr-nav ${solid ? 'cr-nav--solid' : ''}`}>
-      <div className="cr-nav__left">
-        <a className="cr-nav__logo" href="/">
-          <span className="cr-nav__logo-mark" aria-hidden="true">
-            H
-          </span>
-          Horizon
-        </a>
-        <ul className="cr-nav__links">
-          <li>
-            <a href="#">Hotel</a>
-          </li>
-          <li>
-            <a href="#">Flight</a>
-          </li>
-          <li>
-            <a href="#">Train</a>
-          </li>
-          <li>
-            <a href="#">Travel</a>
-          </li>
-          <li>
-            <a href="/rent">Car Rental</a>
-          </li>
-        </ul>
-      </div>
-      <div className="cr-nav__search-wrap">
-        <form className="cr-nav__search" onSubmit={handleNavSearchSubmit} role="search">
-          <span aria-hidden="true">🔍</span>
-          <input
-            type="search"
-            name="navSearch"
-            placeholder="Search destination..."
-            aria-label="Search destination"
-            value={navQuery}
-            onChange={(ev) => setNavQuery(ev.target.value)}
-          />
-        </form>
-      </div>
-      <div className="cr-nav__right">
-        <button type="button" className="cr-nav__lang" aria-label="Language English">
-          🌐 EN
-        </button>
-        {authUi.loggedIn ? (
-          <>
-            <a className="cr-nav__account-btn" href="/account" title={authUi.displayName ?? 'Tài khoản'}>
-              {authUi.displayName ? `Hi, ${authUi.displayName}` : 'My Account'}
-            </a>
-            <a className="cr-nav__logout-btn" href="/logout">
-              Log Out
-            </a>
-          </>
-        ) : (
-          <>
-            <a className="cr-nav__login" href="/auth">
-              Log In
-            </a>
-            <a className="cr-nav__signup" href="/auth">
-              Sign Up
-            </a>
-          </>
-        )}
-      </div>
-    </header>
-  )
-}
 
 function VexHeroHeading() {
   const line1 = 'Shaping tomorrow'

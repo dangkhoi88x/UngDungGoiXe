@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { persistUserDisplayName } from '../api/auth'
+import { type OwnerVehicleRequestStatus } from '../api/ownerVehicleRequests'
+import { useOwnerRequestStatusWatcher } from '../hooks/useOwnerRequestStatusWatcher'
 import {
   fetchMyInfo,
   licenseVerificationLabel,
@@ -8,6 +10,7 @@ import {
   type ApiErrorWithStatus,
   type UserProfileDto,
 } from '../api/users'
+import TopNav from '../components/TopNav'
 import './UserAccountPage.css'
 
 function goLogoutRoute() {
@@ -119,7 +122,19 @@ function roleLabelVi(role: string): string {
   return role
 }
 
+function ownerRequestStatusLabel(s: OwnerVehicleRequestStatus): string {
+  const map: Record<OwnerVehicleRequestStatus, string> = {
+    PENDING: 'Chờ duyệt',
+    NEED_MORE_INFO: 'Cần bổ sung',
+    APPROVED: 'Đã duyệt',
+    REJECTED: 'Từ chối',
+    CANCELLED: 'Đã hủy',
+  }
+  return map[s] ?? s
+}
+
 export default function UserAccountPage() {
+  type OwnerNotice = { text: string; href: string } | null
   const [profile, setProfile] = useState<UserProfileDto | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -127,6 +142,7 @@ export default function UserAccountPage() {
   const [discardBusy, setDiscardBusy] = useState(false)
   const [saveBusy, setSaveBusy] = useState(false)
   const [copyHint, setCopyHint] = useState<string | null>(null)
+  const [ownerRequestNotice, setOwnerRequestNotice] = useState<OwnerNotice>(null)
   const [firstNameDraft, setFirstNameDraft] = useState('')
   const [lastNameDraft, setLastNameDraft] = useState('')
   const [phoneDraft, setPhoneDraft] = useState('')
@@ -167,6 +183,22 @@ export default function UserAccountPage() {
   useEffect(() => {
     setFormError(null)
   }, [firstNameDraft, lastNameDraft, phoneDraft])
+
+  useOwnerRequestStatusWatcher({
+    intervalMs: 60_000,
+    onStatusChanged: (changes) => {
+      const first = changes[0]
+      setOwnerRequestNotice({
+        text: `Yêu cầu #${first.id} vừa cập nhật: ${ownerRequestStatusLabel(first.status)}${
+          changes.length > 1 ? ` (+${changes.length - 1})` : ''
+        }`,
+        href: `/owner/vehicle-requests/${first.id}`,
+      })
+    },
+    onError: () => {
+      // Keep account page stable if owner-request polling fails.
+    },
+  })
 
   const displayName = useMemo(() => {
     if (!profile) return ''
@@ -242,6 +274,7 @@ export default function UserAccountPage() {
 
   return (
     <div className="uacc">
+      <TopNav solid />
       <header className="uacc__toolbar">
         <nav className="uacc__crumb" aria-label="Breadcrumb">
           <a className="uacc__crumb-link" href="/" title="Trang chủ">
@@ -260,6 +293,9 @@ export default function UserAccountPage() {
           </span>
         </nav>
         <div className="uacc__toolbar-actions">
+          <a className="uacc__btn uacc__btn--ghost uacc__btn-link" href="/owner/vehicle-requests">
+            Lịch sử gửi yêu cầu
+          </a>
           <button
             type="button"
             className="uacc__btn uacc__btn--ghost"
@@ -286,6 +322,14 @@ export default function UserAccountPage() {
       </header>
 
       <div className="uacc__shell">
+        {ownerRequestNotice ? (
+          <p className="uacc__owner-notice" role="status">
+            {ownerRequestNotice.text}{' '}
+            <a href={ownerRequestNotice.href} className="uacc__owner-notice-link">
+              Xem chi tiết
+            </a>
+          </p>
+        ) : null}
         {loading && !profile ? (
           <div className="uacc__skeleton-card" aria-busy="true">
             <div className="uacc__skeleton-banner" />

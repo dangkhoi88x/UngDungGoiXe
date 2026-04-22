@@ -134,6 +134,8 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
   const [docImageBroken, setDocImageBroken] = useState(false)
   const [vehiclePhotosPreview, setVehiclePhotosPreview] =
     useState<VehiclePhotosPreviewState | null>(null)
+  const [brokenDocUrls, setBrokenDocUrls] = useState<string[]>([])
+  const [brokenPhotoUrls, setBrokenPhotoUrls] = useState<string[]>([])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -216,6 +218,14 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
     setDocImageBroken(false)
   }
 
+  const markBrokenDocUrl = (url: string) => {
+    setBrokenDocUrls((prev) => (prev.includes(url) ? prev : [...prev, url]))
+  }
+
+  const markBrokenPhotoUrl = (url: string) => {
+    setBrokenPhotoUrls((prev) => (prev.includes(url) ? prev : [...prev, url]))
+  }
+
   useEscapeToClose(docPreview != null, closeDocPreview, true)
   useEscapeToClose(
     vehiclePhotosPreview != null && docPreview == null,
@@ -231,10 +241,15 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
   const submitReview = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!reviewTarget) return
+    const note = adminNote.trim()
+    if (reviewAction !== 'approve' && !note) {
+      setToast('Bắt buộc nhập ghi chú admin khi Từ chối hoặc Yêu cầu bổ sung.')
+      return
+    }
     setReviewing(true)
     setToast(null)
     try {
-      const payload = { adminNote: adminNote.trim() || null }
+      const payload = { adminNote: note || null }
       if (reviewAction === 'approve') {
         await approveOwnerVehicleRequest(reviewTarget.id, payload)
         setToast(`Đã duyệt request #${reviewTarget.id}.`)
@@ -353,10 +368,21 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
             <tbody>
               {filtered.map((r) => {
                 const docs = docFlags(r)
+                const photos = photoUrlsForRequest(r)
+                const hasBrokenRegistration =
+                  docs.registration != null && brokenDocUrls.includes(docs.registration)
+                const hasBrokenInsurance =
+                  docs.insurance != null && brokenDocUrls.includes(docs.insurance)
+                const hasBrokenPhoto = photos.some((u) => brokenPhotoUrls.includes(u))
+                const hasAssetWarning =
+                  docs.missingAny ||
+                  hasBrokenRegistration ||
+                  hasBrokenInsurance ||
+                  hasBrokenPhoto
                 return (
                 <tr
                   key={r.id}
-                  className={docs.missingAny ? 'adm-veh__tr--doc-warn' : undefined}
+                  className={hasAssetWarning ? 'adm-veh__tr--doc-warn' : undefined}
                 >
                   <td className="adm-veh__mono">#{r.id}</td>
                   <td className="adm-veh__mono">#{r.ownerId}</td>
@@ -370,7 +396,11 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
                       {docs.registration ? (
                         <button
                           type="button"
-                          className="adm-veh__doc-preview-btn"
+                          className={
+                            hasBrokenRegistration
+                              ? 'adm-veh__doc-preview-btn adm-veh__doc-preview-btn--broken'
+                              : 'adm-veh__doc-preview-btn'
+                          }
                           onClick={() =>
                             openDocPreview(docs.registration!, 'Giấy đăng ký / đăng kiểm')
                           }
@@ -385,7 +415,11 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
                       {docs.insurance ? (
                         <button
                           type="button"
-                          className="adm-veh__doc-preview-btn"
+                          className={
+                            hasBrokenInsurance
+                              ? 'adm-veh__doc-preview-btn adm-veh__doc-preview-btn--broken'
+                              : 'adm-veh__doc-preview-btn'
+                          }
                           onClick={() =>
                             openDocPreview(docs.insurance!, 'Giấy bảo hiểm')
                           }
@@ -405,6 +439,13 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
                           : docs.missingRegistration
                             ? 'Thiếu giấy đăng ký.'
                             : 'Thiếu giấy bảo hiểm.'}
+                      </p>
+                    ) : null}
+                    {!docs.missingAny && (hasBrokenRegistration || hasBrokenInsurance || hasBrokenPhoto) ? (
+                      <p className="adm-veh__doc-row-warn" role="status">
+                        {hasBrokenPhoto
+                          ? 'Một số ảnh xe lỗi tải.'
+                          : 'Có giấy tờ lỗi tải, cần owner cập nhật lại file/URL.'}
                       </p>
                     ) : null}
                   </td>
@@ -497,7 +538,10 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
                     className="adm-veh__doc-preview-img"
                     src={docPreview.url}
                     alt={docPreview.title}
-                    onError={() => setDocImageBroken(true)}
+                    onError={() => {
+                      setDocImageBroken(true)
+                      markBrokenDocUrl(docPreview.url)
+                    }}
                   />
                 )
               ) : docPreview.kind === 'pdf' ? (
@@ -576,6 +620,7 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
                       alt={`Ảnh xe ${i + 1}`}
                       loading="lazy"
                       className="adm-veh__vehicle-photo-img"
+                      onError={() => markBrokenPhotoUrl(url)}
                     />
                     <span className="adm-veh__vehicle-photo-label">Ảnh {i + 1}</span>
                   </a>
@@ -647,7 +692,9 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
                 )}
               </div>
               <div className="adm-veh__field">
-                <label htmlFor="owner-req-admin-note">Ghi chú admin (tùy chọn)</label>
+                <label htmlFor="owner-req-admin-note">
+                  Ghi chú admin {reviewAction === 'approve' ? '(tùy chọn)' : '(bắt buộc)'}
+                </label>
                 <textarea
                   id="owner-req-admin-note"
                   className="adm-veh__input"
