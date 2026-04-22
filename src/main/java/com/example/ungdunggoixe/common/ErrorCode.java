@@ -22,6 +22,17 @@ public enum ErrorCode {
     // ── Vehicle errors ────────────────────────
     VEHICLE_NOT_FOUND(3001, "Vehicle not found", HttpStatus.NOT_FOUND),
     VEHICLE_LICENSE_PLATE_ALREADY_EXISTS(3002, "Vehicle license plate already exists", HttpStatus.CONFLICT),
+    OWNER_VEHICLE_REQUEST_NOT_FOUND(3003, "Owner vehicle request not found", HttpStatus.NOT_FOUND),
+    OWNER_VEHICLE_REQUEST_STATUS_INVALID(3004, "Owner vehicle request status transition is invalid", HttpStatus.BAD_REQUEST),
+    OWNER_VEHICLE_REQUEST_INVALID(3005, "Owner vehicle request data is invalid", HttpStatus.BAD_REQUEST),
+    OWNER_VEHICLE_REQUEST_PHOTOS_INSUFFICIENT(
+            3006,
+            "Cần ít nhất 3 ảnh xe (URL không được để trống).",
+            HttpStatus.BAD_REQUEST),
+    OWNER_VEHICLE_REQUEST_DOCS_REQUIRED(
+            3007,
+            "Vui lòng gửi URL giấy đăng ký và giấy bảo hiểm.",
+            HttpStatus.BAD_REQUEST),
     // ── Booking errors ────────────────────────
     BOOKING_NOT_FOUND(4001, "Booking not found", HttpStatus.NOT_FOUND),
     BOOKING_CODE_ALREADY_EXISTS(4002, "Booking code already exists", HttpStatus.CONFLICT),

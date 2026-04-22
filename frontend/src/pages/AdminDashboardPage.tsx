@@ -13,6 +13,9 @@ const AdminVehiclesSection = lazy(() => import('./AdminVehiclesSection'))
 const AdminStationsSection = lazy(() => import('./AdminStationsSection'))
 const AdminUsersSection = lazy(() => import('./AdminUsersSection'))
 const AdminBookingsSection = lazy(() => import('./AdminBookingsSection'))
+const AdminOwnerVehicleRequestsSection = lazy(
+  () => import('./AdminOwnerVehicleRequestsSection'),
+)
 
 function AdminSectionFallback() {
   return (
@@ -23,7 +26,14 @@ function AdminSectionFallback() {
   )
 }
 
-type NavId = 'home' | 'vehicles' | 'stations' | 'bookings' | 'users' | 'stats'
+type NavId =
+  | 'home'
+  | 'vehicles'
+  | 'stations'
+  | 'bookings'
+  | 'ownerRequests'
+  | 'users'
+  | 'stats'
 
 const NAV_ITEMS: {
   id: NavId
@@ -35,6 +45,7 @@ const NAV_ITEMS: {
   { id: 'vehicles', label: 'Phương tiện', icon: '🚗', badge: 3 },
   { id: 'stations', label: 'Trạm & bãi', icon: '📍' },
   { id: 'bookings', label: 'Đặt xe', icon: '📋', badge: 5 },
+  { id: 'ownerRequests', label: 'Yêu cầu owner', icon: '📝' },
   { id: 'users', label: 'Người dùng', icon: '👤' },
   { id: 'stats', label: 'Thống kê', icon: '📊' },
 ]
@@ -63,6 +74,11 @@ const PAGE_COPY: Record<
     subtitle: 'Đơn đặt chờ xác nhận và lịch sử giao nhận.',
     pill: '5 mới',
   },
+  ownerRequests: {
+    title: 'Yêu cầu xe owner',
+    subtitle: 'Duyệt xe người dùng gửi lên hệ thống cho thuê.',
+    pill: 'PENDING',
+  },
   users: {
     title: 'Người dùng',
     subtitle: 'Tài khoản khách hàng và tài xế.',
@@ -84,6 +100,7 @@ const NAV_TO_ROUTE: Record<NavId, string> = {
   vehicles: '/admin/vehicles',
   stations: '/admin/stations',
   bookings: '/admin/bookings',
+  ownerRequests: '/admin/owner-vehicle-requests',
   users: '/admin/users',
   stats: '/admin/stats',
 }
@@ -93,6 +110,7 @@ function navFromPath(pathname: string): NavId {
   if (pathname.startsWith('/admin/vehicles')) return 'vehicles'
   if (pathname.startsWith('/admin/stations')) return 'stations'
   if (pathname.startsWith('/admin/bookings')) return 'bookings'
+  if (pathname.startsWith('/admin/owner-vehicle-requests')) return 'ownerRequests'
   if (pathname.startsWith('/admin/users')) return 'users'
   if (pathname.startsWith('/admin/stats')) return 'stats'
   if (pathname.startsWith('/admin/overview')) return 'home'
@@ -108,12 +126,14 @@ export default function AdminDashboardPage() {
   const [stationRefreshKey, setStationRefreshKey] = useState(0)
   const [userRefreshKey, setUserRefreshKey] = useState(0)
   const [bookingRefreshKey, setBookingRefreshKey] = useState(0)
+  const [ownerRequestRefreshKey, setOwnerRequestRefreshKey] = useState(0)
 
   const showDashboard =
     activeNav !== 'vehicles' &&
     activeNav !== 'stations' &&
     activeNav !== 'users' &&
-    activeNav !== 'bookings'
+    activeNav !== 'bookings' &&
+    activeNav !== 'ownerRequests'
 
   const page = useMemo(() => PAGE_COPY[activeNav], [activeNav])
 
@@ -144,6 +164,9 @@ export default function AdminDashboardPage() {
         break
       case 'bookings':
         setBookingRefreshKey((k) => k + 1)
+        break
+      case 'ownerRequests':
+        setOwnerRequestRefreshKey((k) => k + 1)
         break
       default:
         break
@@ -279,6 +302,12 @@ export default function AdminDashboardPage() {
           {activeNav === 'bookings' ? (
             <Suspense fallback={<AdminSectionFallback />}>
               <AdminBookingsSection refreshKey={bookingRefreshKey} />
+            </Suspense>
+          ) : null}
+
+          {activeNav === 'ownerRequests' ? (
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminOwnerVehicleRequestsSection refreshKey={ownerRequestRefreshKey} />
             </Suspense>
           ) : null}
 

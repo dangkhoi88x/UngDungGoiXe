@@ -8,6 +8,9 @@ import AdminDashboardPage from './pages/AdminDashboardPage'
 import UserAccountPage from './pages/UserAccountPage'
 import UserAccountUpdatePage from './pages/UserAccountUpdatePage'
 import MapStationPage from './pages/MapStationPage'
+import OwnerRegisterVehiclePage from './pages/OwnerRegisterVehiclePage'
+import OwnerMyVehicleRequestsPage from './pages/OwnerMyVehicleRequestsPage'
+import OwnerEditVehicleRequestPage from './pages/OwnerEditVehicleRequestPage'
 import { logoutRequest, rolesFromJwt } from './api/auth'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import './App.css'
@@ -98,6 +101,9 @@ function App() {
       <Route path="/rent/:id" element={<VehicleDetailRoute />} />
       <Route path="/booking/:vehicleId" element={<VehicleBookingRoute />} />
       <Route path="/mapstation" element={<MapStationPage />} />
+      <Route path="/owner/register-vehicle" element={<OwnerRegisterVehiclePage />} />
+      <Route path="/owner/vehicle-requests" element={<OwnerMyVehicleRequestsPage />} />
+      <Route path="/owner/vehicle-requests/:id/edit" element={<OwnerEditVehicleRequestPage />} />
       <Route path="*" element={<StudioXLandingPage />} />
     </Routes>
   )

@@ -1,0 +1,233 @@
+.owreg {
+  min-height: 100vh;
+  background: linear-gradient(165deg, #0f1419 0%, #1a2332 42%, #121820 100%);
+  color: #e8ecf1;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.owreg__toolbar {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.owreg__crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.owreg__crumb-link {
+  color: #8ab4ff;
+  text-decoration: none;
+}
+
+.owreg__crumb-link:hover {
+  text-decoration: underline;
+}
+
+.owreg__crumb-sep {
+  opacity: 0.45;
+}
+
+.owreg__crumb-current {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.owreg__main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+}
+
+.owreg__title {
+  margin: 0 0 10px;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.owreg__lead {
+  margin: 0 0 28px;
+  line-height: 1.55;
+  color: rgba(232, 236, 241, 0.78);
+  font-size: 15px;
+}
+
+.owreg__banner {
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.owreg__banner--ok {
+  background: rgba(46, 125, 50, 0.2);
+  border: 1px solid rgba(129, 199, 132, 0.45);
+}
+
+.owreg__banner-title {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.owreg__banner-text {
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.92;
+}
+
+.owreg__banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.owreg__err {
+  background: rgba(198, 40, 40, 0.18);
+  border: 1px solid rgba(239, 83, 80, 0.4);
+  color: #ffcdd2;
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin: 0 0 18px;
+  font-size: 14px;
+}
+
+.owreg__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.owreg__section {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px 18px 4px;
+  margin-bottom: 14px;
+}
+
+.owreg__section-title {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.owreg__field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.owreg__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.owreg__input,
+.owreg__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+}
+
+.owreg__input:focus,
+.owreg__textarea:focus {
+  outline: none;
+  border-color: rgba(138, 180, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2);
+}
+
+.owreg__textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.owreg__textarea--tall {
+  min-height: 140px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+.owreg__grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+}
+
+.owreg__grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 12px;
+}
+
+@media (max-width: 640px) {
+  .owreg__grid2,
+  .owreg__grid3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.owreg__hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.owreg__hint--count {
+  margin-bottom: 10px;
+}
+
+.owreg__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.owreg__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.owreg__btn--primary {
+  background: linear-gradient(135deg, #42a5f5, #1e88e5);
+  color: #fff;
+}
+
+.owreg__btn--primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.owreg__btn--ghost {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.owreg__btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+}

@@ -257,18 +257,23 @@ flowchart TB
     P2[Rent list detail]
     P3[Booking checkout]
     P4[Admin dashboard sections]
+    P5[Owner P2P register list edit]
+    P6[Map stations]
   end
   subgraph api [API layer]
     AF[authFetch]
     M[vehicles stations bookings users auth]
+    OVR[ownerVehicleRequests]
   end
   main --> App
   App --> pages
   pages --> api
   AF --> M
+  AF --> OVR
 ```
 
 - **Router:** mọi URL trong `App.tsx` (xem bảng trong `plan.md`).
+- **Owner cho thuê (P2P):** `/owner/register-vehicle`, `/owner/vehicle-requests`, `/owner/vehicle-requests/:id/edit` — gọi API qua `ownerVehicleRequests.ts`, form dùng chung helper `lib/ownerVehicleRequestForm.ts`.
 - **Trạng thái đăng nhập:** `localStorage` + (tuỳ trang) `fetchMyInfo` cho dữ liệu nhạy cảm như GPLX.
 - **Gate GPLX (thuê xe):** logic `isLicenseApprovedForRent` — cho **APPROVED** và **PENDING**; UI `LicenseRequiredModal` khi chặn.
 
@@ -315,8 +320,119 @@ sequenceDiagram
 
 ---
 
-## 9. Changelog (kiến trúc)
+## 9. Trạm (Station) — tọa độ & bản đồ
 
+**Mục đích:** lưu tọa độ WGS84 (nullable) để vẽ marker trên bản đồ và hỗ trợ admin chỉnh tay.
+
+| Thành phần | Ghi chú |
+|------------|---------|
+| **DB** | Bảng `stations`: cột `latitude`, `longitude` (`DOUBLE NULL`). Migration / idempotent: `schema-mysql.sql`. Seed: `src/main/resources/db/seed.sql` (cập nhật tọa độ mẫu). |
+| **Backend** | `Station` entity + DTO (`StationResponse`, `CreateStationRequest`, `UpdateStationRequest`). `UpdateStationRequest.clearCoordinates` + `StationService.updateStation` xử lý xóa tọa độ (MapStruct bỏ qua `null`). |
+| **API** | `GET /stations` (và các endpoint station khác) trả thêm `latitude`, `longitude`. |
+| **Admin FE** | `AdminStationsSection.tsx` — nhập/sửa lat/lng, cột hiển thị, gửi `clearCoordinates` khi xóa. |
+| **Bản đồ FE** | Route `/mapstation` — `MapStationPage.tsx` + `MapStationPage.css`. Loader tập trung: `lib/googleMapsLoader.ts` (`@googlemaps/js-api-loader`), đọc `import.meta.env.VITE_GOOGLE_MAPS_API_KEY`, tùy chọn `VITE_GOOGLE_MAP_ID`. Tách khỏi trang thuê xe: `CarRentalPage` / `VehicleBookingPage` không nhúng map (tránh lỗi import / Strict Mode). |
+| **API client** | `frontend/src/api/stations.ts` — type `StationDto` + payload cập nhật có `latitude`, `longitude`, `clearCoordinates`. |
+
+---
+
+## 10. Luồng P2P: **Owner Vehicle Request** (chủ xe đăng ký cho thuê — admin duyệt)
+
+Đây là luồng **tách biệt** khỏi `Vehicle` / `Booking` cho đến khi admin **duyệt**: dữ liệu nằm ở bảng request, sau `APPROVED` mới tạo bản ghi `Vehicle` thật và gắn `approved_vehicle_id`.
+
+### 10.1 Trạng thái (`OwnerVehicleRequestStatus`)
+
+| Giá trị | Ý nghĩa ngắn |
+|---------|----------------|
+| `PENDING` | Chờ admin xử lý |
+| `NEED_MORE_INFO` | Admin yêu cầu bổ sung (có `adminNote`) |
+| `APPROVED` | Đã tạo xe trong hệ thống, có `approvedVehicleId` |
+| `REJECTED` | Từ chối |
+| `CANCELLED` | Hủy (ít dùng trong MVP) |
+
+### 10.2 Mô hình dữ liệu & persistence
+
+- **Entity:** `entity/OwnerVehicleRequest.java` — FK `owner` → `User`, `station` → `Station`, tùy chọn `approvedVehicle` → `Vehicle`; thông tin xe (biển số, tên, hãng, nhiên liệu, chỗ, giá, cọc, mô tả, địa chỉ, lat/lng), URL giấy đăng ký / bảo hiểm, `status`, `adminNote`, timestamp.
+- **Collection tables:** `owner_vehicle_request_photos` (URL ảnh), `owner_vehicle_request_policies` (chuỗi điều khoản).
+- **Schema:** định nghĩa trong `src/main/resources/schema-mysql.sql` (bảng + collection).
+
+```mermaid
+erDiagram
+  USER ||--o{ OWNER_VEHICLE_REQUEST : submits
+  STATION ||--o{ OWNER_VEHICLE_REQUEST : pickup_station
+  OWNER_VEHICLE_REQUEST }o--|| VEHICLE : approved_as
+  OWNER_VEHICLE_REQUEST {
+    long id
+    string license_plate
+    enum status
+    long approved_vehicle_id FK_null
+  }
+```
+
+### 10.3 Quy tắc nghiệp vụ (backend — `OwnerVehicleRequestService`)
+
+| Quy tắc | Chi tiết |
+|---------|-----------|
+| **Biển số** | Chuẩn hóa trim + upper; không trùng với xe đã có (`VehicleRepository.existsByLicensePlate`) và không trùng request đang chặn (`PENDING`, `NEED_MORE_INFO`, `APPROVED`) — ngoại trừ chính request khi **update** đổi biển. |
+| **Bộ dữ liệu tối thiểu** | Trước khi **tạo**, **cập nhật**, **resubmit** (về `PENDING`) và trước khi **admin approve**: ít nhất **3** URL ảnh (sau trim, bỏ dòng trống); **bắt buộc** URL giấy đăng ký + bảo hiểm (trim, không rỗng). Lỗi: `OWNER_VEHICLE_REQUEST_PHOTOS_INSUFFICIENT` (3006), `OWNER_VEHICLE_REQUEST_DOCS_REQUIRED` (3007). |
+| **Create** | User hiện tại + `stationId` hợp lệ → `PENDING`. |
+| **Update (`PUT /owner/vehicle-requests/{id}`)** | Chỉ owner của request; chỉ khi `PENDING` hoặc `NEED_MORE_INFO`. |
+| **Resubmit (`POST .../resubmit`)** | Chỉ `REJECTED` hoặc `NEED_MORE_INFO` → `PENDING`, xóa `adminNote`; validate đủ ảnh + giấy tờ trước khi đổi trạng thái. |
+| **Admin approve** | Chỉ từ `PENDING` / `NEED_MORE_INFO`; validate đủ ảnh + giấy tờ; tạo `Vehicle` (copy field phù hợp), gắn FK approved. |
+| **Admin reject / need-more-info** | Theo `AdminOwnerVehicleRequestController` + `OwnerVehicleRequestService` (need-more-info hiện chỉ từ `PENDING` — xem code). |
+
+**Mã lỗi liên quan:** `OWNER_VEHICLE_REQUEST_NOT_FOUND` (3003), `OWNER_VEHICLE_REQUEST_STATUS_INVALID` (3004), `OWNER_VEHICLE_REQUEST_INVALID` (3005), cộng 3006–3007 ở trên. Dùng chung `VEHICLE_LICENSE_PLATE_ALREADY_EXISTS` (3002) khi trùng biển.
+
+### 10.4 API REST (tóm tắt)
+
+| Phương thức & path | Vai trò | Bảo vệ |
+|--------------------|---------|--------|
+| `POST /owner/vehicle-requests` | Tạo request | JWT, authenticated |
+| `GET /owner/vehicle-requests` | Danh sách của tôi | JWT |
+| `GET /owner/vehicle-requests/{id}` | Chi tiết một request (của tôi) | JWT |
+| `PUT /owner/vehicle-requests/{id}` | Cập nhật | JWT |
+| `POST /owner/vehicle-requests/{id}/resubmit` | Gửi lại | JWT |
+| `GET /admin/vehicle-requests?status=` | Admin lọc theo status | Role admin (xem controller) |
+| `GET /admin/vehicle-requests/{id}` | Chi tiết admin | Admin |
+| `POST /admin/vehicle-requests/{id}/approve` | Duyệt (+ body `adminNote` tùy chọn) | Admin |
+| `POST /admin/vehicle-requests/{id}/reject` | Từ chối | Admin |
+| `POST /admin/vehicle-requests/{id}/need-more-info` | Cần bổ sung | Admin |
+
+Controller: `OwnerVehicleRequestController`, `AdminOwnerVehicleRequestController`. DTO: `CreateOwnerVehicleRequest`, `UpdateOwnerVehicleRequest`, `AdminReviewOwnerVehicleRequest`, `OwnerVehicleRequestResponse`. MapStruct: `OwnerVehicleRequestMapper`. Repo: `OwnerVehicleRequestRepository`.
+
+### 10.5 Frontend
+
+| Khu vực | File / route | Nội dung |
+|---------|----------------|-----------|
+| **API client** | `frontend/src/api/ownerVehicleRequests.ts` | Types (`OwnerVehicleRequestDto`, payload create/update), hàm owner + admin (`authFetch`). |
+| **Đăng ký xe** | `/owner/register-vehicle` — `OwnerRegisterVehiclePage.tsx` + CSS | Form gửi `CreateOwnerVehicleRequest`; validate client đồng bộ với BE (ảnh, giấy tờ, giá). Dùng helper `lib/ownerVehicleRequestForm.ts`. |
+| **Danh sách của tôi** | `/owner/vehicle-requests` — `OwnerMyVehicleRequestsPage.tsx` + `OwnerMyVehicleRequestsPage.css` | `fetchMyOwnerVehicleRequests`, nút Sửa / Gửi lại / link xe đã duyệt. |
+| **Sửa request** | `/owner/vehicle-requests/:id/edit` — `OwnerEditVehicleRequestPage.tsx` | `fetchMyOwnerVehicleRequestById` + `updateOwnerVehicleRequest`; chặn form nếu không còn `PENDING`/`NEED_MORE_INFO`. |
+| **Tài khoản** | `UserAccountPage.tsx` | Section “Cho thuê xe”: link đăng ký + link “Yêu cầu xe của tôi”. |
+| **Admin** | `AdminOwnerVehicleRequestsSection.tsx` (lazy trong `AdminDashboardPage.tsx`) | Bảng + lọc + modal duyệt/từ chối/bổ sung; cột **Giấy tờ** (preview ảnh/PDF modal); **Xem nhanh ảnh xe** trong modal duyệt. Session filter: `adminSessionStorage` key `ownerVehicleRequests`. CSS bổ sung: `AdminVehiclesSection.css` (overlay modal ảnh/giấy tờ). |
+| **Route** | `App.tsx` | Các route owner + map như hiện tại. |
+
+**Lưu ý UX:** Trạng thái `REJECTED` — backend **không** cho `PUT` update; chỉ **Gửi lại** (`resubmit`) để về `PENDING`, sau đó mới **Sửa** được.
+
+### 10.6 Sơ đồ luồng (owner → admin)
+
+```mermaid
+sequenceDiagram
+  participant O as Owner (FE)
+  participant API as POST /owner/vehicle-requests
+  participant AD as Admin (FE)
+  participant ADM as POST /admin/vehicle-requests/id/approve
+  O->>API: Create request (photos, docs, …)
+  API-->>O: PENDING
+  AD->>ADM: Approve (sau khi đủ điều kiện)
+  ADM-->>AD: APPROVED + vehicleId
+  O->>O: GET /owner/vehicle-requests (theo dõi)
+```
+
+---
+
+## 11. Changelog (kiến trúc)
+
+- **2026-04-22:** Thêm mục **Trạm — tọa độ & bản đồ** và mục lớn **Owner Vehicle Request (P2P)** — mô hình dữ liệu, quy tắc BE, bảng API, bảng FE, sequence owner/admin.
 - **2026-04-20:** Thêm mục “Security learning flow” chi tiết (login/validate/refresh/logout/frontend retry).
 - **2026-04-20:** Thêm sequence cực ngắn cho luồng validate access token.
 - **2026-04-20:** Khởi tạo `architecture.md` — sơ đồ context, tầng backend, ER rút gọn, security, FE layers, sequence đặt xe.

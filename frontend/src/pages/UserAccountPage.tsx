@@ -403,6 +403,27 @@ export default function UserAccountPage() {
 
               <section className="uacc-section">
                 <h2 className="uacc-section__title">
+                  <IconSection>▸</IconSection>
+                  Cho thuê xe
+                </h2>
+                <InfoRow label="Đăng ký xe cho thuê">
+                  <span className="uacc__inline-links">
+                    <a href="/owner/register-vehicle">Mở form gửi yêu cầu</a>
+                    <span className="uacc__sep">·</span>
+                    <span className="uacc__muted-inline">
+                      Admin duyệt trước khi xe hiện trên hệ thống
+                    </span>
+                  </span>
+                </InfoRow>
+                <InfoRow label="Yêu cầu xe của tôi">
+                  <span className="uacc__inline-links">
+                    <a href="/owner/vehicle-requests">Xem trạng thái &amp; chỉnh sửa</a>
+                  </span>
+                </InfoRow>
+              </section>
+
+              <section className="uacc-section">
+                <h2 className="uacc-section__title">
                   <IconSection>▣</IconSection>
                   Giấy tờ &amp; GPLX
                 </h2>

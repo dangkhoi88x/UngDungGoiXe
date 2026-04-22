@@ -5,6 +5,7 @@ export const ADMIN_SESSION_KEYS = {
   vehicles: 'vehicles.filters',
   stations: 'stations.filters',
   bookings: 'bookings.filters',
+  ownerVehicleRequests: 'ownerVehicleRequests.filters',
 } as const
 
 export function readAdminSession<T extends Record<string, unknown>>(

@@ -1,0 +1,187 @@
+.owmr-main {
+  max-width: 960px;
+}
+
+.owmr-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.owmr-title {
+  margin-bottom: 6px;
+}
+
+.owmr-lead {
+  margin-bottom: 0;
+  max-width: 52ch;
+}
+
+.owmr-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.owmr-toast {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(46, 125, 50, 0.2);
+  border: 1px solid rgba(129, 199, 132, 0.45);
+  font-size: 14px;
+}
+
+.owmr-muted {
+  color: rgba(232, 236, 241, 0.55);
+  font-size: 14px;
+}
+
+.owmr-empty {
+  text-align: center;
+  padding: 40px 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  margin-top: 12px;
+}
+
+.owmr-empty p {
+  margin: 0 0 16px;
+  color: rgba(232, 236, 241, 0.7);
+}
+
+.owmr-scroll {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.owmr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.owmr-table th,
+.owmr-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: top;
+}
+
+.owmr-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.owmr-table tr:last-child td {
+  border-bottom: none;
+}
+
+.owmr-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.owmr-cell-title {
+  font-weight: 600;
+}
+
+.owmr-cell-sub {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.owmr-note {
+  max-width: 220px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.owmr-date {
+  font-size: 12px;
+  white-space: nowrap;
+  color: rgba(232, 236, 241, 0.75);
+}
+
+.owmr-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.owmr-link {
+  color: #8ab4ff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.owmr-link:hover {
+  text-decoration: underline;
+}
+
+.owmr-link--btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.owmr-link--btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.owmr-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.owmr-pill--pending {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffe082;
+}
+
+.owmr-pill--warn {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ffcc80;
+}
+
+.owmr-pill--ok {
+  background: rgba(76, 175, 80, 0.2);
+  color: #a5d6a7;
+}
+
+.owmr-pill--bad {
+  background: rgba(239, 83, 80, 0.2);
+  color: #ffcdd2;
+}
+
+.owmr-footnote {
+  margin: 16px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(232, 236, 241, 0.55);
+}

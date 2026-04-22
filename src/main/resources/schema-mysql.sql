@@ -25,3 +25,44 @@ ALTER TABLE users DROP COLUMN is_license_verified;
 -- Tọa độ trạm (bản đồ). Nullable để tương thích dữ liệu cũ.
 ALTER TABLE stations ADD COLUMN latitude DOUBLE NULL;
 ALTER TABLE stations ADD COLUMN longitude DOUBLE NULL;
+
+-- Owner gửi request đăng xe cho thuê (P2P listing flow).
+CREATE TABLE IF NOT EXISTS owner_vehicle_requests (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    owner_id BIGINT NOT NULL,
+    station_id BIGINT NOT NULL,
+    license_plate VARCHAR(20) NOT NULL,
+    name VARCHAR(255) NULL,
+    brand VARCHAR(255) NULL,
+    fuel_type VARCHAR(20) NULL,
+    capacity INT NULL,
+    hourly_rate DECIMAL(38,2) NULL,
+    daily_rate DECIMAL(38,2) NULL,
+    deposit_amount DECIMAL(38,2) NULL,
+    description TEXT NULL,
+    address VARCHAR(255) NULL,
+    latitude DOUBLE NULL,
+    longitude DOUBLE NULL,
+    registration_doc_url VARCHAR(2048) NULL,
+    insurance_doc_url VARCHAR(2048) NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+    admin_note TEXT NULL,
+    approved_vehicle_id BIGINT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT fk_ovr_owner FOREIGN KEY (owner_id) REFERENCES users(id),
+    CONSTRAINT fk_ovr_station FOREIGN KEY (station_id) REFERENCES stations(id),
+    CONSTRAINT fk_ovr_approved_vehicle FOREIGN KEY (approved_vehicle_id) REFERENCES vehicles(id)
+);
+
+CREATE TABLE IF NOT EXISTS owner_vehicle_request_photos (
+    request_id BIGINT NOT NULL,
+    photo_url VARCHAR(2048) NULL,
+    CONSTRAINT fk_ovr_photo_request FOREIGN KEY (request_id) REFERENCES owner_vehicle_requests(id)
+);
+
+CREATE TABLE IF NOT EXISTS owner_vehicle_request_policies (
+    request_id BIGINT NOT NULL,
+    policy_text TEXT NULL,
+    CONSTRAINT fk_ovr_policy_request FOREIGN KEY (request_id) REFERENCES owner_vehicle_requests(id)
+);
