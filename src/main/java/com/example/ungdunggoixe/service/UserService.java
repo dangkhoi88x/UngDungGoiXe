@@ -31,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -42,17 +43,31 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RoleService roleService;
     private final LocalUserDocumentStorage localUserDocumentStorage;
+    private final MailService mailService;
 
-    public CreateUserResponse createUser(CreateUserRequest Request){
-            String email=Request.getEmail();
+
+    public CreateUserResponse createUser(CreateUserRequest request){
+            String email = request.getEmail();
             if(userRepository.existsByEmail(email)){
                 throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
             }
-        User user= UserMapper.INSTANCE.ToUser(Request);
-        user.setPassword(passwordEncoder.encode(Request.getPassword()));
+        User user= UserMapper.INSTANCE.ToUser(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         Role role = roleService.createRole(RoleName.USER);
         user.addRole(role);
         userRepository.save(user);
+        String firstName = user.getFirstName() == null ? "" : user.getFirstName().trim();
+        String name = firstName.isEmpty() ? "bạn" : firstName;
+        mailService.sendEmailWithTemplate(
+                user.getEmail(),
+                "Chào mừng bạn đến với hệ thống Thuê Xe Tự Lái",
+                "welcome-gmail",
+                Map.of(
+                        "name", name,
+                        "accountEmail", user.getEmail(),
+                        "loginUrl", "http://localhost:5173/auth"
+                )
+        );
         return UserMapper.INSTANCE.ToCreateUserResponse(user);
 }
 

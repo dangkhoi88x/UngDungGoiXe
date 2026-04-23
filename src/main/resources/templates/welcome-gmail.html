@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chao mung ban den voi Thue Xe Tu Lai</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f6fb;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f3f6fb;padding:24px 12px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="620"
+                   style="max-width:620px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5eaf2;font-family:Arial,Helvetica,sans-serif;">
+                <tr>
+                    <td style="padding:28px 28px 20px;background:linear-gradient(135deg,#0b1f44,#173a74);color:#ffffff;">
+                        <p style="margin:0 0 8px;font-size:12px;letter-spacing:1px;opacity:.9;">THUE XE TU LAI</p>
+                        <h1 style="margin:0;font-size:26px;line-height:1.35;font-weight:700;">
+                            Chao mung <span th:text="${name}">ban</span>!
+                        </h1>
+                        <p style="margin:12px 0 0;font-size:15px;line-height:1.6;opacity:.92;">
+                            Tai khoan cua ban da duoc tao thanh cong. Ban co the bat dau kham pha xe va gui yeu cau thue ngay.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:24px 28px 20px;color:#24324a;">
+                        <p style="margin:0 0 12px;font-size:15px;line-height:1.7;">
+                            Cam on ban da dang ky nen tang. Chung toi rat vui duoc dong hanh cung ban trong cac chuyen di sap toi.
+                        </p>
+                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+                               style="margin:14px 0 18px;border:1px solid #e9edf5;border-radius:10px;background:#f9fbff;">
+                            <tr>
+                                <td style="padding:14px 16px;font-size:14px;color:#4a5b78;">
+                                    <strong style="display:block;margin-bottom:6px;color:#173a74;">Thong tin tai khoan</strong>
+                                    Email dang ky:
+                                    <span th:text="${accountEmail}" style="color:#0b1f44;font-weight:700;">user@example.com</span>
+                                </td>
+                            </tr>
+                        </table>
+                        <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="border-radius:10px;background:#0f62fe;">
+                                    <a th:href="${loginUrl}" href="http://localhost:5173/auth"
+                                       style="display:inline-block;padding:12px 20px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;">
+                                        Dang nhap va bat dau
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                        <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:#6a7b97;">
+                            Neu ban khong tao tai khoan nay, vui long bo qua email hoac lien he ho tro de duoc kiem tra.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:14px 28px 20px;border-top:1px solid #eef2f8;color:#7b88a1;font-size:12px;line-height:1.7;">
+                        © 2026 Thue Xe Tu Lai. All rights reserved.
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
