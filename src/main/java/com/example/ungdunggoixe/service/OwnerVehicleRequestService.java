@@ -18,6 +18,7 @@ import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.UserRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
@@ -39,6 +41,9 @@ public class OwnerVehicleRequestService {
     private final StationRepository stationRepository;
     private final VehicleRepository vehicleRepository;
     private final LocalOwnerVehicleFileStorage localOwnerVehicleFileStorage;
+    private final MailService mailService;
+    @Value("${app.web-base-url:http://localhost:5173}")
+    private String webBaseUrl;
     private static final int MAX_PHOTOS_PER_REQUEST = 20;
 
     private static String normalizePlate(String raw) {
@@ -200,6 +205,88 @@ public class OwnerVehicleRequestService {
                 .note(normalizedNote)
                 .createdAt(LocalDateTime.now())
                 .build());
+    }
+
+    private static String ownerRequestStatusLabel(OwnerVehicleRequestStatus status) {
+        return switch (status) {
+            case APPROVED -> "Da duyet";
+            case REJECTED -> "Tu choi";
+            case NEED_MORE_INFO -> "Can bo sung";
+            case PENDING -> "Cho duyet";
+            case CANCELLED -> "Da huy";
+        };
+    }
+
+    private static String ownerRequestStatusTag(OwnerVehicleRequestStatus status) {
+        return switch (status) {
+            case APPROVED -> "APPROVED";
+            case REJECTED -> "REJECTED";
+            case NEED_MORE_INFO -> "NEED_MORE_INFO";
+            case PENDING -> "PENDING";
+            case CANCELLED -> "CANCELLED";
+        };
+    }
+
+    private static String ownerRequestStatusIcon(OwnerVehicleRequestStatus status) {
+        return switch (status) {
+            case APPROVED -> "[OK]";
+            case REJECTED -> "[X]";
+            case NEED_MORE_INFO -> "[!]";
+            case PENDING -> "[...]";
+            case CANCELLED -> "[-]";
+        };
+    }
+
+    private static String ownerRequestStatusColor(OwnerVehicleRequestStatus status) {
+        return switch (status) {
+            case APPROVED -> "#1e7e34";
+            case REJECTED -> "#b42318";
+            case NEED_MORE_INFO -> "#b54708";
+            case PENDING -> "#175cd3";
+            case CANCELLED -> "#475467";
+        };
+    }
+
+    private static String ownerRequestStatusBackground(OwnerVehicleRequestStatus status) {
+        return switch (status) {
+            case APPROVED -> "#ecfdf3";
+            case REJECTED -> "#fef3f2";
+            case NEED_MORE_INFO -> "#fff6ed";
+            case PENDING -> "#eff8ff";
+            case CANCELLED -> "#f2f4f7";
+        };
+    }
+
+    private void sendOwnerRequestReviewEmail(OwnerVehicleRequest req, OwnerVehicleRequestStatus status, String adminNote) {
+        if (req.getOwner() == null || req.getOwner().getEmail() == null || req.getOwner().getEmail().isBlank()) {
+            return;
+        }
+        String firstName = req.getOwner().getFirstName() == null ? "" : req.getOwner().getFirstName().trim();
+        String name = firstName.isEmpty() ? "ban" : firstName;
+        String normalizedNote = adminNote == null ? "" : adminNote.trim();
+        String note = normalizedNote.isEmpty() ? "Khong co ghi chu bo sung tu admin." : normalizedNote;
+        String vehicleName = req.getName() == null || req.getName().isBlank() ? req.getLicensePlate() : req.getName().trim();
+        String detailUrl = webBaseUrl.replaceAll("/+$", "") + "/owner/vehicle-requests/" + req.getId();
+        String statusLabel = ownerRequestStatusLabel(status);
+        String statusTag = ownerRequestStatusTag(status);
+
+        mailService.sendEmailWithTemplate(
+                req.getOwner().getEmail(),
+                "[" + statusTag + "] Owner Request #" + req.getId() + " - " + statusLabel,
+                "owner-request-review",
+                Map.of(
+                        "name", name,
+                        "requestId", req.getId(),
+                        "vehicleName", vehicleName,
+                        "statusLabel", statusLabel,
+                        "statusTag", statusTag,
+                        "statusIcon", ownerRequestStatusIcon(status),
+                        "statusColor", ownerRequestStatusColor(status),
+                        "statusBackground", ownerRequestStatusBackground(status),
+                        "adminNote", note,
+                        "detailUrl", detailUrl
+                )
+        );
     }
 
     @Transactional
@@ -417,9 +504,9 @@ public class OwnerVehicleRequestService {
                 OwnerVehicleRequestStatus.APPROVED,
                 adminNote
         );
-        return OwnerVehicleRequestMapper.INSTANCE.toResponse(
-                ownerVehicleRequestRepository.save(req)
-        );
+        OwnerVehicleRequest saved = ownerVehicleRequestRepository.save(req);
+        sendOwnerRequestReviewEmail(saved, OwnerVehicleRequestStatus.APPROVED, adminNote);
+        return OwnerVehicleRequestMapper.INSTANCE.toResponse(saved);
     }
 
     @Transactional
@@ -438,9 +525,9 @@ public class OwnerVehicleRequestService {
                 OwnerVehicleRequestStatus.REJECTED,
                 adminNote
         );
-        return OwnerVehicleRequestMapper.INSTANCE.toResponse(
-                ownerVehicleRequestRepository.save(req)
-        );
+        OwnerVehicleRequest saved = ownerVehicleRequestRepository.save(req);
+        sendOwnerRequestReviewEmail(saved, OwnerVehicleRequestStatus.REJECTED, adminNote);
+        return OwnerVehicleRequestMapper.INSTANCE.toResponse(saved);
     }
 
     @Transactional
@@ -458,8 +545,8 @@ public class OwnerVehicleRequestService {
                 OwnerVehicleRequestStatus.NEED_MORE_INFO,
                 adminNote
         );
-        return OwnerVehicleRequestMapper.INSTANCE.toResponse(
-                ownerVehicleRequestRepository.save(req)
-        );
+        OwnerVehicleRequest saved = ownerVehicleRequestRepository.save(req);
+        sendOwnerRequestReviewEmail(saved, OwnerVehicleRequestStatus.NEED_MORE_INFO, adminNote);
+        return OwnerVehicleRequestMapper.INSTANCE.toResponse(saved);
     }
 }

@@ -31,9 +31,13 @@ public class SecurityConfiguration {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers("/files/**").permitAll()
+                        .requestMatchers("/api/momo/**").permitAll()
+                        .requestMatchers("/api/momo/ipn-handler").permitAll()
+                        .requestMatchers("/api/momo/create").authenticated()
                         .requestMatchers("/users/my-info", "/users/my-documents", "/users/my-profile").authenticated() // ✅ cụ thể trước
                         .requestMatchers("/users", "/auth/**", "/stations/**", "/vehicles/**").permitAll()
                         .requestMatchers("/users/**").permitAll() // ✅ wildcard sau
+
                         .requestMatchers("/bookings/vehicle-availability").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer((oauth2) -> oauth2
