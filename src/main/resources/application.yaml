@@ -38,13 +38,19 @@ spring:
           auth: true
           starttls:
             enable: true
-
-
+momo:
+  partner-code: MOMO
+  return-url: http://localhost:5173
+  endpoint: https://test-payment.momo.vn/v2/gateway/api
+  ipn-url: http://localhost:8080/api/momo/ipn-handler
+  access-key: F8BBA842ECF85
+  secret-key: K951B6PE1waDMi640xX08PD3vg6EkVlz
 jwt:
   secret-key: ${JWT_SECRET}
   audience: ${JWT_AUDIENCE}
 # Thư mục lưu ảnh GPLX (đường dẫn tương đối hoặc tuyệt đối)
 app:
+  web-base-url: ${APP_WEB_BASE_URL:http://localhost:5173}
   upload-dir: uploads
   owner-vehicle-upload:
     # Giới hạn kích thước từng file upload owner vehicle (bytes), có thể override bằng env.

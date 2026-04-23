@@ -211,6 +211,48 @@ public class PaymentService {
     }
 
     /**
+     * Handle MoMo IPN by partner orderId (mapped to {@link Payment#getTransactionId()}).
+     * resultCode = 0 => PAID, otherwise FAILED.
+     * This method is idempotent for repeated callbacks.
+     *
+     * @return true if a payment record is found and processed.
+     */
+    @Transactional
+    public boolean handleMomoIpnResult(String orderId, Integer resultCode, Long momoTransId) {
+        if (orderId == null || orderId.isBlank() || resultCode == null) {
+            return false;
+        }
+        Optional<Payment> opt = paymentRepository.findTopByTransactionIdOrderByIdDesc(orderId);
+        if (opt.isEmpty()) {
+            return false;
+        }
+
+        Payment payment = opt.get();
+        Payment.PaymentStatus current = payment.getStatus();
+        Payment.PaymentStatus target = (resultCode == 0)
+                ? Payment.PaymentStatus.PAID
+                : Payment.PaymentStatus.FAILED;
+
+        if (current == target) {
+            return true;
+        }
+        if (current == Payment.PaymentStatus.PAID && target == Payment.PaymentStatus.FAILED) {
+            // Do not downgrade an already paid transaction.
+            return true;
+        }
+
+        payment.setStatus(target);
+        if (target == Payment.PaymentStatus.PAID) {
+            payment.setPaidAt(LocalDateTime.now());
+        } else {
+            payment.setPaidAt(null);
+        }
+        Payment saved = paymentRepository.save(payment);
+        updateBookingPaymentStatus(saved.getBooking());
+        return true;
+    }
+
+    /**
      * Cập nhật {@link Booking#getPartiallyPaid()} = tổng payment PAID (tiền cọc + các lần trả)
      * và {@link Booking#getPaymentStatus()}.
      */
