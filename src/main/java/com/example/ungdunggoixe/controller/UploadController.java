@@ -3,7 +3,10 @@ package com.example.ungdunggoixe.controller;
 import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.exception.AppException;
+import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.LocalOwnerVehicleFileStorage;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -20,6 +23,7 @@ import java.util.Map;
 public class UploadController {
 
     private final LocalOwnerVehicleFileStorage localOwnerVehicleFileStorage;
+    private final I18nService i18nService;
 
     private Long currentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -35,13 +39,19 @@ public class UploadController {
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/owner-vehicle/photo")
+    @Operation(summary = "Upload anh xe", description = "Tai len anh xe cho ho so chu xe.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload anh xe thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File anh khong hop le"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap")
+    })
     public ApiResponse<Map<String, String>> uploadOwnerVehiclePhoto(
             @RequestParam("file") MultipartFile file
     ) {
         String url = localOwnerVehicleFileStorage.storePhoto(currentUserId(), file);
         return ApiResponse.<Map<String, String>>builder()
                 .status("success")
-                .message("Upload owner vehicle photo successful")
+                .message(i18nService.getMessage("response.upload.owner_vehicle_photo.success"))
                 .data(Map.of("url", url))
                 .timestamp(Instant.now())
                 .build();
@@ -49,13 +59,19 @@ public class UploadController {
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/owner-vehicle/document")
+    @Operation(summary = "Upload tai lieu xe", description = "Tai len tai lieu xe (dang ky, bao hiem...).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload tai lieu thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File tai lieu khong hop le"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap")
+    })
     public ApiResponse<Map<String, String>> uploadOwnerVehicleDocument(
             @RequestParam("file") MultipartFile file
     ) {
         String url = localOwnerVehicleFileStorage.storeDocument(currentUserId(), file);
         return ApiResponse.<Map<String, String>>builder()
                 .status("success")
-                .message("Upload owner vehicle document successful")
+                .message(i18nService.getMessage("response.upload.owner_vehicle_document.success"))
                 .data(Map.of("url", url))
                 .timestamp(Instant.now())
                 .build();

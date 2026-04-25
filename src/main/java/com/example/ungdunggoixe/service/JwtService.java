@@ -1,7 +1,9 @@
 package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.common.TokenType;
+import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.TokenPayload;
+import com.example.ungdunggoixe.exception.AppException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -11,7 +13,6 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -89,7 +90,7 @@ public class JwtService {
 
         String typ = jwt.getClaim("typ").toString();
         if (TokenType.valueOf(typ) != type) {
-            throw new JwtException("Invalid token type");
+            throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
         Long userId = Long.parseLong(jwt.getSubject());

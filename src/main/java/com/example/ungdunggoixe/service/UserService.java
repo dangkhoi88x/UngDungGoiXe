@@ -44,6 +44,7 @@ public class UserService {
     private final RoleService roleService;
     private final LocalUserDocumentStorage localUserDocumentStorage;
     private final MailService mailService;
+    private final I18nService i18nService;
 
 
     public CreateUserResponse createUser(CreateUserRequest request){
@@ -60,7 +61,7 @@ public class UserService {
         String name = firstName.isEmpty() ? "bạn" : firstName;
         mailService.sendEmailWithTemplate(
                 user.getEmail(),
-                "Chào mừng bạn đến với hệ thống Thuê Xe Tự Lái",
+                i18nService.getMessage("email.welcome.subject"),
                 "welcome-gmail",
                 Map.of(
                         "name", name,
@@ -81,7 +82,7 @@ public class UserService {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
         userRepository.deleteById(id);
-        return "User has been deleted";
+        return i18nService.getMessage("response.user.delete.success");
     }
 //    /**
 
@@ -207,7 +208,7 @@ public class UserService {
     public UserResponse getMyInfo(){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if(authentication == null)
-            throw new RuntimeException("Authentication is null");
+            throw new AppException(ErrorCode.AUTHENTICATION_MISSING);
         Long userID = Long.parseLong(authentication.getName());
         User user = userRepository.findById(userID).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         return UserMapper.INSTANCE.ToUserResponse(user);

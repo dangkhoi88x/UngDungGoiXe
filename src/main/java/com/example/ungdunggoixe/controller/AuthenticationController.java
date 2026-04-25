@@ -4,6 +4,9 @@ import com.example.ungdunggoixe.dto.request.AuthenticationRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.AuthenticationResponse;
 import com.example.ungdunggoixe.service.AuthenticationService;
+import com.example.ungdunggoixe.service.I18nService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -25,6 +28,7 @@ public class AuthenticationController {
     private static final long REFRESH_MAX_AGE_SECONDS = 3600L * 24 * 14;
 
     private final AuthenticationService authenticationService;
+    private final I18nService i18nService;
 
     private ResponseCookie buildRefreshCookie(String value, long maxAgeSeconds) {
         return ResponseCookie.from("refresh_token", value)
@@ -37,6 +41,11 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Dang nhap", description = "Dang nhap bang email/mat khau va cap access token + refresh token (cookie).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Dang nhap thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Thong tin dang nhap khong hop le")
+    })
     public ApiResponse<AuthenticationResponse> login(
             @RequestBody AuthenticationRequest request,
             HttpServletResponse response) {
@@ -48,7 +57,7 @@ public class AuthenticationController {
 
         return ApiResponse.<AuthenticationResponse>builder()
                 .status("success")
-                .message("Login successful")
+                .message(i18nService.getMessage("response.auth.login.success"))
                 .data(AuthenticationResponse.builder()
                         .userId(result.userId())
                         .firstName(result.firstName())
@@ -61,6 +70,11 @@ public class AuthenticationController {
     }
 
     @PostMapping("/refresh-token")
+    @Operation(summary = "Lam moi token", description = "Lam moi access token tu refresh token trong cookie refresh_token.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lam moi token thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Refresh token khong hop le/het han")
+    })
     public ApiResponse<AuthenticationResponse> refreshToken(
             @CookieValue(name = "refresh_token") String refreshToken,
             HttpServletResponse response) {
@@ -75,7 +89,7 @@ public class AuthenticationController {
 
         return ApiResponse.<AuthenticationResponse>builder()
                 .status("success")
-                .message("Token refreshed")
+                .message(i18nService.getMessage("response.auth.refresh.success"))
                 .data(AuthenticationResponse.builder()
                         .userId(result.userId())
                         .firstName(result.firstName())
@@ -88,6 +102,11 @@ public class AuthenticationController {
     }
 
     @PostMapping("/logout")
+    @Operation(summary = "Dang xuat", description = "Xoa refresh token va blacklist access token hien tai.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Dang xuat thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token khong hop le")
+    })
     public void logout(
             @RequestHeader("Authorization") String authHeader,
             @CookieValue(name = "refresh_token", required = false) String refreshToken,

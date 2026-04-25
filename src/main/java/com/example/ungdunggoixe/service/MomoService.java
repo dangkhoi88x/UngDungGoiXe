@@ -30,6 +30,7 @@ import java.util.HexFormat;
 public class MomoService {
     private final MomoProperties momoProperties;
     private final MomoMapper momoMapper;
+    private final I18nService i18nService;
     @Value("${momo.connect-timeout-ms:3000}")
     private int connectTimeoutMs;
     @Value("${momo.read-timeout-ms:8000}")
@@ -71,19 +72,19 @@ public class MomoService {
                     elapsed, orderId, requestId, response.getStatusCode().value());
             CreatePaymentResponse body = response.getBody();
             if (body == null) {
-                throw new IllegalStateException("MoMo trả về response rỗng.");
+                throw new IllegalStateException(i18nService.getMessage("error.momo.empty_response"));
             }
             return body;
         } catch (ResourceAccessException e) {
             long elapsed = System.currentTimeMillis() - started;
             log.warn("MoMo create payment timeout/error after {} ms, orderId={}, requestId={}",
                     elapsed, orderId, requestId, e);
-            throw new IllegalStateException("Kết nối MoMo timeout hoặc không truy cập được.", e);
+            throw new IllegalStateException(i18nService.getMessage("error.momo.connect_failed"), e);
         } catch (RestClientException e) {
             long elapsed = System.currentTimeMillis() - started;
             log.error("MoMo create payment failed after {} ms, orderId={}, requestId={}",
                     elapsed, orderId, requestId, e);
-            throw new IllegalStateException("Gọi MoMo thất bại.", e);
+            throw new IllegalStateException(i18nService.getMessage("error.momo.request_failed"), e);
         }
     }
 
@@ -111,7 +112,7 @@ public class MomoService {
 
     public String signHmacSha256(String data, String secretKey) {
         if (!StringUtils.hasText(secretKey)) {
-            throw new IllegalStateException("MoMo secret-key is empty.");
+            throw new IllegalStateException(i18nService.getMessage("error.momo.secret_empty"));
         }
         try {
             Mac hmac = Mac.getInstance("HmacSHA256");
@@ -120,7 +121,7 @@ public class MomoService {
             byte[] hash = hmac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot sign MoMo request.", e);
+            throw new IllegalStateException(i18nService.getMessage("error.momo.sign_failed"), e);
         }
     }
 

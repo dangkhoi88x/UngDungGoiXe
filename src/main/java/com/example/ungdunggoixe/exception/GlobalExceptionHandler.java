@@ -2,6 +2,8 @@ package com.example.ungdunggoixe.exception;
 
 import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
+import com.example.ungdunggoixe.service.I18nService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -11,7 +13,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.Instant;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final I18nService i18nService;
 
     /**
      * Dùng setter thay vì {@code ApiResponse.builder().code(...)} để tránh {@link NoSuchMethodError}
@@ -32,7 +37,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleAppException(AppException e) {
         ErrorCode errorCode = e.getErrorCode();
         ApiResponse<Void> response = errorBody(errorCode.getCode(),
-                errorCode.getMessage());
+                i18nService.getMessage(errorCode.getMessageKey()));
         return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
     }
 
@@ -40,7 +45,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException e) {
         ApiResponse<Void> response =
-                errorBody(ErrorCode.UNAUTHORIZED.getCode(), "Email hoặc mật khẩu không đúng.");
+                errorBody(ErrorCode.UNAUTHORIZED.getCode(), i18nService.getMessage("error.auth.bad_credentials"));
         return ResponseEntity.status(ErrorCode.UNAUTHORIZED.getHttpStatus()).body(response);
     }
 
@@ -49,10 +54,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(InternalAuthenticationServiceException.class)
     public ResponseEntity<ApiResponse<Void>> handleInternalAuthenticationService(InternalAuthenticationServiceException e) {
-        Throwable cause = e.getCause() != null ? e.getCause() : e;
-        String detail = cause.getMessage() != null ? cause.getMessage() : e.getMessage();
         ApiResponse<Void> response =
-                errorBody(ErrorCode.INTERNAL_ERROR.getCode(), "Lỗi đăng nhập (hệ thống): " + detail);
+                errorBody(ErrorCode.INTERNAL_ERROR.getCode(), i18nService.getMessage("error.auth.login_system"));
         return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getHttpStatus()).body(response);
     }
 
@@ -64,7 +67,7 @@ public class GlobalExceptionHandler {
         ApiResponse<Void> response =
                 errorBody(
                         ErrorCode.INTERNAL_ERROR.getCode(),
-                        ErrorCode.INTERNAL_ERROR.getMessage() + ": " + e.getMessage());
+                        i18nService.getMessage(ErrorCode.INTERNAL_ERROR.getMessageKey()));
         return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getHttpStatus()).body(response);
     }
 }

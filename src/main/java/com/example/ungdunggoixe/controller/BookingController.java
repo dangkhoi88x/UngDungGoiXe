@@ -9,6 +9,9 @@ import com.example.ungdunggoixe.dto.response.BookingResponse;
 import com.example.ungdunggoixe.dto.response.PagedBookingResponse;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.service.BookingService;
+import com.example.ungdunggoixe.service.I18nService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -26,13 +29,20 @@ import java.util.Map;
 @RequestMapping("/bookings")
 public class BookingController {
     private final BookingService bookingService;
+    private final I18nService i18nService;
 
     @PostMapping
+    @Operation(summary = "Tao booking", description = "Tao don dat xe moi va tinh tong tien du kien.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao booking thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Du lieu booking khong hop le"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Xe khong san sang trong khoang thoi gian yeu cau")
+    })
     public ApiResponse<BookingResponse> create(@RequestBody CreateBookingRequest request) {
         BookingResponse result = bookingService.createBooking(request);
         return ApiResponse.<BookingResponse>builder()
                 .status("success")
-                .message("Create booking successful")
+                .message(i18nService.getMessage("response.booking.create.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -54,7 +64,7 @@ public class BookingController {
                 "available", available);
         return ApiResponse.<Map<String, Object>>builder()
                 .status("success")
-                .message("Check vehicle availability successful")
+                .message(i18nService.getMessage("response.booking.vehicle_availability.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -69,7 +79,7 @@ public class BookingController {
         List<BookingResponse> result = bookingService.getMyBookings(userId);
         return ApiResponse.<List<BookingResponse>>builder()
                 .status("success")
-                .message("Get my bookings successful")
+                .message(i18nService.getMessage("response.booking.my_list.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -87,7 +97,7 @@ public class BookingController {
         PagedBookingResponse result = bookingService.getBookingsPaged(renterId, stationId, status, page, size, sortBy, sortDir);
         return ApiResponse.<PagedBookingResponse>builder()
                 .status("success")
-                .message("Get bookings page successful")
+                .message(i18nService.getMessage("response.booking.page.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -98,7 +108,7 @@ public class BookingController {
         BookingResponse result = bookingService.getBookingById(id);
         return ApiResponse.<BookingResponse>builder()
                 .status("success")
-                .message("Get booking by id successful")
+                .message(i18nService.getMessage("response.booking.get_by_id.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -112,7 +122,7 @@ public class BookingController {
         List<BookingResponse> result = bookingService.getBookings(renterId, stationId, status);
         return ApiResponse.<List<BookingResponse>>builder()
                 .status("success")
-                .message("Get bookings successful")
+                .message(i18nService.getMessage("response.booking.get_all.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -123,7 +133,7 @@ public class BookingController {
         BookingResponse result = bookingService.updateBooking(id, request);
         return ApiResponse.<BookingResponse>builder()
                 .status("success")
-                .message("Update booking successful")
+                .message(i18nService.getMessage("response.booking.update.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -135,11 +145,17 @@ public class BookingController {
     }
 
     @PatchMapping("/{id}/confirm")
+    @Operation(summary = "Xac nhan booking", description = "Chuyen booking tu PENDING sang CONFIRMED neu da thu du coc.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Xac nhan booking thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Chua du dieu kien xac nhan booking"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay booking")
+    })
     public ApiResponse<BookingResponse> confirm(@PathVariable Long id) {
         BookingResponse result = bookingService.confirmBooking(id);
         return ApiResponse.<BookingResponse>builder()
                 .status("success")
-                .message("Confirm booking successful")
+                .message(i18nService.getMessage("response.booking.confirm.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -150,7 +166,7 @@ public class BookingController {
         BookingResponse result = bookingService.pickupBooking(id);
         return ApiResponse.<BookingResponse>builder()
                 .status("success")
-                .message("Pickup booking successful")
+                .message(i18nService.getMessage("response.booking.pickup.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -161,18 +177,24 @@ public class BookingController {
         BookingResponse result = bookingService.returnBooking(id);
         return ApiResponse.<BookingResponse>builder()
                 .status("success")
-                .message("Return booking successful")
+                .message(i18nService.getMessage("response.booking.return.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
     }
 
     @PatchMapping("/{id}/cancel")
+    @Operation(summary = "Huy booking", description = "Huy booking theo luong trang thai hop le.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Huy booking thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Khong the huy o trang thai hien tai"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay booking")
+    })
     public ApiResponse<BookingResponse> cancel(@PathVariable Long id) {
         BookingResponse result = bookingService.cancelBooking(id);
         return ApiResponse.<BookingResponse>builder()
                 .status("success")
-                .message("Cancel booking successful")
+                .message(i18nService.getMessage("response.booking.cancel.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
