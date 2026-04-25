@@ -22,4 +22,10 @@ public class CreateMomoPaymentRequest {
     private String orderInfo;
     /** Optional metadata string. */
     private String extraData;
+
+    /**
+     * Loại giao dịch MoMo v2 create, ví dụ {@code captureWallet} (ví) hoặc {@code payWithATM} (thẻ ATM nội địa).
+     * Nếu để trống, backend dùng {@code momo.request-type} trong cấu hình.
+     */
+    private String requestType;
 }

@@ -1,12 +1,14 @@
 package com.example.ungdunggoixe.service;
 
+import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.configuration.MomoProperties;
 import com.example.ungdunggoixe.dto.momo.CreatePaymentRequest;
 import com.example.ungdunggoixe.dto.momo.CreatePaymentResponse;
 import com.example.ungdunggoixe.dto.momo.IpnCallbackRequest;
+import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.mapper.MomoMapper;
-import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -23,11 +26,14 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
+import java.util.Set;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class MomoService {
+    private static final Set<String> ALLOWED_CREATE_REQUEST_TYPES = Set.of("captureWallet", "payWithATM");
+
     private final MomoProperties momoProperties;
     private final MomoMapper momoMapper;
     private final I18nService i18nService;
@@ -43,8 +49,24 @@ public class MomoService {
             String orderInfo,
             String extraData
     ) {
+        return createPayment(orderId, requestId, amount, orderInfo, extraData, null);
+    }
+
+    /**
+     * @param requestType MoMo v2 {@code requestType}, e.g. {@code captureWallet} or {@code payWithATM}.
+     *                      If null/blank, uses {@link MomoProperties#getRequestType()}.
+     */
+    public CreatePaymentResponse createPayment(
+            String orderId,
+            String requestId,
+            long amount,
+            String orderInfo,
+            String extraData,
+            String requestType
+    ) {
+        String resolvedType = resolveCreateRequestType(requestType);
         String safeExtra = extraData == null ? "" : extraData;
-        String rawSignature = buildCreateRawSignature(requestId, orderId, amount, orderInfo, safeExtra);
+        String rawSignature = buildCreateRawSignature(requestId, orderId, amount, orderInfo, safeExtra, resolvedType);
         String signature = signHmacSha256(rawSignature, momoProperties.getSecretKey());
         CreatePaymentRequest request = momoMapper.toCreateRequest(
                 momoProperties,
@@ -53,7 +75,8 @@ public class MomoService {
                 amount,
                 orderInfo,
                 safeExtra,
-                signature
+                signature,
+                resolvedType
         );
 
         HttpHeaders headers = new HttpHeaders();
@@ -68,8 +91,8 @@ public class MomoService {
                     CreatePaymentResponse.class
             );
             long elapsed = System.currentTimeMillis() - started;
-            log.info("MoMo create payment completed in {} ms, orderId={}, requestId={}, status={}",
-                    elapsed, orderId, requestId, response.getStatusCode().value());
+            log.info("MoMo create payment completed in {} ms, orderId={}, requestId={}, requestType={}, status={}",
+                    elapsed, orderId, requestId, resolvedType, response.getStatusCode().value());
             CreatePaymentResponse body = response.getBody();
             if (body == null) {
                 throw new IllegalStateException(i18nService.getMessage("error.momo.empty_response"));
@@ -77,26 +100,49 @@ public class MomoService {
             return body;
         } catch (ResourceAccessException e) {
             long elapsed = System.currentTimeMillis() - started;
-            log.warn("MoMo create payment timeout/error after {} ms, orderId={}, requestId={}",
-                    elapsed, orderId, requestId, e);
+            log.warn("MoMo create payment timeout/error after {} ms, orderId={}, requestId={}, requestType={}",
+                    elapsed, orderId, requestId, resolvedType, e);
             throw new IllegalStateException(i18nService.getMessage("error.momo.connect_failed"), e);
+        } catch (HttpStatusCodeException e) {
+            long elapsed = System.currentTimeMillis() - started;
+            String body = e.getResponseBodyAsString();
+            log.warn(
+                    "MoMo create payment HTTP {} after {} ms, orderId={}, requestId={}, requestType={}, body={}",
+                    e.getStatusCode().value(),
+                    elapsed,
+                    orderId,
+                    requestId,
+                    resolvedType,
+                    body);
+            throw new AppException(ErrorCode.MOMO_GATEWAY_REJECTED);
         } catch (RestClientException e) {
             long elapsed = System.currentTimeMillis() - started;
-            log.error("MoMo create payment failed after {} ms, orderId={}, requestId={}",
-                    elapsed, orderId, requestId, e);
+            log.error("MoMo create payment failed after {} ms, orderId={}, requestId={}, requestType={}",
+                    elapsed, orderId, requestId, resolvedType, e);
             throw new IllegalStateException(i18nService.getMessage("error.momo.request_failed"), e);
         }
     }
 
+    private String resolveCreateRequestType(String requestType) {
+        String rt = !StringUtils.hasText(requestType) ? momoProperties.getRequestType() : requestType.trim();
+        if (!ALLOWED_CREATE_REQUEST_TYPES.contains(rt)) {
+            throw new IllegalStateException(i18nService.getMessage("error.momo.request_type_invalid"));
+        }
+        return rt;
+    }
+
     /**
-     * MoMo raw signature order for v2 create endpoint.
+     * MoMo raw signature order for v2 create endpoint (captureWallet and payWithATM share this ordering).
+     *
+     * @see <a href="https://developers.momo.vn/v3/vi/docs/payment/api/atm/onetime">MoMo ATM onetime</a>
      */
     public String buildCreateRawSignature(
             String requestId,
             String orderId,
             long amount,
             String orderInfo,
-            String extraData
+            String extraData,
+            String requestType
     ) {
         return "accessKey=" + safe(momoProperties.getAccessKey()) +
                 "&amount=" + amount +
@@ -107,7 +153,7 @@ public class MomoService {
                 "&partnerCode=" + safe(momoProperties.getPartnerCode()) +
                 "&redirectUrl=" + safe(momoProperties.getReturnUrl()) +
                 "&requestId=" + safe(requestId) +
-                "&requestType=" + safe(momoProperties.getRequestType());
+                "&requestType=" + safe(requestType);
     }
 
     public String signHmacSha256(String data, String secretKey) {

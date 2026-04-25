@@ -1,6 +1,7 @@
 package com.example.ungdunggoixe.dto.response;
 
 import com.example.ungdunggoixe.entity.Payment.PaymentMethod;
+import com.example.ungdunggoixe.entity.Payment.PaymentPurpose;
 import com.example.ungdunggoixe.entity.Payment.PaymentStatus;
 import lombok.*;
 
@@ -18,6 +19,9 @@ public class PaymentResponse {
     private String bookingCode;
     private BigDecimal amount;
     private PaymentMethod paymentMethod;
+    private PaymentPurpose paymentPurpose;
+    /** captureWallet | payWithATM (khi paymentMethod=MOMO). */
+    private String momoRequestType;
     private PaymentStatus status;
     private Long processedById;
     private String transactionId;

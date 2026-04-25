@@ -16,5 +16,7 @@ public class CreatePaymentRequest {
     private BigDecimal amount;
     /** Thanh toán tại trạm: chỉ {@link Payment.PaymentMethod#CASH}. Nếu null → CASH. */
     private Payment.PaymentMethod paymentMethod;
+    /** Mục đích thanh toán: DEPOSIT/PREPAID_TOTAL/TOPUP/REFUND. */
+    private Payment.PaymentPurpose paymentPurpose;
     private String transactionId;
 }

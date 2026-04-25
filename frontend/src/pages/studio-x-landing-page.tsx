@@ -120,9 +120,13 @@ function FloatingDock() {
         <span className="sx-dock__logo sx-dock__logo--vex" aria-hidden="true">
           VEX
         </span>
-        <button type="button" className="sx-dock__menu sx-dock__menu--vex" onClick={() => go('about')}>
+        <button
+          type="button"
+          className="sx-dock__menu sx-dock__menu--vex"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
           <span className="sx-dock__menu-icon sx-dock__menu-icon--vex" />
-          Menu
+          TOP
         </button>
         <a className="sx-dock__contact sx-dock__contact--vex sx-dock__contact--link" href="/auth">
           Start a Chat

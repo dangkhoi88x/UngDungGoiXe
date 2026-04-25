@@ -15,6 +15,12 @@ public class CreatePaymentRequest {
     /** Required | String | <=50 | e.g. MOMO */
     private String partnerCode;
 
+    /** Optional | Tên đối tác — thường bắt buộc với {@code payWithATM}. */
+    private String partnerName;
+
+    /** Optional | Mã cửa hàng — thường bắt buộc với {@code payWithATM}. */
+    private String storeId;
+
     /** Required | String | <=50 | e.g. F8BBA842ECF85 */
     private String accessKey;
 

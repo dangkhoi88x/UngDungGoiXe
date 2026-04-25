@@ -92,9 +92,13 @@ export function LandingPage() {
           <span className="landing__logo" aria-hidden="true">
             ✕
           </span>
-          <button type="button" className="landing__menu-btn">
+          <button
+            type="button"
+            className="landing__menu-btn"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
             <span className="landing__menu-icon" />
-            Menu
+            TOP
           </button>
           <button type="button" className="landing__contact-btn">
             Contact

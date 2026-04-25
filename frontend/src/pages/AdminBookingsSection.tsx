@@ -24,6 +24,13 @@ import {
 import { fetchStations, type StationDto } from '../api/stations'
 import { fetchAllVehicles, type VehicleDto } from '../api/vehicles'
 import { fetchUsersPage, userDisplayName, type UserDto } from '../api/users'
+import {
+  confirmRefundPayment,
+  confirmTopupPayment,
+  fetchPendingAdjustments,
+  type PaymentDto,
+  type PaymentPurpose,
+} from '../api/payments'
 import './AdminVehiclesSection.css'
 
 const BOOKING_STATUSES = [
@@ -102,11 +109,18 @@ function paymentVi(s: string | null | undefined): string {
   return m[s] || s
 }
 
+function purposeVi(s: string | null | undefined): string {
+  if (s === 'TOPUP') return 'Thu them'
+  if (s === 'REFUND') return 'Hoan tien'
+  return s || '—'
+}
+
 type Props = {
   refreshKey?: number
 }
 
 export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
+  const [activeTab, setActiveTab] = useState<'bookings' | PaymentPurpose>('bookings')
   const initialFilters = useMemo(() => initialBookingsFilters(), [])
   const [page, setPage] = useState(initialFilters.page)
   const [size, setSize] = useState(initialFilters.size)
@@ -146,6 +160,12 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [workflowId, setWorkflowId] = useState<number | null>(null)
+  const [pendingTopups, setPendingTopups] = useState<PaymentDto[]>([])
+  const [pendingRefunds, setPendingRefunds] = useState<PaymentDto[]>([])
+  const [adjustmentsLoading, setAdjustmentsLoading] = useState(false)
+  const [adjustmentsError, setAdjustmentsError] = useState<string | null>(null)
+  const [processingAdjustmentId, setProcessingAdjustmentId] = useState<number | null>(null)
+  const [adjustmentSearch, setAdjustmentSearch] = useState('')
 
   const loadRefs = useCallback(async () => {
     try {
@@ -162,9 +182,32 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
     }
   }, [])
 
+  const loadAdjustments = useCallback(async () => {
+    setAdjustmentsError(null)
+    setAdjustmentsLoading(true)
+    try {
+      const [topups, refunds] = await Promise.all([
+        fetchPendingAdjustments('TOPUP'),
+        fetchPendingAdjustments('REFUND'),
+      ])
+      setPendingTopups(topups)
+      setPendingRefunds(refunds)
+    } catch (e) {
+      setAdjustmentsError(
+        e instanceof Error ? e.message : 'Khong tai duoc danh sach dieu chinh.',
+      )
+    } finally {
+      setAdjustmentsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     void loadRefs()
   }, [loadRefs])
+
+  useEffect(() => {
+    void loadAdjustments()
+  }, [loadAdjustments, refreshKey])
 
   const load = useCallback(async () => {
     setError(null)
@@ -340,6 +383,25 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
     }
   }
 
+  const processAdjustment = async (paymentId: number, purpose: PaymentPurpose) => {
+    setToast(null)
+    setProcessingAdjustmentId(paymentId)
+    try {
+      if (purpose === 'TOPUP') {
+        await confirmTopupPayment(paymentId)
+        setToast('Da xac nhan thu them TOPUP.')
+      } else {
+        await confirmRefundPayment(paymentId)
+        setToast('Da xac nhan hoan tien REFUND.')
+      }
+      await Promise.all([loadAdjustments(), load()])
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : 'Xu ly dieu chinh that bai')
+    } finally {
+      setProcessingAdjustmentId(null)
+    }
+  }
+
   const confirmDelete = async () => {
     if (deleteId == null) return
     setDeleting(true)
@@ -389,6 +451,24 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
     })
   }, [content, searchQuery])
 
+  const currentAdjustments = activeTab === 'TOPUP' ? pendingTopups : pendingRefunds
+  const filteredAdjustments = useMemo(() => {
+    const q = adjustmentSearch.trim().toLowerCase()
+    if (!q) return currentAdjustments
+    return currentAdjustments.filter((p) => {
+      const paymentId = String(p.id)
+      const bookingId = String(p.bookingId ?? '')
+      const bookingCode = (p.bookingCode || '').toLowerCase()
+      const tx = (p.transactionId || '').toLowerCase()
+      return (
+        paymentId.includes(q) ||
+        bookingId.includes(q) ||
+        bookingCode.includes(q) ||
+        tx.includes(q)
+      )
+    })
+  }, [adjustmentSearch, currentAdjustments])
+
   useEscapeToClose(
     modalCreate,
     () => {
@@ -410,6 +490,140 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
     },
     !deleting,
   )
+
+  if (activeTab !== 'bookings') {
+    return (
+      <section className="adm-veh adm-bookings-section" aria-labelledby="adm-bk-title">
+        <div className="adm-veh__toolbar">
+          <h2 id="adm-bk-title">Đặt xe</h2>
+          <div className="adm-veh__actions">
+            <button
+              type="button"
+              className="adm-veh__btn adm-veh__btn--ghost"
+              onClick={() => void loadAdjustments()}
+              disabled={adjustmentsLoading}
+            >
+              Tải lại
+            </button>
+          </div>
+        </div>
+
+        <div className="adm-bk-tabs" role="tablist" aria-label="Dieu huong dat xe">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={false}
+            className="adm-bk-tab"
+            onClick={() => setActiveTab('bookings')}
+          >
+            Danh sach dat xe
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'TOPUP'}
+            className={`adm-bk-tab ${activeTab === 'TOPUP' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('TOPUP')}
+          >
+            TOPUP chờ xử lý ({pendingTopups.length})
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'REFUND'}
+            className={`adm-bk-tab ${activeTab === 'REFUND' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('REFUND')}
+          >
+            REFUND chờ xử lý ({pendingRefunds.length})
+          </button>
+        </div>
+
+        <div className="adm-users__filters" style={{ marginBottom: 14 }}>
+          <div className="adm-users__search-field">
+            <label className="adm-users__filter-label" htmlFor="adm-adjust-search">
+              Tìm nhanh khoản điều chỉnh
+            </label>
+            <input
+              id="adm-adjust-search"
+              type="search"
+              className="adm-users__search-input"
+              placeholder="Mã payment, booking, transaction..."
+              value={adjustmentSearch}
+              onChange={(e) => setAdjustmentSearch(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+
+        {adjustmentsError ? (
+          <p className="adm-veh__msg adm-veh__msg--err" role="alert">
+            {adjustmentsError}
+          </p>
+        ) : null}
+        {toast ? (
+          <p className="adm-veh__msg adm-veh__msg--ok" role="status">
+            {toast}
+          </p>
+        ) : null}
+
+        {adjustmentsLoading ? (
+          <div className="adm-veh__loading">Đang tải danh sách điều chỉnh…</div>
+        ) : null}
+
+        {!adjustmentsLoading && filteredAdjustments.length === 0 ? (
+          <p className="adm-veh__empty">Không có khoản điều chỉnh đang chờ xử lý.</p>
+        ) : null}
+
+        {!adjustmentsLoading && filteredAdjustments.length > 0 ? (
+          <div className="adm-veh__scroll">
+            <table className="adm-veh__table" style={{ minWidth: 920 }}>
+              <thead>
+                <tr>
+                  <th>Mã payment</th>
+                  <th>Mã booking</th>
+                  <th>Số tiền</th>
+                  <th>Loại</th>
+                  <th>Trạng thái</th>
+                  <th>Thời gian tạo</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAdjustments.map((p) => (
+                  <tr key={p.id}>
+                    <td className="adm-veh__mono">#{p.id}</td>
+                    <td className="adm-veh__mono">{p.bookingCode || `#${p.bookingId}`}</td>
+                    <td>{formatBookingMoney(p.amount)}</td>
+                    <td>
+                      <span className="adm-veh__pill">{purposeVi(p.paymentPurpose)}</span>
+                    </td>
+                    <td>{paymentVi(p.status)}</td>
+                    <td style={{ fontSize: 12 }}>
+                      {p.createdAt ? toDateTimeLocalValue(p.createdAt).replace('T', ' ') : '—'}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="adm-veh__btn adm-veh__btn--primary"
+                        disabled={processingAdjustmentId === p.id}
+                        onClick={() => void processAdjustment(p.id, activeTab)}
+                      >
+                        {processingAdjustmentId === p.id
+                          ? 'Đang xử lý…'
+                          : activeTab === 'TOPUP'
+                            ? 'Xác nhận đã thu'
+                            : 'Xác nhận đã hoàn'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </section>
+    )
+  }
 
   return (
     <section className="adm-veh adm-bookings-section" aria-labelledby="adm-bk-title">
@@ -438,6 +652,36 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
             + Tạo đặt xe
           </button>
         </div>
+      </div>
+
+      <div className="adm-bk-tabs" role="tablist" aria-label="Dieu huong dat xe">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={true}
+          className="adm-bk-tab is-active"
+          onClick={() => setActiveTab('bookings')}
+        >
+          Danh sách đặt xe
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={false}
+          className="adm-bk-tab"
+          onClick={() => setActiveTab('TOPUP')}
+        >
+          TOPUP chờ xử lý ({pendingTopups.length})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={false}
+          className="adm-bk-tab"
+          onClick={() => setActiveTab('REFUND')}
+        >
+          REFUND chờ xử lý ({pendingRefunds.length})
+        </button>
       </div>
 
       <div className="adm-users__filters">

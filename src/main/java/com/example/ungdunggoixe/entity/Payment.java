@@ -35,6 +35,16 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
+    @Column(name = "payment_purpose", length = 30)
+    @Enumerated(EnumType.STRING)
+    private PaymentPurpose paymentPurpose;
+
+    /**
+     * Chi tiết cho paymentMethod=MOMO: captureWallet (MoMo ví) hoặc payWithATM (thẻ ATM nội địa).
+     */
+    @Column(name = "momo_request_type", length = 30)
+    private String momoRequestType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "processed_by")
     private User processedBy;
@@ -63,5 +73,12 @@ public class Payment {
         PAID,
         FAILED,
         PARTIALLY_PAID
+    }
+
+    public enum PaymentPurpose {
+        DEPOSIT,
+        PREPAID_TOTAL,
+        TOPUP,
+        REFUND
     }
 }

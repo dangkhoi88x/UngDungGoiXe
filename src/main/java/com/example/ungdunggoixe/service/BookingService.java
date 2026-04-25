@@ -10,12 +10,14 @@ import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
 import com.example.ungdunggoixe.dto.response.PagedBookingResponse;
 import com.example.ungdunggoixe.entity.Booking;
+import com.example.ungdunggoixe.entity.Payment;
 import com.example.ungdunggoixe.entity.Station;
 import com.example.ungdunggoixe.entity.User;
 import com.example.ungdunggoixe.entity.Vehicle;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.mapper.BookingMapper;
 import com.example.ungdunggoixe.repository.BookingRepository;
+import com.example.ungdunggoixe.repository.PaymentRepository;
 import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.UserRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
@@ -52,6 +54,7 @@ public class BookingService {
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
     private final StationRepository stationRepository;
+    private final PaymentRepository paymentRepository;
     private final I18nService i18nService;
 
     /** Các trạng thái booking được coi là "đang chiếm xe" */
@@ -170,9 +173,13 @@ public class BookingService {
         if (now.isAfter(booking.getExpectedEndTime())) {
             BigDecimal extraFee = calculateLateFee(booking.getVehicle(), booking.getExpectedEndTime(), now);
             booking.setExtraFee(extraFee);
-            BigDecimal total = booking.getBasePrice().add(extraFee);
-            booking.setTotalAmount(total);
+        } else if (booking.getExtraFee() == null) {
+            booking.setExtraFee(BigDecimal.ZERO);
         }
+        BigDecimal base = booking.getBasePrice() == null ? BigDecimal.ZERO : booking.getBasePrice();
+        BigDecimal extra = booking.getExtraFee() == null ? BigDecimal.ZERO : booking.getExtraFee();
+        BigDecimal total = base.add(extra).setScale(2, RoundingMode.HALF_UP);
+        booking.setTotalAmount(total);
 
         // Chuyển trạng thái xe → AVAILABLE
         Vehicle vehicle = booking.getVehicle();
@@ -180,6 +187,8 @@ public class BookingService {
         // Tăng số lần cho thuê
         vehicle.setRentCount(vehicle.getRentCount() == null ? 1 : vehicle.getRentCount() + 1);
         vehicleRepository.save(vehicle);
+
+        createSettlementAdjustmentPaymentIfNeeded(booking);
 
         Booking saved = bookingRepository.save(booking);
         return BookingMapper.INSTANCE.toBookingResponse(saved);
@@ -432,5 +441,34 @@ public class BookingService {
         long lateHours = Math.max(1, Duration.between(expectedEnd, actualEnd).toHours());
         BigDecimal hourlyRate = vehicle.getHourlyRate() == null ? BigDecimal.ZERO : vehicle.getHourlyRate();
         return hourlyRate.multiply(BigDecimal.valueOf(lateHours));
+    }
+
+    private void createSettlementAdjustmentPaymentIfNeeded(Booking booking) {
+        BigDecimal total = booking.getTotalAmount() == null ? BigDecimal.ZERO : booking.getTotalAmount();
+        BigDecimal paid = booking.getPartiallyPaid() == null ? BigDecimal.ZERO : booking.getPartiallyPaid();
+        BigDecimal delta = total.subtract(paid).setScale(2, RoundingMode.HALF_UP);
+
+        if (delta.compareTo(BigDecimal.ZERO) > 0) {
+            paymentRepository.save(Payment.builder()
+                    .booking(booking)
+                    .amount(delta)
+                    .paymentMethod(Payment.PaymentMethod.CASH)
+                    .paymentPurpose(Payment.PaymentPurpose.TOPUP)
+                    .status(Payment.PaymentStatus.PENDING)
+                    .transactionId("TOPUP_AUTO_BOOKING_" + booking.getId() + "_" + System.currentTimeMillis())
+                    .build());
+            return;
+        }
+
+        if (delta.compareTo(BigDecimal.ZERO) < 0) {
+            paymentRepository.save(Payment.builder()
+                    .booking(booking)
+                    .amount(delta.abs())
+                    .paymentMethod(Payment.PaymentMethod.CASH)
+                    .paymentPurpose(Payment.PaymentPurpose.REFUND)
+                    .status(Payment.PaymentStatus.PENDING)
+                    .transactionId("REFUND_AUTO_BOOKING_" + booking.getId() + "_" + System.currentTimeMillis())
+                    .build());
+        }
     }
 }

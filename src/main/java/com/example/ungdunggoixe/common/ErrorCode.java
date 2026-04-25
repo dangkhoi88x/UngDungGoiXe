@@ -57,6 +57,9 @@ public enum ErrorCode {
     PAYMENT_AMOUNT_INVALID(5003, "error.payment.amount_invalid", "Invalid payment amount.", HttpStatus.BAD_REQUEST),
     PAYMENT_STATUS_INVALID(5004, "error.payment.status_invalid", "Current payment status does not allow this operation.", HttpStatus.BAD_REQUEST),
     PAYMENT_BOOKING_NOT_PAYABLE(5005, "error.payment.booking_not_payable", "Booking is not in a payable status.", HttpStatus.BAD_REQUEST),
+    MOMO_REQUEST_TYPE_INVALID(5006, "error.momo.request_type_invalid", "Unsupported MoMo requestType for create payment.", HttpStatus.BAD_REQUEST),
+    PAYMENT_MOMO_PREPAY_AMOUNT_RANGE(5007, "error.payment.momo_prepay_amount_range", "MoMo prepay amount outside allowed VND range.", HttpStatus.BAD_REQUEST),
+    MOMO_GATEWAY_REJECTED(5008, "error.momo.gateway_rejected", "MoMo payment gateway rejected the create request.", HttpStatus.BAD_REQUEST),
     // ── Generic errors ────────────────────────
     UNAUTHORIZED(9001, "error.auth.unauthorized", "Unauthorized", HttpStatus.UNAUTHORIZED),
     FORBIDDEN(9002, "error.auth.forbidden", "Forbidden", HttpStatus.FORBIDDEN),

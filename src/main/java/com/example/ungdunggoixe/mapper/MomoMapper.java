@@ -6,6 +6,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class MomoMapper {
+
+    private static final String PAY_WITH_ATM = "payWithATM";
+
     public CreatePaymentRequest toCreateRequest(
             MomoProperties properties,
             String requestId,
@@ -13,9 +16,10 @@ public class MomoMapper {
             long amount,
             String orderInfo,
             String extraData,
-            String signature
+            String signature,
+            String requestType
     ) {
-        return CreatePaymentRequest.builder()
+        CreatePaymentRequest.CreatePaymentRequestBuilder b = CreatePaymentRequest.builder()
                 .partnerCode(properties.getPartnerCode())
                 .accessKey(properties.getAccessKey())
                 .requestId(requestId)
@@ -24,10 +28,15 @@ public class MomoMapper {
                 .orderInfo(orderInfo)
                 .redirectUrl(properties.getReturnUrl())
                 .ipnUrl(properties.getIpnUrl())
-                .requestType(properties.getRequestType())
+                .requestType(requestType)
                 .extraData(extraData == null ? "" : extraData)
                 .lang(properties.getLang())
-                .signature(signature)
-                .build();
+                .signature(signature);
+
+        if (PAY_WITH_ATM.equals(requestType)) {
+            b.partnerName(properties.getPartnerName())
+                    .storeId(properties.getStoreId());
+        }
+        return b.build();
     }
 }

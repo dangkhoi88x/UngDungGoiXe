@@ -4,9 +4,11 @@ import AuthPage from './pages/AuthPage'
 import CarRentalPage from './pages/CarRentalPage'
 import VehicleDetailPage from './pages/VehicleDetailPage'
 import VehicleBookingPage from './pages/VehicleBookingPage'
+import MomoReturnPage from './pages/MomoReturnPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import UserAccountPage from './pages/UserAccountPage'
 import UserAccountUpdatePage from './pages/UserAccountUpdatePage'
+import UserOrderHistoryPage from './pages/UserOrderHistoryPage'
 import MapStationPage from './pages/MapStationPage'
 import OwnerRegisterVehiclePage from './pages/OwnerRegisterVehiclePage'
 import OwnerMyVehicleRequestsPage from './pages/OwnerMyVehicleRequestsPage'
@@ -90,6 +92,7 @@ function App() {
       <Route path="/logout" element={<LogoutRoute />} />
       <Route path="/account" element={<UserAccountPage />} />
       <Route path="/account/update" element={<UserAccountUpdatePage />} />
+      <Route path="/account/orders" element={<UserOrderHistoryPage />} />
       <Route
         path="/admin/*"
         element={
@@ -101,6 +104,7 @@ function App() {
       <Route path="/rent" element={<CarRentalPage />} />
       <Route path="/rent/:id" element={<VehicleDetailRoute />} />
       <Route path="/booking/:vehicleId" element={<VehicleBookingRoute />} />
+      <Route path="/payment/momo-return" element={<MomoReturnPage />} />
       <Route path="/mapstation" element={<MapStationPage />} />
       <Route path="/owner/register-vehicle" element={<OwnerRegisterVehiclePage />} />
       <Route path="/owner/vehicle-requests" element={<OwnerMyVehicleRequestsPage />} />
