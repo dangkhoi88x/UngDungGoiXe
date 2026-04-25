@@ -90,6 +90,10 @@ erDiagram
   STATION ||--o{ BOOKING : at
   VEHICLE ||--o{ BOOKING : booked
   BOOKING ||--o{ PAYMENT : has
+  PAYMENT {
+    enum paymentPurpose
+    enum status
+  }
   USER {
     long id
     string email
@@ -111,7 +115,7 @@ erDiagram
 ```
 
 - **Booking** gắn **renter** (`User`), **vehicle**, **station**; trạng thái và tiền xử lý trong `BookingService`.
-- **Payment** gắn booking (chi tiết xem entity/DTO).
+- **Payment** gắn booking; có **`paymentPurpose`** (`DEPOSIT`, `PREPAID_TOTAL`, `TOPUP`, `REFUND`) để phân luồng MoMo prepay, cọc, và điều chỉnh sau khi trả xe (xem mục Thanh toán).
 
 ---
 
@@ -276,6 +280,9 @@ flowchart TB
 - **Owner cho thuê (P2P):** `/owner/register-vehicle`, `/owner/vehicle-requests`, `/owner/vehicle-requests/:id/edit` — gọi API qua `ownerVehicleRequests.ts`, form dùng chung helper `lib/ownerVehicleRequestForm.ts`.
 - **Trạng thái đăng nhập:** `localStorage` + (tuỳ trang) `fetchMyInfo` cho dữ liệu nhạy cảm như GPLX.
 - **Gate GPLX (thuê xe):** logic `isLicenseApprovedForRent` — cho **APPROVED** và **PENDING**; UI `LicenseRequiredModal` khi chặn.
+- **Thanh toán MoMo (return):** route **`/payment/momo-return`** — `MomoReturnPage.tsx` (query từ MoMo, hiển thị kết quả, link về tài khoản / thuê xe).
+- **API thanh toán (FE):** `frontend/src/api/payments.ts` — pending adjustments, xác nhận TOPUP/REFUND (admin).
+- **Admin điều chỉnh tiền:** tab TOPUP / REFUND trong `AdminBookingsSection.tsx` (kèm tìm kiếm cục bộ theo id thanh toán, booking, mã booking, transaction id).
 
 ---
 
@@ -306,7 +313,7 @@ sequenceDiagram
 
 | Thành phần | Ghi chú |
 |------------|---------|
-| `application.yaml` | Datasource, Redis, JWT env, multipart, `app.upload-dir` |
+| `application.yaml` | Datasource, Redis, JWT env, multipart, `app.upload-dir`, **`momo.*`** (return-url trỏ SPA sau thanh toán, ipn-url), **`springdoc.swagger-ui.path`** |
 | `schema-mysql.sql` | Bổ sung cột / an toàn với `continue-on-error` |
 | Env | `JWT_SECRET`, `JWT_AUDIENCE` bắt buộc cho JWT |
 
@@ -430,8 +437,81 @@ sequenceDiagram
 
 ---
 
-## 11. Changelog (kiến trúc)
+## 11. Đa ngôn ngữ backend (i18n)
 
+**Mục tiêu:** Mọi message trả về client (lỗi, thành công, email subject có hợp đồng i18n) đi qua bundle; **`en` / `vi` / `fr`** dùng **cùng tập key** trong `src/main/resources/i18n/messages_<locale>.properties`.
+
+| Thành phần | Ghi chú |
+|------------|---------|
+| **`MessageSourceConfiguration`** | `ReloadableResourceBundleMessageSource`, basename `classpath:i18n/messages`, UTF-8. |
+| **`LocaleConfiguration`** | `AcceptHeaderLocaleResolver` — locale theo header **`Accept-Language`**; hỗ trợ `en`, `vi`, `fr`, mặc định English. |
+| **`I18nService`** | `getMessage(key, args…)` dựa trên `LocaleContextHolder.getLocale()`. |
+| **`ErrorCode`** | Mỗi mã lỗi gắn **`messageKey`**; `GlobalExceptionHandler` resolve nội dung qua `I18nService` thay vì chuỗi cứng. |
+| **Controller success** | `ApiResponse.message(...)` dùng `i18nService.getMessage("response....")` cho thông báo thống nhất. |
+
+**Quy tắc mở rộng:** Không hardcode text user-facing trong controller / service / handler / template email — thêm key đồng thời vào cả ba file properties.
+
+---
+
+## 12. Tài liệu API (Swagger / OpenAPI)
+
+- **Thư viện:** `springdoc-openapi-starter-webmvc-ui` (`pom.xml`).
+- **Cấu hình:** `OpenApiConfiguration` — metadata API, **HTTP Bearer JWT** (`bearerAuth`) áp dụng cho các operation cần auth trong UI.
+- **Bảo mật:** `SecurityConfiguration` — `permitAll` cho **`/swagger-ui/**`**, **`/swagger-ui.html`**, **`/v3/api-docs/**`** (dev/docs); production có thể thu hẹp bằng profile.
+- **UI path:** `springdoc.swagger-ui.path: /swagger-ui.html` trong `application.yaml`.
+- **Mô tả endpoint:** Các controller dùng `@Operation` và `@ApiResponses` (Swagger) với mô tả tiếng Việt nơi cần làm rõ nghiệp vụ; tránh xung đột tên với DTO `ApiResponse` của app (dùng FQCN cho annotation Swagger khi cần).
+
+---
+
+## 13. Thanh toán MoMo, prepay tổng & điều chỉnh TOPUP/REFUND
+
+### 13.1 Mục đích luồng tiền
+
+- **Prepay tổng (MoMo):** Người thuê thanh toán trước **ước tính thuê + cọc** (`PREPAID_TOTAL`), phù hợp chính sách “trả trước tổng” trước khi nhận xe.
+- **Sau khi trả xe:** `BookingService.returnBooking()` so sánh số tiền thực tế với đã thu; nếu lệch thì tạo bản ghi **`Payment`** ở trạng thái chờ xử lý với **`TOPUP`** (cần thu thêm) hoặc **`REFUND`** (cần hoàn) — không hardcode số âm linh tinh trên booking; vận hành xác nhận qua admin.
+
+### 13.2 Entity & enum `PaymentPurpose`
+
+| Giá trị | Vai trò ngắn |
+|---------|----------------|
+| `DEPOSIT` | Thanh toán / mục đích cọc cổ điển (tạo payment thường). |
+| `PREPAID_TOTAL` | MoMo prepay tổng (ước tính + cọc). |
+| `TOPUP` | Bản ghi “cần thu thêm” sau return; admin **`confirm-topup`** khi đã thu đủ ngoài luồng. |
+| `REFUND` | Bản ghi “cần hoàn”; admin **`confirm-refund`** sau khi hoàn cho khách. |
+
+Cột lưu DB: bổ sung qua Hibernate / `schema-mysql.sql` tùy môi trường (xem repo).
+
+### 13.3 Backend — endpoint & service chính
+
+| Thành phần | Nội dung |
+|------------|-----------|
+| **`POST /bookings/{id}/payments/momo/prepay-total`** | Tạo payment `PREPAID_TOTAL`, gọi MoMo, trả `payUrl` (JWT user, booking của user). |
+| **`PaymentService#createMomoPrepayTotal`** | Số tiền gửi MoMo là **VND nguyên** — scale 0, kiểm tra **`longValueExact()`**; sai scale / không phải số nguyên → lỗi có mã i18n (`PAYMENT_AMOUNT_INVALID` hoặc tương đương trong `ErrorCode`). |
+| **IPN MoMo** | `MomoController` + `PaymentService#handleMomoIpnResult` — ưu tiên map payment qua **`paymentId`** trong **`extraData`** để idempotent, đúng bản ghi prepay. |
+| **`BookingService#returnBooking`** | Tính chênh lệch; tạo **`TOPUP`** hoặc **`REFUND`** pending theo workflow. |
+| **`GET /payments/pending-adjustments?purpose=TOPUP|REFUND`** | Admin liệt kê chờ xử lý (role admin). |
+| **`PATCH /payments/{id}/confirm-topup`** / **`confirm-refund`** | Xác nhận vận hành tách biệt, message & Swagger riêng. |
+
+**Tổng hợp đã thanh toán:** Logic cộng trừ tiền (kể cả refund âm) dùng helper kiểu **`signedAmountForPaidPayment`** trong `PaymentService` để `PaymentStatus` / booking khớp thực tế.
+
+### 13.4 Cấu hình MoMo (dev)
+
+- **`momo.return-url`:** Trỏ về SPA (ví dụ `http://localhost:5173/payment/momo-return`) để user thấy trang kết quả sau redirect MoMo.
+- **`momo.ipn-url`:** Backend public URL nhận server-to-server (ví dụ `http://localhost:8080/api/momo/ipn-handler`); đổi theo tunnel/ngrok khi test IPN từ MoMo.
+
+### 13.5 Frontend liên quan
+
+| Khu vực | File / route |
+|---------|----------------|
+| Đặt xe + chọn MoMo | `VehicleBookingPage.tsx` — gọi `createMomoPrepayTotalForBooking` (`bookings.ts`), redirect `payUrl`. |
+| Return MoMo | `MomoReturnPage.tsx`, route trong `App.tsx`. |
+| Admin | `AdminBookingsSection.tsx` — tab **Đặt xe** / **TOPUP** / **REFUND**, nút xác nhận, ô tìm kiếm lọc cục bộ. |
+
+---
+
+## 14. Changelog (kiến trúc)
+
+- **2026-04-25:** Thêm **i18n backend** (mục 11), **Swagger/OpenAPI** (mục 12), **thanh toán MoMo prepay tổng + TOPUP/REFUND + IPN/return URL** (mục 13); cập nhật ER rút gọn Payment, bảng `application.yaml`, và bullet FE (return page, `payments.ts`, admin tabs).
 - **2026-04-22:** Thêm mục **Trạm — tọa độ & bản đồ** và mục lớn **Owner Vehicle Request (P2P)** — mô hình dữ liệu, quy tắc BE, bảng API, bảng FE, sequence owner/admin.
 - **2026-04-20:** Thêm mục “Security learning flow” chi tiết (login/validate/refresh/logout/frontend retry).
 - **2026-04-20:** Thêm sequence cực ngắn cho luồng validate access token.

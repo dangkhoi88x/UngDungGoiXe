@@ -2,6 +2,7 @@ package com.example.ungdunggoixe.controller;
 
 import com.example.ungdunggoixe.common.BookingStatus;
 import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.dto.momo.CreatePaymentResponse;
 import com.example.ungdunggoixe.dto.request.CreateBookingRequest;
 import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
@@ -10,7 +11,9 @@ import com.example.ungdunggoixe.dto.response.PagedBookingResponse;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.service.BookingService;
 import com.example.ungdunggoixe.service.I18nService;
+import com.example.ungdunggoixe.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -30,6 +33,7 @@ import java.util.Map;
 public class BookingController {
     private final BookingService bookingService;
     private final I18nService i18nService;
+    private final PaymentService paymentService;
 
     @PostMapping
     @Operation(summary = "Tao booking", description = "Tao don dat xe moi va tinh tong tien du kien.")
@@ -195,6 +199,31 @@ public class BookingController {
         return ApiResponse.<BookingResponse>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.booking.cancel.success"))
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    @PostMapping("/{id}/payments/momo/prepay-total")
+    @Operation(
+            summary = "Thanh toan tong truoc qua MoMo",
+            description = "Tao giao dich MoMo tra truoc (estimatedRental + depositAmount). "
+                    + "Tham so momoRequestType: captureWallet = vi MoMo; payWithATM = the ATM noi dia (theo tai lieu MoMo payWithATM).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao giao dich thanh toan tong truoc thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Booking khong hop le de thanh toan"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay booking")
+    })
+    public ApiResponse<CreatePaymentResponse> prepayTotalByMomo(
+            @PathVariable Long id,
+            @Parameter(
+                    description = "captureWallet = vi MoMo; payWithATM = the ATM noi dia (MoMo v2)",
+                    example = "captureWallet")
+            @RequestParam(defaultValue = "captureWallet") String momoRequestType) {
+        CreatePaymentResponse result = paymentService.createMomoPrepayTotal(id, momoRequestType);
+        return ApiResponse.<CreatePaymentResponse>builder()
+                .status("success")
+                .message(i18nService.getMessage("response.payment.momo_prepay_total.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();

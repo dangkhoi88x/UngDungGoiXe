@@ -377,6 +377,30 @@
   max-width: 280px;
 }
 
+.adm-bk-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.adm-bk-tab {
+  border: 1px solid var(--adm-border, #e8e8e8);
+  background: #fff;
+  color: var(--adm-dark, #1a1a1a);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.adm-bk-tab.is-active {
+  background: var(--adm-dark, #1a1a1a);
+  color: #fff;
+  border-color: var(--adm-dark, #1a1a1a);
+}
+
 .adm-veh__pager {
   display: flex;
   flex-wrap: wrap;

@@ -40,11 +40,15 @@ spring:
             enable: true
 momo:
   partner-code: MOMO
-  return-url: http://localhost:5173
+  partner-name: ${MOMO_PARTNER_NAME:UngDungGoiXe}
+  store-id: ${MOMO_STORE_ID:UngDungGoiXeStore}
+  return-url: http://localhost:5173/payment/momo-return
   endpoint: https://test-payment.momo.vn/v2/gateway/api
   ipn-url: http://localhost:8080/api/momo/ipn-handler
   access-key: F8BBA842ECF85
   secret-key: K951B6PE1waDMi640xX08PD3vg6EkVlz
+  # captureWallet = vi MoMo; co the override khi goi API (payWithATM = the ATM noi dia)
+  request-type: captureWallet
 jwt:
   secret-key: ${JWT_SECRET}
   audience: ${JWT_AUDIENCE}
@@ -52,6 +56,12 @@ jwt:
 app:
   web-base-url: ${APP_WEB_BASE_URL:http://localhost:5173}
   upload-dir: uploads
+  booking:
+    # Thời gian chờ thanh toán MoMo prepay tổng; sau mốc này booking PENDING (chưa có tiền PAID) được hủy để nhường slot.
+    # ~1h40 khớp countdown đơn hàng trên cổng test MoMo; có thể tăng nhẹ (vd. 105m) để giảm race với IPN trễ.
+    momo-prepaid-expiration: ${APP_BOOKING_MOMO_PREPAID_EXPIRATION:100m}
+    momo-prepaid-expiry-scan-interval: ${APP_BOOKING_MOMO_PREPAID_EXPIRY_SCAN_INTERVAL:PT5M}
+    momo-prepaid-expiry-enabled: ${APP_BOOKING_MOMO_PREPAID_EXPIRY_ENABLED:true}
   owner-vehicle-upload:
     # Giới hạn kích thước từng file upload owner vehicle (bytes), có thể override bằng env.
     max-file-size-bytes: ${OWNER_VEHICLE_MAX_FILE_SIZE_BYTES:6291456}

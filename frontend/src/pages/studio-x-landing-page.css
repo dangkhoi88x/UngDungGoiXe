@@ -184,7 +184,7 @@
 .sx-page .cr-nav__owner-btn {
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.9);
+  background: #facc15;
   color: #1a1a1a;
   text-decoration: none;
   font-size: 0.83rem;

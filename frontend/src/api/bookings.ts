@@ -80,6 +80,20 @@ function buildPagedQuery(params: {
   return q.toString()
 }
 
+/** Đơn đặt xe của user đang đăng nhập (JWT). */
+export async function fetchMyBookings(): Promise<BookingDto[]> {
+  const res = await authFetch(`${API_BASE}/bookings/me`)
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const payload = (await res.json()) as unknown
+  const data = unwrapApiData<BookingDto[]>(payload)
+  if (!Array.isArray(data)) {
+    throw new Error('Phản hồi danh sách booking của tôi không hợp lệ.')
+  }
+  return data
+}
+
 export async function fetchBookingsPaged(params: {
   page?: number
   size?: number
@@ -158,6 +172,43 @@ export async function createBooking(
   const booking = unwrapApiData<BookingDto>(responsePayload)
   if (!booking) throw new Error('Phản hồi tạo booking không hợp lệ.')
   return booking
+}
+
+export type MomoCreatePaymentDto = {
+  partnerCode?: string
+  requestId?: string
+  orderId?: string
+  resultCode?: number
+  message?: string
+  payUrl?: string
+  deeplink?: string
+  qrCodeUrl?: string
+  responseTime?: number
+  extraData?: string
+  signature?: string
+}
+
+/** MoMo v2 create: ví (`captureWallet`) hoặc thẻ ATM nội địa (`payWithATM`). */
+export type MomoPrepayRequestType = 'captureWallet' | 'payWithATM'
+
+export async function createMomoPrepayTotalForBooking(
+  bookingId: number,
+  options?: { momoRequestType?: MomoPrepayRequestType },
+): Promise<MomoCreatePaymentDto> {
+  const momoRequestType = options?.momoRequestType ?? 'captureWallet'
+  const q = new URLSearchParams()
+  q.set('momoRequestType', momoRequestType)
+  const res = await authFetch(
+    `${API_BASE}/bookings/${bookingId}/payments/momo/prepay-total?${q.toString()}`,
+    { method: 'POST' },
+  )
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const payload = (await res.json()) as unknown
+  const data = unwrapApiData<MomoCreatePaymentDto>(payload)
+  if (!data) throw new Error('Phản hồi tạo thanh toán MoMo không hợp lệ.')
+  return data
 }
 
 export async function updateBooking(

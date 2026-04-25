@@ -16,8 +16,12 @@ public class MomoProperties {
     private String ipnUrl;
     private String accessKey;
     private String secretKey;
-    /** MoMo v2 all-in-one usually uses captureWallet. */
+    /** MoMo v2 default when caller does not override: {@code captureWallet} (ví) or set globally. */
     private String requestType = "captureWallet";
+    /** Tên đối tác — MoMo yêu cầu khi {@code requestType=payWithATM} (thẻ ATM nội địa). */
+    private String partnerName = "UngDungGoiXe";
+    /** Mã cửa hàng — dùng cùng luồng {@code payWithATM}. */
+    private String storeId = "UngDungGoiXeStore";
     /** Optional language for checkout page: vi/en. */
     private String lang = "vi";
 }

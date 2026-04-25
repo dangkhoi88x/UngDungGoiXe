@@ -130,16 +130,7 @@ export default function CarRentalPage() {
           </a>
           <ul className="cr-nav__links">
             <li>
-              <a href="#">Hotel</a>
-            </li>
-            <li>
-              <a href="#">Flight</a>
-            </li>
-            <li>
-              <a href="#">Train</a>
-            </li>
-            <li>
-              <a href="#">Travel</a>
+              <a href="/blog">Blog</a>
             </li>
             <li>
               <a href="/rent" className="is-active">

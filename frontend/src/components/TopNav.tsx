@@ -39,10 +39,7 @@ export default function TopNav({ solid = false }: TopNavProps) {
           Horizon
         </a>
         <ul className="cr-nav__links">
-          <li><a href="#">Hotel</a></li>
-          <li><a href="#">Flight</a></li>
-          <li><a href="#">Train</a></li>
-          <li><a href="#">Travel</a></li>
+          <li><a href="/blog">Blog</a></li>
           <li><a href="/rent">Car Rental</a></li>
         </ul>
       </div>

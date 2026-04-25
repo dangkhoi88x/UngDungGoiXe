@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import {
   checkVehicleAvailability,
   computeBookingEstimate,
+  createMomoPrepayTotalForBooking,
   createBooking,
   formatBookingMoney,
   fromDateTimeLocalValue,
@@ -73,7 +74,9 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
   const [nameInput, setNameInput] = useState('')
   const [emailInput, setEmailInput] = useState('')
   const [phoneInput, setPhoneInput] = useState('')
-  const [paymentDemo, setPaymentDemo] = useState<'card' | 'transfer' | 'cash'>('cash')
+  const [paymentMode, setPaymentMode] = useState<
+    'momoWalletPrepay' | 'momoAtmPrepay' | 'cashAtStation'
+  >('momoWalletPrepay')
 
   const [slotAvailable, setSlotAvailable] = useState<boolean | null>(null)
   const [checkingSlot, setCheckingSlot] = useState(false)
@@ -184,7 +187,7 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
 
     setSubmitting(true)
     try {
-      await createBooking({
+      const booking = await createBooking({
         renterId: profile.id,
         vehicleId: vehicle.id,
         stationId: vehicle.stationId,
@@ -192,6 +195,21 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
         expectedEndTime: endIso,
         pickupNote: pickupNote || undefined,
       })
+
+      if (paymentMode === 'momoWalletPrepay' || paymentMode === 'momoAtmPrepay') {
+        const momo = await createMomoPrepayTotalForBooking(booking.id, {
+          momoRequestType: paymentMode === 'momoAtmPrepay' ? 'payWithATM' : 'captureWallet',
+        })
+        const targetUrl = momo.payUrl || momo.deeplink || momo.qrCodeUrl
+        if (!targetUrl) {
+          throw new Error(
+            'Đã tạo booking nhưng không lấy được link thanh toán MoMo. Vui lòng thanh toán sau trong tài khoản.',
+          )
+        }
+        window.location.href = targetUrl
+        return
+      }
+
       navigate('/account', { replace: true })
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Đặt xe thất bại.')
@@ -396,39 +414,51 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
             </section>
 
             <section className="vb-card">
-              <h2 className="vb-card-title">Thanh toán (demo giao diện)</h2>
+              <h2 className="vb-card-title">Thanh toán</h2>
               <p className="vb-hint" style={{ marginTop: 0 }}>
-                Phương thức chỉ hiển thị trên UI; xử lý thanh toán / cọc thực hiện tại trạm hoặc qua admin.
+                Chọn hình thức thanh toán cho booking này. Hai lựa chọn MoMo đều trả trước theo tổng dự kiến + tiền
+                cọc; khác nhau ở cổng thanh toán (ví hoặc thẻ nội địa).
               </p>
               <div className="vb-pay-grid" style={{ marginTop: '0.85rem' }}>
-                <label className={`vb-pay-option${paymentDemo === 'card' ? ' is-selected' : ''}`}>
+                <label className={`vb-pay-option${paymentMode === 'momoWalletPrepay' ? ' is-selected' : ''}`}>
                   <input
                     type="radio"
                     name="pay"
-                    checked={paymentDemo === 'card'}
-                    onChange={() => setPaymentDemo('card')}
+                    checked={paymentMode === 'momoWalletPrepay'}
+                    onChange={() => setPaymentMode('momoWalletPrepay')}
                   />
-                  Thẻ
+                  MoMo Ví — trả trước (tổng + cọc)
                 </label>
-                <label className={`vb-pay-option${paymentDemo === 'transfer' ? ' is-selected' : ''}`}>
+                <label className={`vb-pay-option${paymentMode === 'momoAtmPrepay' ? ' is-selected' : ''}`}>
                   <input
                     type="radio"
                     name="pay"
-                    checked={paymentDemo === 'transfer'}
-                    onChange={() => setPaymentDemo('transfer')}
+                    checked={paymentMode === 'momoAtmPrepay'}
+                    onChange={() => setPaymentMode('momoAtmPrepay')}
                   />
-                  Chuyển khoản
+                  MoMo thẻ ATM nội địa (tổng + cọc)
                 </label>
-                <label className={`vb-pay-option${paymentDemo === 'cash' ? ' is-selected' : ''}`}>
+                <label className={`vb-pay-option${paymentMode === 'cashAtStation' ? ' is-selected' : ''}`}>
                   <input
                     type="radio"
                     name="pay"
-                    checked={paymentDemo === 'cash'}
-                    onChange={() => setPaymentDemo('cash')}
+                    checked={paymentMode === 'cashAtStation'}
+                    onChange={() => setPaymentMode('cashAtStation')}
                   />
                   Tiền mặt tại trạm
                 </label>
               </div>
+              <p className="vb-hint" style={{ marginTop: '0.5rem' }}>
+                Thẻ ATM: luồng <code>payWithATM</code> theo{' '}
+                <a
+                  href="https://developers.momo.vn/v3/vi/docs/payment/api/atm/onetime"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  tài liệu MoMo
+                </a>
+                ; dùng thẻ test Napas khi môi trường sandbox.
+              </p>
             </section>
           </div>
 
@@ -515,7 +545,13 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
             disabled={!canSubmit || submitting}
             onClick={() => void handleSubmit()}
           >
-            {submitting ? 'Đang gửi…' : 'Xác nhận đặt xe'}
+            {submitting
+              ? 'Đang gửi…'
+              : paymentMode === 'momoWalletPrepay' || paymentMode === 'momoAtmPrepay'
+                ? paymentMode === 'momoAtmPrepay'
+                  ? 'Đặt xe & thanh toán thẻ ATM (MoMo)'
+                  : 'Đặt xe & thanh toán MoMo Ví'
+                : 'Xác nhận đặt xe'}
           </button>
           <p className="vb-hint" style={{ textAlign: 'center', maxWidth: '28rem' }}>
             Sau khi thành công bạn được chuyển về trang tài khoản. Mã booking và thanh toán do hệ thống / trạm xử
