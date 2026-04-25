@@ -30,6 +30,7 @@ public class SecurityConfiguration {
             throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize) -> authorize
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/files/**").permitAll()
                         .requestMatchers("/api/momo/**").permitAll()
                         .requestMatchers("/api/momo/ipn-handler").permitAll()

@@ -37,6 +37,7 @@ public class VehicleService {
 
     private final VehicleRepository vehicleRepository;
     private final StationRepository stationRepository;
+    private final I18nService i18nService;
 
     private static String mapVehicleSortProperty(String sortBy) {
         if (sortBy == null || sortBy.isBlank()) {
@@ -184,6 +185,6 @@ public class VehicleService {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
         vehicleRepository.delete(vehicle);
-        return "Vehicle has been deleted";
+        return i18nService.getMessage("response.vehicle.delete.success");
     }
 }

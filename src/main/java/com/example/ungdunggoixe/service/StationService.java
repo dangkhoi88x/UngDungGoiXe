@@ -31,6 +31,7 @@ public class StationService {
     );
 
     private final StationRepository stationRepository;
+    private final I18nService i18nService;
 
     private static String mapStationSortProperty(String sortBy) {
         if (sortBy == null || sortBy.isBlank() || !STATION_SORT_FIELDS.contains(sortBy)) {
@@ -127,6 +128,6 @@ public class StationService {
                 .orElseThrow(() -> new AppException(ErrorCode.STATION_NOT_FOUND));
         station.setStatus(StationStatus.INACTIVE);
         stationRepository.save(station);
-        return "Delete successfully";
+        return i18nService.getMessage("response.station.delete.success");
     }
 }

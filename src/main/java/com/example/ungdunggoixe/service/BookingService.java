@@ -52,6 +52,7 @@ public class BookingService {
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
     private final StationRepository stationRepository;
+    private final I18nService i18nService;
 
     /** Các trạng thái booking được coi là "đang chiếm xe" */
     private static final List<BookingStatus> ACTIVE_STATUSES = List.of(
@@ -328,7 +329,7 @@ public class BookingService {
     public String deleteBooking(Long id) {
         Booking booking = findBookingById(id);
         bookingRepository.delete(booking);
-        return "Booking has been deleted";
+        return i18nService.getMessage("response.booking.delete.success");
     }
 
     // ═══════════════════════════════════════════════════════

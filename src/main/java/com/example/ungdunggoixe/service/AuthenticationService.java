@@ -1,11 +1,13 @@
 package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.common.TokenType;
+import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.TokenPayload;
 import com.example.ungdunggoixe.dto.request.AuthenticationRequest;
 import com.example.ungdunggoixe.dto.response.AuthenticationResponse;
 import com.example.ungdunggoixe.entity.RefreshToken;
 import com.example.ungdunggoixe.entity.User;
+import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.repository.UserRepository;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.MACVerifier;
@@ -60,19 +62,19 @@ public class AuthenticationService {
 
     public AuthenticationResponse refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isEmpty()) {
-            throw new IllegalArgumentException("Refresh token is empty");
+            throw new AppException(ErrorCode.UNAUTHORIZED);
         }
         try {
             SignedJWT signedJWT = SignedJWT.parse(refreshToken);
 
             boolean isValid = signedJWT.verify(new MACVerifier(secretKey));
             if (!isValid) {
-                throw new IllegalArgumentException("Invalid refresh token signature");
+                throw new AppException(ErrorCode.UNAUTHORIZED);
             }
 
             Date expiry = signedJWT.getJWTClaimsSet().getExpirationTime();
             if (expiry == null || expiry.toInstant().isBefore(Instant.now())) {
-                throw new IllegalArgumentException("Refresh token expired");
+                throw new AppException(ErrorCode.UNAUTHORIZED);
             }
 
             long userID = Long.parseLong(signedJWT.getJWTClaimsSet().getSubject());
@@ -80,15 +82,15 @@ public class AuthenticationService {
 
             RefreshToken session = tokenService.findRefreshByJti(jti);
             if (session == null) {
-                throw new IllegalArgumentException("Refresh token not found or already used");
+                throw new AppException(ErrorCode.UNAUTHORIZED);
             }
 
             if (session.getUserId() != userID) {
-                throw new IllegalArgumentException("Token does not belong to this user");
+                throw new AppException(ErrorCode.UNAUTHORIZED);
             }
 
             User user = userRepository.findByIdWithUserRoles(userID)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
             List<String> roles = user.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
@@ -110,7 +112,7 @@ public class AuthenticationService {
                     .build();
 
         } catch (ParseException | JOSEException e) {
-            throw new RuntimeException("Unauthorized: Refresh token is invalid");
+            throw new AppException(ErrorCode.UNAUTHORIZED);
         }
     }
 

@@ -9,9 +9,10 @@ import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.CreateUserResponse;
 import com.example.ungdunggoixe.dto.response.PagedUserResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
-import com.example.ungdunggoixe.common.ErrorCode;
-import com.example.ungdunggoixe.exception.AppException;
+import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,20 +27,27 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final I18nService i18nService;
 
     @Value("${app.bootstrap-admin-secret:}")
     private String bootstrapAdminSecret;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, I18nService i18nService) {
         this.userService = userService;
+        this.i18nService = i18nService;
     }
 
     @PostMapping
+    @Operation(summary = "Tao user", description = "Dang ky tai khoan nguoi dung moi.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao user thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Email da ton tai")
+    })
     public ApiResponse<CreateUserResponse> createUser(@RequestBody CreateUserRequest createUserRequest) {
         CreateUserResponse result = userService.createUser(createUserRequest);
         return ApiResponse.<CreateUserResponse>builder()
                 .status("success")
-                .message("Create user successful")
+                .message(i18nService.getMessage("response.user.create.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -51,11 +59,16 @@ public class UserController {
     /** Không dùng <code>/page</code> — Spring có thể khớp nhầm với <code>/{id}</code> (id = "page"). */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/my-info")
+    @Operation(summary = "Lay thong tin cua toi", description = "Lay profile cua user dang dang nhap.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lay thong tin thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap")
+    })
     public ApiResponse<UserResponse> getMyInfo() {
         UserResponse result = userService.getMyInfo();
         return ApiResponse.<UserResponse>builder()
                 .status("success")
-                .message("Get my info successful")
+                .message(i18nService.getMessage("response.user.me.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -68,7 +81,7 @@ public class UserController {
         UserResponse result = userService.updateMyProfile(request);
         return ApiResponse.<UserResponse>builder()
                 .status("success")
-                .message("Update my profile successful")
+                .message(i18nService.getMessage("response.user.profile.update.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -77,6 +90,12 @@ public class UserController {
     /** Gửi giấy tờ GPLX để admin duyệt (multipart: identityNumber, licenseNumber, frontImage, backImage). */
     @PreAuthorize("isAuthenticated()")
     @PostMapping(value = "/my-documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Gui giay to xac minh", description = "Nguoi dung gui CMND/CCCD va GPLX de cho duyet.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Gui giay to thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Du lieu hoac file khong hop le"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap")
+    })
         public ApiResponse<UserResponse> submitMyDocuments(
             @RequestParam("identityNumber") String identityNumber,
             @RequestParam("licenseNumber") String licenseNumber,
@@ -86,7 +105,7 @@ public class UserController {
         UserResponse result = userService.submitMyDocuments(identityNumber, licenseNumber, frontImage, backImage);
         return ApiResponse.<UserResponse>builder()
                 .status("success")
-                .message("Submit documents successful")
+                .message(i18nService.getMessage("response.user.documents.submit.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -102,7 +121,7 @@ public class UserController {
         PagedUserResponse result = userService.getUsersPaged(page, size, sortBy, sortDir);
         return ApiResponse.<PagedUserResponse>builder()
                 .status("success")
-                .message("Get users page successful")
+                .message(i18nService.getMessage("response.user.page.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -114,7 +133,7 @@ public class UserController {
         UserResponse result = userService.getUserbyID(id);
         return ApiResponse.<UserResponse>builder()
                 .status("success")
-                .message("Get user by id successful")
+                .message(i18nService.getMessage("response.user.get_by_id.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -126,7 +145,7 @@ public class UserController {
         List<UserResponse> result = userService.getAllUser();
         return ApiResponse.<List<UserResponse>>builder()
                 .status("success")
-                .message("Get all users successful")
+                .message(i18nService.getMessage("response.user.get_all.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
@@ -138,7 +157,7 @@ public class UserController {
         UserResponse result = userService.updateUser(id, request);
         return ApiResponse.<UserResponse>builder()
                 .status("success")
-                .message("Update user successful")
+                .message(i18nService.getMessage("response.user.update.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();
