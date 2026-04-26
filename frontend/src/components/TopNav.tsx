@@ -41,6 +41,9 @@ export default function TopNav({ solid = false }: TopNavProps) {
         <ul className="cr-nav__links">
           <li><a href="/blog">Blog</a></li>
           <li><a href="/rent">Car Rental</a></li>
+          <li>
+            <a href="/account/orders">Lịch sử</a>
+          </li>
         </ul>
       </div>
       <div className="cr-nav__search-wrap">

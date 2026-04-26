@@ -95,33 +95,6 @@ export const PROCESS_STEPS: ProcessStep[] = [
   },
 ]
 
-export type Testimonial = {
-  quote: string
-  author: string
-  role: string
-}
-
-export const TESTIMONIALS: Testimonial[] = [
-  {
-    quote:
-      'Tôi cho thuê xe nhàn rỗi, khách nhận xe đúng bãi đã thống nhất. Nền tảng thu một phần phí nhưng mình vẫn chủ động giá và lịch.',
-    author: 'Anh Tuấn',
-    role: 'Chủ xe — TP.HCM',
-  },
-  {
-    quote:
-      'Đặt xe online, đến bãi ký nhận nhanh. Biết trước điểm giao nên không lo chủ xe đổi địa điểm giờ chót.',
-    author: 'Lan Phương',
-    role: 'Người thuê xe',
-  },
-  {
-    quote:
-      'Mô hình sàn đứng giữa rõ ràng: có booking, có phí dịch vụ, có quy trình trả xe — phù hợp để demo đồ án và mở rộng sau.',
-    author: 'Góc nhìn hướng dẫn đồ án',
-    role: 'Đánh giá kiến trúc hệ thống',
-  },
-]
-
 export type BlogPost = {
   title: string
   excerpt: string

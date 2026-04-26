@@ -137,6 +137,9 @@ export default function CarRentalPage() {
                 Car Rental
               </a>
             </li>
+            <li>
+              <a href="/account/orders">Lịch sử</a>
+            </li>
           </ul>
         </div>
         <div className="cr-nav__search-wrap">

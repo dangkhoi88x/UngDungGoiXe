@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -8,7 +7,6 @@ import {
 import {
   BLOG_POSTS,
   PROCESS_STEPS,
-  TESTIMONIALS,
   type ProcessStep,
 } from './studio-x-content'
 import {
@@ -110,10 +108,6 @@ function HeroSection() {
 }
 
 function FloatingDock() {
-  const go = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
-  }
-
   return (
     <nav className="sx-dock" aria-label="Quick actions">
       <div className="sx-dock__inner sx-dock__inner--vex">
@@ -660,47 +654,6 @@ function ProcessSection() {
   )
 }
 
-function TestimonialsSection() {
-  const [i, setI] = useState(0)
-  const next = useCallback(
-    () => setI((v) => (v + 1) % TESTIMONIALS.length),
-    []
-  )
-  const prev = useCallback(
-    () => setI((v) => (v - 1 + TESTIMONIALS.length) % TESTIMONIALS.length),
-    []
-  )
-
-  const t = TESTIMONIALS[i]
-
-  return (
-    <section id="testimonials" className="sx-testimonials">
-      <p className="sx-section-label">(Phản hồi)</p>
-      <h2 className="sx-testimonials__title">Người dùng &amp; đánh giá mô hình</h2>
-      <div className="sx-testimonials__frame">
-        <blockquote
-          key={i}
-          className="sx-testimonials__quote"
-        >
-          <p>&ldquo;{t.quote}&rdquo;</p>
-          <footer>
-            <cite className="sx-testimonials__author">{t.author}</cite>
-            <span className="sx-testimonials__role">{t.role}</span>
-          </footer>
-        </blockquote>
-        <div className="sx-testimonials__nav">
-          <button type="button" onClick={prev} aria-label="Previous testimonial">
-            ‹
-          </button>
-          <button type="button" onClick={next} aria-label="Next testimonial">
-            ›
-          </button>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function BlogSection() {
   return (
     <section id="insights" className="sx-blog">
@@ -786,9 +739,6 @@ function FooterSection() {
               <li>
                 <a href="#insights">Bài viết</a>
               </li>
-              <li>
-                <a href="#testimonials">Phản hồi</a>
-              </li>
             </ul>
           </div>
           <div>
@@ -834,7 +784,6 @@ function StudioXLandingPage() {
         <SolutionsSection />
         <ProjectsSection />
         <ProcessSection />
-        <TestimonialsSection />
         <BlogSection />
       </main>
       <FooterSection />

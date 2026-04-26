@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { fetchMyBookings, formatBookingMoney, type BookingDto } from '../api/bookings'
 import { fetchPaymentsByBookingId, type PaymentDto } from '../api/payments'
 import TopNav from '../components/TopNav'
+import './studio-x-landing-page.css'
 import './UserOrderHistoryPage.css'
 
 type HistoryTab = 'ALL' | 'PENDING' | 'COMPLETED' | 'CANCELLED'
@@ -27,14 +28,6 @@ function toTab(status: string | null | undefined): Exclude<HistoryTab, 'ALL'> {
   if (status === 'CANCELLED') return 'CANCELLED'
   if (status === 'COMPLETED') return 'COMPLETED'
   return 'PENDING'
-}
-
-function paymentStatusVi(status: string | null | undefined, payments: PaymentDto[]): string {
-  const s = (status || '').toUpperCase()
-  if (s === 'PAID') return 'Paid'
-  if (s === 'PARTIALLY_PAID') return 'Partially Paid'
-  if (payments.some((p) => String(p.status || '').toUpperCase() === 'FAILED')) return 'Failed'
-  return 'Pending'
 }
 
 function paymentMethodVi(payments: PaymentDto[]): string {
@@ -152,7 +145,7 @@ export default function UserOrderHistoryPage() {
   }, [rows, activeTab])
 
   return (
-    <div className="uoh-page">
+    <div className="sx-page uoh-page">
       <TopNav solid />
       <main className="uoh-main">
         <header className="uoh-head">
@@ -202,7 +195,6 @@ export default function UserOrderHistoryPage() {
                   <th>Tạo lúc</th>
                   <th>Trạng thái thuê</th>
                   <th>PT thanh toán</th>
-                  <th>Trạng thái thanh toán</th>
                   <th>Đã trả</th>
                   <th>Còn lại</th>
                   <th>TOPUP / REFUND</th>
@@ -232,7 +224,6 @@ export default function UserOrderHistoryPage() {
                         </span>
                       </td>
                       <td>{paymentMethodVi(payments)}</td>
-                      <td>{paymentStatusVi(booking.paymentStatus, payments)}</td>
                       <td>{formatBookingMoney(booking.partiallyPaid)}</td>
                       <td>{formatBookingMoney(remaining)}</td>
                       <td className="uoh-adjust">{adjustmentStatus(payments)}</td>

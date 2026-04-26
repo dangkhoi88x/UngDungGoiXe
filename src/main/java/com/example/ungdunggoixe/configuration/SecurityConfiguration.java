@@ -32,9 +32,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/files/**").permitAll()
-                        .requestMatchers("/api/momo/**").permitAll()
-                        .requestMatchers("/api/momo/ipn-handler").permitAll()
-                        .requestMatchers("/api/momo/create").authenticated()
+                        .requestMatchers("/momo/**").permitAll()
                         .requestMatchers("/users/my-info", "/users/my-documents", "/users/my-profile").authenticated() // ✅ cụ thể trước
                         .requestMatchers("/users", "/auth/**", "/stations/**", "/vehicles/**").permitAll()
                         .requestMatchers("/users/**").permitAll() // ✅ wildcard sau

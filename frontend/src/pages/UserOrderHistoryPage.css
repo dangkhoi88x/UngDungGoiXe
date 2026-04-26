@@ -1,4 +1,5 @@
-.uoh-page {
+/* .sx-page from studio-x-landing-page.css styles TopNav; this wins over .sx-page shell */
+.sx-page.uoh-page {
   min-height: 100svh;
   background: #f7f8fb;
   color: #1d1d22;

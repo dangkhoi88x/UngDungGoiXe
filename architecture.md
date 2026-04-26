@@ -280,7 +280,7 @@ flowchart TB
 - **Owner cho thuê (P2P):** `/owner/register-vehicle`, `/owner/vehicle-requests`, `/owner/vehicle-requests/:id/edit` — gọi API qua `ownerVehicleRequests.ts`, form dùng chung helper `lib/ownerVehicleRequestForm.ts`.
 - **Trạng thái đăng nhập:** `localStorage` + (tuỳ trang) `fetchMyInfo` cho dữ liệu nhạy cảm như GPLX.
 - **Gate GPLX (thuê xe):** logic `isLicenseApprovedForRent` — cho **APPROVED** và **PENDING**; UI `LicenseRequiredModal` khi chặn.
-- **Thanh toán MoMo (return):** route **`/payment/momo-return`** — `MomoReturnPage.tsx` (query từ MoMo, hiển thị kết quả, link về tài khoản / thuê xe).
+- **Thanh toán MoMo (return):** **`/payment/momo-return`** — `MomoReturnPage.tsx` (query MoMo, UI kết quả); đồng bộ DB qua **`momoConfirm.ts`** → backend **`POST /momo/confirm-return`** (bổ trợ / thay IPN khi dev).
 - **API thanh toán (FE):** `frontend/src/api/payments.ts` — pending adjustments, xác nhận TOPUP/REFUND (admin).
 - **Admin điều chỉnh tiền:** tab TOPUP / REFUND trong `AdminBookingsSection.tsx` (kèm tìm kiếm cục bộ theo id thanh toán, booking, mã booking, transaction id).
 
@@ -487,30 +487,85 @@ Cột lưu DB: bổ sung qua Hibernate / `schema-mysql.sql` tùy môi trường 
 |------------|-----------|
 | **`POST /bookings/{id}/payments/momo/prepay-total`** | Tạo payment `PREPAID_TOTAL`, gọi MoMo, trả `payUrl` (JWT user, booking của user). |
 | **`PaymentService#createMomoPrepayTotal`** | Số tiền gửi MoMo là **VND nguyên** — scale 0, kiểm tra **`longValueExact()`**; sai scale / không phải số nguyên → lỗi có mã i18n (`PAYMENT_AMOUNT_INVALID` hoặc tương đương trong `ErrorCode`). |
-| **IPN MoMo** | `MomoController` + `PaymentService#handleMomoIpnResult` — ưu tiên map payment qua **`paymentId`** trong **`extraData`** để idempotent, đúng bản ghi prepay. |
+| **IPN MoMo** | `MomoController#ipn` (`POST /momo/ipn-handler`) + `PaymentService#handleMomoIpnResult` — verify HMAC (`MomoService#verifyIpnSignature`), map payment qua **`paymentId`** trong **`extraData`** (fallback `transactionId` = `orderId` dạng `MOMO_PAY_{id}`), idempotent. |
+| **Đồng bộ sau redirect** | `MomoController#confirmReturn` (`POST /momo/confirm-return`) — cùng payload/chữ ký kiểu IPN; gọi lại `handleMomoIpnResult` để môi trường dev / khi IPN chưa tới được vẫn cập nhật DB. |
 | **`BookingService#returnBooking`** | Tính chênh lệch; tạo **`TOPUP`** hoặc **`REFUND`** pending theo workflow. |
 | **`GET /payments/pending-adjustments?purpose=TOPUP|REFUND`** | Admin liệt kê chờ xử lý (role admin). |
 | **`PATCH /payments/{id}/confirm-topup`** / **`confirm-refund`** | Xác nhận vận hành tách biệt, message & Swagger riêng. |
 
 **Tổng hợp đã thanh toán:** Logic cộng trừ tiền (kể cả refund âm) dùng helper kiểu **`signedAmountForPaidPayment`** trong `PaymentService` để `PaymentStatus` / booking khớp thực tế.
 
-### 13.4 Cấu hình MoMo (dev)
+**Sau khi payment thành `PAID`:** `PaymentService#updateBookingPaymentStatus` cập nhật `booking.partiallyPaid`, `booking.paymentStatus` (`PENDING` / `PARTIALLY_PAID` / `PAID` theo tổng đã thu so với `booking.totalAmount`). Nếu **`booking.status == PENDING`** và **`paymentStatus == PAID`** thì ghi log và set **`booking.status = CONFIRMED`** (auto-confirm sau prepay đủ).
 
-- **`momo.return-url`:** Trỏ về SPA (ví dụ `http://localhost:5173/payment/momo-return`) để user thấy trang kết quả sau redirect MoMo.
-- **`momo.ipn-url`:** Backend public URL nhận server-to-server (ví dụ `http://localhost:8080/api/momo/ipn-handler`); đổi theo tunnel/ngrok khi test IPN từ MoMo.
+### 13.4 Luồng end-to-end (cách hiểu — đọc code theo thứ tự)
 
-### 13.5 Frontend liên quan
+Hai khái niệm dễ lẫn:
+
+| Khái niệm | Ý nghĩa | UI thường thấy |
+|-----------|---------|-----------------|
+| **`Payment.status`** | Giao dịch MoMo / tiền mặt đã PAID hay chưa | Lịch sử thanh toán theo booking |
+| **`Booking.status`** | Vòng đời đơn thuê (`PENDING` … `CONFIRMED` …) | Cột «Trạng thái thuê» trên `/account/orders` — «Chờ xác nhận» = `PENDING` |
+
+Chỉ khi backend đã ghi **payment MoMo prepay = `PAID`** và đủ điều kiện tổng tiền thì booking mới auto **`CONFIRMED`**. Trang **`/payment/momo-return`** chỉ hiển thị query MoMo trả về; **không** tự cập nhật DB nếu không có IPN hoặc không gọi **`confirm-return`**.
+
+```mermaid
+sequenceDiagram
+  participant U as Người dùng
+  participant SPA as React SPA
+  participant BE as Spring Boot
+  participant MM as MoMo gateway
+
+  U->>SPA: Đặt xe, chọn MoMo prepay tổng
+  SPA->>BE: POST /bookings/{id}/payments/momo/prepay-total JWT
+  BE->>BE: PaymentService#createMomoPrepayTotal lưu PENDING + orderId MOMO_PAY_*
+  BE->>MM: MomoService#createPayment payUrl
+  BE-->>SPA: payUrl
+  SPA->>MM: Redirect user tới MoMo
+  MM->>U: Thanh toán
+  par Kênh A IPN server-to-server
+    MM->>BE: POST /momo/ipn-handler JSON + signature
+    BE->>BE: verifyIpnSignature + handleMomoIpnResult
+  and Kênh B Redirect browser
+    MM->>SPA: GET /payment/momo-return?resultCode=0&signature=...
+    SPA->>BE: POST /momo/confirm-return body giống IPN
+    BE->>BE: verifyIpnSignature + handleMomoIpnResult idempotent
+  end
+  BE->>BE: updateBookingPaymentStatus PAID then CONFIRMED
+  U->>SPA: F5 /account/orders Đã xác nhận
+```
+
+**Thứ tự đọc code (happy path prepay):**
+
+1. **`BookingController`** — endpoint tạo prepay MoMo (delegate `PaymentService#createMomoPrepayTotal`).
+2. **`PaymentService#createMomoPrepayTotal`** — tạo `Payment` (`MOMO`, `PREPAID_TOTAL`, `PENDING`), gán `transactionId = MOMO_PAY_{id}`, build `extraData` chứa `paymentId`, gọi `MomoService#createPayment`.
+3. **`MomoService`** — ký request create; IPN/return dùng chuỗi raw khác (xem `buildIpnRawSignature` + `verifyIpnSignature`).
+4. **`MomoController#ipn`** — MoMo gọi server; **`MomoController#confirmReturn`** — SPA gọi sau redirect (dev / bổ trợ IPN).
+5. **`PaymentService#handleMomoIpnResult`** — `resultCode == 0` → `PAID`, else `FAILED`; luôn gọi `updateBookingPaymentStatus`.
+6. **`PaymentService#updateBookingPaymentStatus`** — tổng PAID, `paymentStatus` booking, điều kiện auto **`CONFIRMED`**.
+7. **Hết hạn chưa trả:** `MoMoPrepaidBookingExpiryScheduler` + `PaymentService#expireMoMoPrepaidSlotIfStale` (huỷ slot nếu prepay treo quá cấu hình).
+
+**Proxy Vite:** FE gọi **`/api/...`**; `vite.config` rewrite bỏ tiền tố `/api` khi forward tới `:8080`. Vì vậy controller MoMo dùng base path **`/momo`** (không đặt **`/api/momo`**), để request thực tế tới backend là **`/momo/ipn-handler`**, **`/momo/confirm-return`**, v.v.
+
+### 13.5 Cấu hình MoMo (dev & production)
+
+- **`momo.return-url`:** SPA sau thanh toán (ví dụ `http://localhost:5173/payment/momo-return`).
+- **`momo.ipn-url`:** URL **public** MoMo POST tới (ví dụ dev: `http://localhost:8080/momo/ipn-handler`). Trên máy dev thuần `localhost`, MoMo cloud **không** gọi được IPN — cần tunnel (ngrok) **hoặc** dựa vào **`confirm-return`** khi user quay lại SPA với `resultCode=0`.
+- **Cổng đối tác MoMo:** Đăng ký IPN trùng path **`/momo/ipn-handler`** với cấu hình đang chạy.
+
+### 13.6 Frontend liên quan
 
 | Khu vực | File / route |
 |---------|----------------|
-| Đặt xe + chọn MoMo | `VehicleBookingPage.tsx` — gọi `createMomoPrepayTotalForBooking` (`bookings.ts`), redirect `payUrl`. |
-| Return MoMo | `MomoReturnPage.tsx`, route trong `App.tsx`. |
-| Admin | `AdminBookingsSection.tsx` — tab **Đặt xe** / **TOPUP** / **REFUND**, nút xác nhận, ô tìm kiếm lọc cục bộ. |
+| Đặt xe + chọn MoMo | `VehicleBookingPage.tsx` — `createMomoPrepayTotalForBooking` trong `api/bookings.ts`, redirect `payUrl`. |
+| Return MoMo | `MomoReturnPage.tsx` (route `App.tsx`) — hiển thị query; **`useEffect`** khi thành công gọi **`api/momoConfirm.ts`** → `POST /api/momo/confirm-return` (proxy → `/momo/confirm-return`). |
+| Lịch sử đơn | `UserOrderHistoryPage.tsx` — `GET /bookings` + `GET /payments?bookingId=`; cột trạng thái thuê = `booking.status`. |
+| Admin | `AdminBookingsSection.tsx` — TOPUP / REFUND, v.v. |
 
 ---
 
 ## 14. Changelog (kiến trúc)
 
+- **2026-04-26:** Mở rộng mục **13** — sequence MoMo (IPN + `confirm-return`), phân biệt `Payment.status` vs `Booking.status`, hướng đọc code từ controller → `handleMomoIpnResult` → `updateBookingPaymentStatus`, ghi chú proxy **`/momo`**, cập nhật bảng FE (`momoConfirm.ts`). Sửa ví dụ **`momo.ipn-url`** trong tài liệu cho khớp code.
 - **2026-04-25:** Thêm **i18n backend** (mục 11), **Swagger/OpenAPI** (mục 12), **thanh toán MoMo prepay tổng + TOPUP/REFUND + IPN/return URL** (mục 13); cập nhật ER rút gọn Payment, bảng `application.yaml`, và bullet FE (return page, `payments.ts`, admin tabs).
 - **2026-04-22:** Thêm mục **Trạm — tọa độ & bản đồ** và mục lớn **Owner Vehicle Request (P2P)** — mô hình dữ liệu, quy tắc BE, bảng API, bảng FE, sequence owner/admin.
 - **2026-04-20:** Thêm mục “Security learning flow” chi tiết (login/validate/refresh/logout/frontend retry).

@@ -44,7 +44,7 @@ momo:
   store-id: ${MOMO_STORE_ID:UngDungGoiXeStore}
   return-url: http://localhost:5173/payment/momo-return
   endpoint: https://test-payment.momo.vn/v2/gateway/api
-  ipn-url: http://localhost:8080/api/momo/ipn-handler
+  ipn-url: http://localhost:8080/momo/ipn-handler
   access-key: F8BBA842ECF85
   secret-key: K951B6PE1waDMi640xX08PD3vg6EkVlz
   # captureWallet = vi MoMo; co the override khi goi API (payWithATM = the ATM noi dia)
