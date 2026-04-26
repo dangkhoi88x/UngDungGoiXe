@@ -24,7 +24,7 @@ import java.util.UUID;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/momo")
+@RequestMapping("/momo")
 public class MomoController {
     private final MomoService momoService;
     private final PaymentService paymentService;
@@ -112,5 +112,42 @@ public class MomoController {
         }
 
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Đồng bộ kết quả thanh toán khi MoMo redirect browser về SPA (returnUrl).
+     * MoMo không gọi được IPN tới {@code localhost}; endpoint này dùng cùng chữ ký HMAC với IPN để
+     * cập nhật payment/booking, idempotent với IPN.
+     */
+    @PostMapping("/confirm-return")
+    @Operation(
+            summary = "Xac nhan thanh toan tu redirect MoMo",
+            description = "Body giong payload IPN (partnerCode, orderId, amount, ... signature). Verify HMAC roi goi PaymentService.")
+    public ApiResponse<Void> confirmReturn(@RequestBody(required = false) IpnCallbackRequest payload) {
+        if (payload == null || !StringUtils.hasText(payload.getOrderId())) {
+            return ApiResponse.error(i18nService.getMessage("error.momo.create_request_invalid"));
+        }
+        if (!StringUtils.hasText(payload.getSignature())) {
+            return ApiResponse.error(i18nService.getMessage("error.momo.create_request_invalid"));
+        }
+        if (!momoService.verifyIpnSignature(payload)) {
+            log.warn("MoMo confirm-return signature invalid orderId={}", payload.getOrderId());
+            return ApiResponse.error(i18nService.getMessage("response.momo.ipn.invalid_signature"));
+        }
+        Integer rc = payload.getResultCode();
+        if (rc == null) {
+            return ApiResponse.error(i18nService.getMessage("error.momo.create_request_invalid"));
+        }
+        boolean updated = paymentService.handleMomoIpnResult(
+                payload.getOrderId(),
+                payload.getExtraData(),
+                rc,
+                payload.getTransId()
+        );
+        if (!updated) {
+            log.warn("MoMo confirm-return could not map orderId={}", payload.getOrderId());
+            return ApiResponse.error(i18nService.getMessage("response.momo.ipn.payment_not_found"));
+        }
+        return ApiResponse.success(null, i18nService.getMessage("response.momo.confirm_return.success"));
     }
 }

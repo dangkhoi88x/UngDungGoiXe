@@ -304,22 +304,6 @@ a.uacc__crumb-link.uacc__crumb-muted:hover {
   font-weight: 500;
 }
 
-.uacc__owner-notice {
-  margin: 0 0 1rem;
-  padding: 0.85rem 1rem;
-  border-radius: 12px;
-  background: rgba(255, 145, 77, 0.16);
-  border: 1px solid rgba(255, 145, 77, 0.38);
-  color: #7a2f10;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.uacc__owner-notice-link {
-  color: #8a1c12;
-  text-underline-offset: 2px;
-}
-
 /* ── Skeleton ───────────────────────── */
 .uacc__skeleton-card {
   background: var(--vex-card);

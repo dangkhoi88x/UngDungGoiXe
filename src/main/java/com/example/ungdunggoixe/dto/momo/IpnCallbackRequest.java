@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.dto.momo;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,6 +12,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class IpnCallbackRequest {
     /** Required | String | <=50 */
     private String partnerCode;

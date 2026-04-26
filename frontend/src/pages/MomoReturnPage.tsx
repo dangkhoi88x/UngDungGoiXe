@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { confirmMomoReturnFromSearch } from '../api/momoConfirm'
 import TopNav from '../components/TopNav'
 import './UserAccountPage.css'
 import './MomoReturnPage.css'
@@ -59,6 +61,15 @@ export default function MomoReturnPage() {
   const { search } = useLocation()
   const p = parseMomoReturnSearch(search)
   const ok = p.resultCode === '0'
+  const syncOnceRef = useRef(false)
+
+  useEffect(() => {
+    if (!ok || syncOnceRef.current) return
+    syncOnceRef.current = true
+    void confirmMomoReturnFromSearch(search).catch(() => {
+      syncOnceRef.current = false
+    })
+  }, [ok, search])
   const payTypeLabel =
     p.payType === 'napas'
       ? 'Thẻ ATM / Napas'
