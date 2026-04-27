@@ -43,6 +43,7 @@ public enum ErrorCode {
             "error.owner_vehicle_request.photos_too_many",
             "Too many vehicle photos.",
             HttpStatus.BAD_REQUEST),
+    VEHICLE_POLICY_INVALID(3011, "error.vehicle.policy_invalid", "Vehicle policy is invalid.", HttpStatus.BAD_REQUEST),
     // ── Booking errors ────────────────────────
     BOOKING_NOT_FOUND(4001, "error.booking.not_found", "Booking not found", HttpStatus.NOT_FOUND),
     BOOKING_CODE_ALREADY_EXISTS(4002, "error.booking.code_already_exists", "Booking code already exists", HttpStatus.CONFLICT),

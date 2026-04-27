@@ -14,7 +14,6 @@ import {
   parseOptionalDouble,
   parseOptionalInt,
   parseRequiredMoney,
-  splitLinesUrls,
   validateOwnerVehicleFormStrings,
 } from '../lib/ownerVehicleRequestForm'
 import TopNav from '../components/TopNav'
@@ -28,6 +27,23 @@ type PhotoUploadItem = {
 }
 
 type FormStep = 1 | 2 | 3
+
+const POLICY_OPTIONS = [
+  { value: 'NO_SMOKING', label: 'Không hút thuốc trong xe' },
+  { value: 'LATE_RETURN_SURCHARGE', label: 'Trả xe trễ sẽ bị tính phụ phí theo giờ/ngày' },
+  {
+    value: 'EXTENSION_REQUIRES_APPROVAL',
+    label: 'Muốn gia hạn phải thông báo trước và được bên cho thuê đồng ý',
+  },
+  { value: 'NO_SUBLEASING', label: 'Không cho người khác thuê lại nếu chưa được phép' },
+  { value: 'PET_POLICY', label: 'Quy định về thú cưng' },
+  { value: 'HOME_DELIVERY_SURCHARGE', label: 'Phụ phí giao xe tận nơi' },
+  { value: 'FREE_CANCELLATION_FEE', label: 'Miễn phí phí hủy đặt xe' },
+  { value: 'DEPOSIT_FORFEIT_CANCELLATION_FEE', label: 'Mất cọc phí hủy đặt xe' },
+  { value: 'ADDITIONAL_DRIVER_FEE', label: 'Tính phí người lái phụ' },
+] as const
+
+type PolicyValue = (typeof POLICY_OPTIONS)[number]['value']
 
 export default function OwnerRegisterVehiclePage() {
   const navigate = useNavigate()
@@ -51,7 +67,7 @@ export default function OwnerRegisterVehiclePage() {
   const [registrationDocUrl, setRegistrationDocUrl] = useState('')
   const [insuranceDocUrl, setInsuranceDocUrl] = useState('')
   const [photoUrlsState, setPhotoUrlsState] = useState<string[]>([])
-  const [policiesBlock, setPoliciesBlock] = useState('')
+  const [selectedPolicies, setSelectedPolicies] = useState<PolicyValue[]>([])
 
   const [submitErr, setSubmitErr] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -65,7 +81,6 @@ export default function OwnerRegisterVehiclePage() {
   const [step, setStep] = useState<FormStep>(1)
 
   const photoUrls = useMemo(() => photoUrlsState.filter(Boolean), [photoUrlsState])
-  const policyLines = useMemo(() => splitLinesUrls(policiesBlock), [policiesBlock])
   const stationAddressOptions = useMemo(
     () =>
       stations
@@ -193,7 +208,7 @@ export default function OwnerRegisterVehiclePage() {
       registrationDocUrl: registrationDocUrl.trim(),
       insuranceDocUrl: insuranceDocUrl.trim(),
       photos: photoUrls,
-      policies: policyLines.length ? policyLines : undefined,
+      policies: selectedPolicies.length ? selectedPolicies : undefined,
     }
 
     setSubmitting(true)
@@ -311,6 +326,13 @@ export default function OwnerRegisterVehiclePage() {
       const [picked] = next.splice(index, 1)
       next.unshift(picked)
       return next
+    })
+  }
+
+  function togglePolicy(policy: PolicyValue, checked: boolean) {
+    setSelectedPolicies((prev) => {
+      if (checked) return prev.includes(policy) ? prev : [...prev, policy]
+      return prev.filter((item) => item !== policy)
     })
   }
 
@@ -586,6 +608,22 @@ export default function OwnerRegisterVehiclePage() {
               </div>
             </section>
 
+            <section className="owreg__section" style={{ display: step === 1 ? 'block' : 'none' }}>
+              <h2 className="owreg__section-title">Điều khoản áp dụng (tùy chọn)</h2>
+              <div className="owreg__policy-list" role="group" aria-label="Danh sách điều khoản">
+                {POLICY_OPTIONS.map((option) => (
+                  <label key={option.value} className="owreg__policy-item">
+                    <input
+                      type="checkbox"
+                      checked={selectedPolicies.includes(option.value)}
+                      onChange={(e) => togglePolicy(option.value, e.target.checked)}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </section>
+
             <section className="owreg__section" style={{ display: step === 2 ? 'block' : 'none' }}>
               <h2 className="owreg__section-title">Giấy tờ (upload ảnh)</h2>
               <label className="owreg__field">
@@ -825,25 +863,15 @@ export default function OwnerRegisterVehiclePage() {
                 <p><strong>Địa chỉ giao xe:</strong> {address || '—'}</p>
                 <p><strong>Giấy đăng ký:</strong> {registrationDocUrl ? 'Đã upload' : 'Chưa có'}</p>
                 <p><strong>Bảo hiểm:</strong> {insuranceDocUrl ? 'Đã upload' : 'Chưa có'}</p>
+                <p>
+                  <strong>Điều khoản:</strong>{' '}
+                  {selectedPolicies.length > 0 ? `${selectedPolicies.length} mục` : 'Chưa chọn'}
+                </p>
               </div>
               <p className="owreg__hint">
                 Vui lòng kiểm tra lại thông tin trước khi gửi duyệt. Sau khi gửi, bạn vẫn có thể chỉnh
                 sửa ở mục “Yêu cầu xe của tôi” nếu trạng thái cho phép.
               </p>
-            </section>
-
-            <section className="owreg__section" style={{ display: step === 3 ? 'block' : 'none' }}>
-              <h2 className="owreg__section-title">Điều khoản (tùy chọn)</h2>
-              <label className="owreg__field">
-                <span className="owreg__label">Mỗi dòng một điều khoản</span>
-                <textarea
-                  className="owreg__textarea"
-                  rows={3}
-                  value={policiesBlock}
-                  onChange={(e) => setPoliciesBlock(e.target.value)}
-                  placeholder="Không hút thuốc trong xe…"
-                />
-              </label>
             </section>
 
             <div className="owreg__actions">

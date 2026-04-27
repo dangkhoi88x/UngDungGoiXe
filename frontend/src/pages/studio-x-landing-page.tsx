@@ -777,7 +777,7 @@ function StudioXLandingPage() {
 
   return (
     <div className="sx-page">
-      <TopNav solid={navSolid} />
+      <TopNav solid={navSolid} showSearch={false} />
       <HeroSection />
       <main>
         <AboutSection />

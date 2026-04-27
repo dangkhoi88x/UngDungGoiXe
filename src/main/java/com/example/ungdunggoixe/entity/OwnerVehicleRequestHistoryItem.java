@@ -26,6 +26,12 @@ public class OwnerVehicleRequestHistoryItem {
     @Column(name = "actor_role", length = 32)
     private String actorRole;
 
+    @Column(name = "actor_id")
+    private Long actorId;
+
+    @Column(name = "actor_email", length = 255)
+    private String actorEmail;
+
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 

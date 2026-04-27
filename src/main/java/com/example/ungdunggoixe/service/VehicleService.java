@@ -3,6 +3,7 @@ package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.common.FuelType;
+import com.example.ungdunggoixe.common.VehiclePolicyTerm;
 import com.example.ungdunggoixe.common.VehicleStatus;
 import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -78,6 +80,9 @@ public class VehicleService {
 
         Vehicle vehicle = VehicleMapper.INSTANCE.toVehicle(request);
         vehicle.setStation(station);
+        if (request.getPolicies() != null) {
+            vehicle.setPolicies(normalizePolicies(request.getPolicies()));
+        }
 
         if (vehicle.getRating() == null) {
             vehicle.setRating(0.0);
@@ -176,6 +181,9 @@ public class VehicleService {
         }
 
         VehicleMapper.INSTANCE.updateEntity(request, vehicle);
+        if (request.getPolicies() != null) {
+            vehicle.setPolicies(normalizePolicies(request.getPolicies()));
+        }
         Vehicle updatedVehicle = vehicleRepository.save(vehicle);
         return VehicleMapper.INSTANCE.toCreateVehicleResponse(updatedVehicle);
     }
@@ -186,5 +194,18 @@ public class VehicleService {
                 .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
         vehicleRepository.delete(vehicle);
         return i18nService.getMessage("response.vehicle.delete.success");
+    }
+
+    private List<String> normalizePolicies(List<String> policies) {
+        if (policies == null || policies.isEmpty()) {
+            return new ArrayList<>();
+        }
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        for (String raw : policies) {
+            VehiclePolicyTerm term = VehiclePolicyTerm.fromInput(raw)
+                    .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_POLICY_INVALID));
+            normalized.add(term.name());
+        }
+        return new ArrayList<>(normalized);
     }
 }

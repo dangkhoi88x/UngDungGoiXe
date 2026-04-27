@@ -72,7 +72,12 @@ CREATE TABLE IF NOT EXISTS owner_vehicle_request_history (
     event_type VARCHAR(64) NULL,
     status VARCHAR(32) NULL,
     actor_role VARCHAR(32) NULL,
+    actor_id BIGINT NULL,
+    actor_email VARCHAR(255) NULL,
     note TEXT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT fk_ovr_history_request FOREIGN KEY (request_id) REFERENCES owner_vehicle_requests(id)
 );
+
+ALTER TABLE owner_vehicle_request_history ADD COLUMN actor_id BIGINT NULL;
+ALTER TABLE owner_vehicle_request_history ADD COLUMN actor_email VARCHAR(255) NULL;

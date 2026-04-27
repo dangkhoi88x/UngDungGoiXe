@@ -316,6 +316,31 @@
   color: #ffcdd2;
 }
 
+.owreg__policy-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.owreg__policy-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.owreg__policy-item input {
+  margin-top: 2px;
+  width: 15px;
+  height: 15px;
+  accent-color: #2d8cf0;
+}
+
 .owreg__doc-preview {
   display: inline-block;
   margin-top: 8px;
@@ -791,6 +816,12 @@
 .owreg--clean .owreg__thumb-btn--danger {
   border-color: #f3b4b4;
   color: #c53030;
+}
+
+.owreg--clean .owreg__policy-item {
+  border-color: #dbe3ec;
+  background: #fff;
+  color: #1f2937;
 }
 
 .owreg--clean .owreg__btn--primary {

@@ -50,6 +50,16 @@ public class OwnerVehicleRequestService {
         return raw == null ? "" : raw.trim().toUpperCase(Locale.ROOT);
     }
 
+    private static final class ActorSnapshot {
+        private final Long id;
+        private final String email;
+
+        private ActorSnapshot(Long id, String email) {
+            this.id = id;
+            this.email = email;
+        }
+    }
+
     private Long currentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) throw new AppException(ErrorCode.UNAUTHORIZED);
@@ -64,6 +74,17 @@ public class OwnerVehicleRequestService {
         Long userId = currentUserId();
         return userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private ActorSnapshot currentActorSnapshot() {
+        try {
+            Long uid = currentUserId();
+            return userRepository.findById(uid)
+                    .map(u -> new ActorSnapshot(u.getId(), u.getEmail()))
+                    .orElse(new ActorSnapshot(uid, null));
+        } catch (AppException ex) {
+            return new ActorSnapshot(null, null);
+        }
     }
 
     private Station requireStation(Long stationId) {
@@ -188,6 +209,8 @@ public class OwnerVehicleRequestService {
             OwnerVehicleRequest req,
             String eventType,
             String actorRole,
+            Long actorId,
+            String actorEmail,
             OwnerVehicleRequestStatus status,
             String note
     ) {
@@ -201,6 +224,8 @@ public class OwnerVehicleRequestService {
         req.getHistory().add(OwnerVehicleRequestHistoryItem.builder()
                 .eventType(eventType)
                 .actorRole(actorRole)
+                .actorId(actorId)
+                .actorEmail(actorEmail)
                 .status(status)
                 .note(normalizedNote)
                 .createdAt(LocalDateTime.now())
@@ -315,6 +340,8 @@ public class OwnerVehicleRequestService {
                 entity,
                 "SUBMITTED",
                 "OWNER",
+                owner.getId(),
+                owner.getEmail(),
                 OwnerVehicleRequestStatus.PENDING,
                 "Owner gửi yêu cầu đăng xe cho thuê."
         );
@@ -386,6 +413,8 @@ public class OwnerVehicleRequestService {
                 req,
                 "UPDATED_BY_OWNER",
                 "OWNER",
+                req.getOwner() != null ? req.getOwner().getId() : ownerId,
+                req.getOwner() != null ? req.getOwner().getEmail() : null,
                 req.getStatus(),
                 "Owner cập nhật thông tin hồ sơ xe."
         );
@@ -413,6 +442,8 @@ public class OwnerVehicleRequestService {
                 req,
                 "RESUBMITTED",
                 "OWNER",
+                req.getOwner() != null ? req.getOwner().getId() : ownerId,
+                req.getOwner() != null ? req.getOwner().getEmail() : null,
                 OwnerVehicleRequestStatus.PENDING,
                 "Owner gửi lại hồ sơ sau khi chỉnh sửa."
         );
@@ -438,6 +469,8 @@ public class OwnerVehicleRequestService {
                 req,
                 "CANCELLED_BY_OWNER",
                 "OWNER",
+                req.getOwner() != null ? req.getOwner().getId() : ownerId,
+                req.getOwner() != null ? req.getOwner().getEmail() : null,
                 OwnerVehicleRequestStatus.CANCELLED,
                 "Owner hủy yêu cầu và hệ thống dọn file upload cũ."
         );
@@ -465,6 +498,7 @@ public class OwnerVehicleRequestService {
 
     @Transactional
     public OwnerVehicleRequestResponse approve(Long id, String adminNote) {
+        ActorSnapshot actor = currentActorSnapshot();
         OwnerVehicleRequest req = requireById(id);
         if (req.getStatus() != OwnerVehicleRequestStatus.PENDING
                 && req.getStatus() != OwnerVehicleRequestStatus.NEED_MORE_INFO) {
@@ -501,6 +535,8 @@ public class OwnerVehicleRequestService {
                 req,
                 "APPROVED_BY_ADMIN",
                 "ADMIN",
+                actor.id,
+                actor.email,
                 OwnerVehicleRequestStatus.APPROVED,
                 adminNote
         );
@@ -511,6 +547,7 @@ public class OwnerVehicleRequestService {
 
     @Transactional
     public OwnerVehicleRequestResponse reject(Long id, String adminNote) {
+        ActorSnapshot actor = currentActorSnapshot();
         OwnerVehicleRequest req = requireById(id);
         if (req.getStatus() == OwnerVehicleRequestStatus.APPROVED
                 || req.getStatus() == OwnerVehicleRequestStatus.CANCELLED) {
@@ -522,6 +559,8 @@ public class OwnerVehicleRequestService {
                 req,
                 "REJECTED_BY_ADMIN",
                 "ADMIN",
+                actor.id,
+                actor.email,
                 OwnerVehicleRequestStatus.REJECTED,
                 adminNote
         );
@@ -532,6 +571,7 @@ public class OwnerVehicleRequestService {
 
     @Transactional
     public OwnerVehicleRequestResponse needMoreInfo(Long id, String adminNote) {
+        ActorSnapshot actor = currentActorSnapshot();
         OwnerVehicleRequest req = requireById(id);
         if (req.getStatus() != OwnerVehicleRequestStatus.PENDING) {
             throw new AppException(ErrorCode.OWNER_VEHICLE_REQUEST_STATUS_INVALID);
@@ -542,6 +582,8 @@ public class OwnerVehicleRequestService {
                 req,
                 "NEED_MORE_INFO_BY_ADMIN",
                 "ADMIN",
+                actor.id,
+                actor.email,
                 OwnerVehicleRequestStatus.NEED_MORE_INFO,
                 adminNote
         );

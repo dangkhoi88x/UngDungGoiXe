@@ -252,3 +252,99 @@
     margin-left: 0;
   }
 }
+
+/* Light/clean theme synced with owner register page */
+.owreg--clean .owmr-filter > span {
+  color: #5b6474;
+}
+
+.owreg--clean .owmr-filter select {
+  border: 1px solid #d9e1ea;
+  background: #fff;
+  color: #1f2937;
+}
+
+.owreg--clean .owmr-filter select:focus {
+  border-color: #3c8dff;
+  box-shadow: 0 0 0 3px rgba(60, 141, 255, 0.14);
+}
+
+.owreg--clean .owmr-count,
+.owreg--clean .owmr-muted,
+.owreg--clean .owmr-footnote {
+  color: #667085;
+}
+
+.owreg--clean .owmr-toast {
+  background: #effaf1;
+  border-color: #bde3c5;
+  color: #1f5132;
+}
+
+.owreg--clean .owmr-toast__link {
+  color: #14532d;
+}
+
+.owreg--clean .owmr-empty {
+  border: 1px dashed #d7dee8;
+  background: #fff;
+}
+
+.owreg--clean .owmr-empty p {
+  color: #5b6474;
+}
+
+.owreg--clean .owmr-table {
+  background: #fff;
+  border: 1px solid #e7ecf3;
+}
+
+.owreg--clean .owmr-table th,
+.owreg--clean .owmr-table td {
+  border-bottom: 1px solid #edf2f7;
+  color: #1f2937;
+}
+
+.owreg--clean .owmr-table th {
+  color: #667085;
+  background: #f8fafc;
+}
+
+.owreg--clean .owmr-cell-sub,
+.owreg--clean .owmr-date {
+  color: #667085;
+}
+
+.owreg--clean .owmr-link {
+  color: #175cd3;
+}
+
+.owreg--clean .owmr-pill--pending {
+  background: #fff8e1;
+  color: #9a6700;
+  border-color: #f5d487;
+}
+
+.owreg--clean .owmr-pill--need-info {
+  background: #fff6ed;
+  color: #b54708;
+  border-color: #f9cf9b;
+}
+
+.owreg--clean .owmr-pill--approved {
+  background: #ecfdf3;
+  color: #17603f;
+  border-color: #bde3c5;
+}
+
+.owreg--clean .owmr-pill--rejected {
+  background: #fef3f2;
+  color: #b42318;
+  border-color: #f4c8c8;
+}
+
+.owreg--clean .owmr-pill--cancelled {
+  background: #f2f4f7;
+  color: #475467;
+  border-color: #d0d5dd;
+}

@@ -27,6 +27,7 @@ const STATUSES: Array<OwnerVehicleRequestStatus | 'ALL'> = [
 type Props = { refreshKey?: number }
 
 type ReviewAction = 'approve' | 'reject' | 'need-more-info'
+type OwnerReqAdminTab = 'pending' | 'approved-history'
 
 function statusLabel(s: OwnerVehicleRequestStatus | 'ALL'): string {
   const map: Record<string, string> = {
@@ -124,6 +125,7 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<OwnerReqAdminTab>('pending')
 
   const [reviewTarget, setReviewTarget] = useState<OwnerVehicleRequestDto | null>(null)
   const [reviewAction, setReviewAction] = useState<ReviewAction>('approve')
@@ -164,9 +166,14 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
   }, [docPreview?.url])
 
   const filtered = useMemo(() => {
+    const byTab =
+      activeTab === 'approved-history'
+        ? items.filter((x) => x.status === 'APPROVED')
+        : items
+
     const q = keyword.trim().toLowerCase()
-    if (!q) return items
-    return items.filter((x) => {
+    if (!q) return byTab
+    return byTab.filter((x) => {
       const blob = [
         String(x.id),
         String(x.ownerId),
@@ -180,7 +187,23 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
         .toLowerCase()
       return blob.includes(q)
     })
-  }, [items, keyword])
+  }, [items, keyword, activeTab])
+
+  const approvedHistoryRows = useMemo(() => {
+    return filtered.map((r) => {
+      const adminApprovedHistory = r.history
+        ?.filter((h) => h.actorRole === 'ADMIN' && h.status === 'APPROVED')
+        .sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0
+          return tb - ta
+        })[0]
+      const reviewedAt = adminApprovedHistory?.createdAt ?? r.updatedAt ?? r.createdAt
+      const actorEmail = adminApprovedHistory?.actorEmail?.trim() || null
+      const actorId = adminApprovedHistory?.actorId ?? null
+      return { request: r, reviewedAt, actorEmail, actorId }
+    })
+  }, [filtered])
 
   const reviewPhotoUrls = useMemo(
     () => (reviewTarget ? photoUrlsForRequest(reviewTarget) : []),
@@ -285,6 +308,33 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
         </div>
       </div>
 
+      <div className="adm-bk-tabs" role="tablist" aria-label="Owner request tabs">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'pending'}
+          className={`adm-bk-tab ${activeTab === 'pending' ? 'is-active' : ''}`}
+          onClick={() => {
+            setActiveTab('pending')
+            setStatus('PENDING')
+          }}
+        >
+          Chờ xử lý
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'approved-history'}
+          className={`adm-bk-tab ${activeTab === 'approved-history' ? 'is-active' : ''}`}
+          onClick={() => {
+            setActiveTab('approved-history')
+            setStatus('ALL')
+          }}
+        >
+          Lịch sử đã duyệt
+        </button>
+      </div>
+
       <div className="adm-users__filters" aria-label="Bộ lọc yêu cầu xe owner">
         <div className="adm-users__search-field">
           <label className="adm-users__filter-label" htmlFor="owner-req-keyword">
@@ -343,12 +393,20 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
         </p>
       ) : null}
 
-      {loading ? <div className="adm-veh__loading">Đang tải yêu cầu owner…</div> : null}
+      {loading ? (
+        <div className="adm-veh__loading">
+          {activeTab === 'approved-history' ? 'Đang tải lịch sử duyệt…' : 'Đang tải yêu cầu owner…'}
+        </div>
+      ) : null}
       {!loading && filtered.length === 0 ? (
-        <p className="adm-veh__empty">Không có yêu cầu nào khớp bộ lọc.</p>
+        <p className="adm-veh__empty">
+          {activeTab === 'approved-history'
+            ? 'Chưa có yêu cầu nào đã được duyệt.'
+            : 'Không có yêu cầu nào khớp bộ lọc.'}
+        </p>
       ) : null}
 
-      {filtered.length > 0 ? (
+      {filtered.length > 0 && activeTab === 'pending' ? (
         <div className="adm-veh__scroll">
           <table className="adm-veh__table">
             <thead>
@@ -488,6 +546,44 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
                 </tr>
                 )
               })}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+
+      {approvedHistoryRows.length > 0 && activeTab === 'approved-history' ? (
+        <div className="adm-veh__scroll">
+          <table className="adm-veh__table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Owner</th>
+                <th>Biển số</th>
+                <th>Tên/Hãng</th>
+                <th>Xe đã tạo</th>
+                <th>Thời gian duyệt</th>
+                <th>Admin duyệt</th>
+                <th>Ghi chú admin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {approvedHistoryRows.map(({ request: r, reviewedAt, actorEmail, actorId }) => (
+                <tr key={`approved-${r.id}`}>
+                  <td className="adm-veh__mono">#{r.id}</td>
+                  <td className="adm-veh__mono">#{r.ownerId}</td>
+                  <td className="adm-veh__mono">{r.licensePlate || '—'}</td>
+                  <td>
+                    <strong>{r.name || '—'}</strong>
+                    <div style={{ opacity: 0.8, fontSize: '0.85rem' }}>{r.brand || '—'}</div>
+                  </td>
+                  <td className="adm-veh__mono">
+                    {r.approvedVehicleId != null ? `#${r.approvedVehicleId}` : '—'}
+                  </td>
+                  <td>{toDate(reviewedAt)}</td>
+                  <td>{actorEmail ?? (actorId != null ? `#${actorId}` : '—')}</td>
+                  <td>{r.adminNote?.trim() || '—'}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
