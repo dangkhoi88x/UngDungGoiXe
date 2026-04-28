@@ -1,3 +1,10 @@
+/** Số chỗ owner chọn khi đăng / sửa yêu cầu (khớp bộ lọc trang chủ). */
+export const OWNER_VEHICLE_SEAT_OPTIONS = [5, 7, 9, 16] as const
+
+export function isOwnerVehicleStandardSeat(n: number): boolean {
+  return (OWNER_VEHICLE_SEAT_OPTIONS as readonly number[]).includes(n)
+}
+
 /** Mỗi dòng một URL / một đoạn text. */
 export function splitLinesUrls(block: string): string[] {
   return block

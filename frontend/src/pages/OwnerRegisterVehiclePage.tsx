@@ -16,6 +16,7 @@ import {
   parseRequiredMoney,
   validateOwnerVehicleFormStrings,
 } from '../lib/ownerVehicleRequestForm'
+import { OwnerVehicleSeatPicker } from '../components/OwnerVehicleSeatPicker'
 import TopNav from '../components/TopNav'
 import './OwnerRegisterVehiclePage.css'
 
@@ -491,33 +492,18 @@ export default function OwnerRegisterVehiclePage() {
                   />
                 </label>
               </div>
-              <div className="owreg__grid2">
-                <label className="owreg__field">
-                  <span className="owreg__label">Nhiên liệu</span>
-                  <select
-                    className="owreg__input"
-                    value={fuelType}
-                    onChange={(e) => setFuelType(e.target.value as OwnerVehicleFuelType)}
-                  >
-                    <option value="GASOLINE">Xăng (GASOLINE)</option>
-                    <option value="ELECTRICITY">Điện (ELECTRICITY)</option>
-                  </select>
-                </label>
-                <label className="owreg__field">
-                  <span className="owreg__label">Số chỗ (tùy chọn)</span>
-                  <select
-                    className="owreg__input"
-                    value={capacity}
-                    onChange={(e) => setCapacity(e.target.value)}
-                  >
-                    <option value="">— Chọn số chỗ —</option>
-                    <option value="2">2</option>
-                    <option value="4">4</option>
-                    <option value="8">8</option>
-                    <option value="16">16</option>
-                  </select>
-                </label>
-              </div>
+              <label className="owreg__field">
+                <span className="owreg__label">Nhiên liệu</span>
+                <select
+                  className="owreg__input"
+                  value={fuelType}
+                  onChange={(e) => setFuelType(e.target.value as OwnerVehicleFuelType)}
+                >
+                  <option value="GASOLINE">Xăng (GASOLINE)</option>
+                  <option value="ELECTRICITY">Điện (ELECTRICITY)</option>
+                </select>
+              </label>
+              <OwnerVehicleSeatPicker value={capacity} onChange={setCapacity} />
             </section>
 
             <section className="owreg__section" style={{ display: step === 1 ? 'block' : 'none' }}>
@@ -856,6 +842,10 @@ export default function OwnerRegisterVehiclePage() {
                 <p><strong>Xe:</strong> {name || '—'} · {brand || '—'}</p>
                 <p><strong>Biển số:</strong> {licensePlate || '—'}</p>
                 <p><strong>Trạm:</strong> {selectedStationName}</p>
+                <p>
+                  <strong>Số chỗ:</strong>{' '}
+                  {capacity.trim() ? `${capacity.trim()} chỗ` : '—'}
+                </p>
                 <p><strong>Số ảnh:</strong> {photoUrls.length}</p>
                 <p><strong>Giá theo giờ:</strong> {fmtMoney(hourlyRate)}</p>
                 <p><strong>Giá theo ngày:</strong> {fmtMoney(dailyRate)}</p>

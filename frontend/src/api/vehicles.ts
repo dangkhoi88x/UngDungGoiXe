@@ -22,6 +22,7 @@ export type VehicleDto = {
   dailyRate: string | number | null
   depositAmount: string | number | null
   policies: string[] | null
+  ownerEmail?: string | null
 }
 
 function parseNum(v: string | number | null | undefined): number | null {
@@ -83,15 +84,42 @@ export async function fetchAllVehicles(): Promise<VehicleDto[]> {
   return list as VehicleDto[]
 }
 
+/** Trạng thái HTTP thường gặp khi Vite proxy không kết nối được backend (ECONNREFUSED). */
+function isLikelyDevProxyUpstreamDown(res: Response): boolean {
+  if (!import.meta.env.DEV) return false
+  // 500: một số phiên bản Vite trả 500 khi upstream từ chối kết nối (chỉ dùng trong dev).
+  return res.status === 500 || res.status === 502 || res.status === 503 || res.status === 504
+}
+
+/**
+ * Xe AVAILABLE cho landing / rent. Trong dev, nếu backend chưa chạy (proxy 5xx),
+ * trả về [] để UI vẫn dùng được; terminal Vite vẫn có thể log proxy error.
+ */
 export async function fetchAvailableVehicles(): Promise<VehicleDto[]> {
-  const res = await fetch(`${API_BASE}/vehicles?status=AVAILABLE`)
-  if (!res.ok) {
-    throw new Error(await parseApiError(res))
+  try {
+    const res = await fetch(`${API_BASE}/vehicles?status=AVAILABLE`)
+    if (!res.ok) {
+      if (isLikelyDevProxyUpstreamDown(res)) {
+        console.warn(
+          '[dev] Không gọi được API xe — hãy chạy Spring Boot tại http://localhost:8080 (vd: ./mvnw spring-boot:run). Cần MySQL + Redis theo application.yaml.'
+        )
+        return []
+      }
+      throw new Error(await parseApiError(res))
+    }
+    const payload = (await res.json()) as unknown
+    const list = unwrapApiData<unknown>(payload)
+    if (!Array.isArray(list)) return []
+    return list as VehicleDto[]
+  } catch (e) {
+    if (import.meta.env.DEV && e instanceof TypeError) {
+      console.warn(
+        '[dev] Lỗi mạng khi tải xe — kiểm tra backend cổng 8080 và proxy /api trong vite.config.ts.'
+      )
+      return []
+    }
+    throw e
   }
-  const payload = (await res.json()) as unknown
-  const list = unwrapApiData<unknown>(payload)
-  if (!Array.isArray(list)) return []
-  return list as VehicleDto[]
 }
 
 export async function parseApiError(res: Response): Promise<string> {

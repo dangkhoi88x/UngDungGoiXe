@@ -10,10 +10,12 @@ import {
   createUser,
   deleteUser,
   fetchUserById,
+  fetchUserLicenseReviewHistory,
   fetchUsersPage,
   licenseVerificationLabel,
   type LicenseVerificationStatus,
   type PagedUsersResponse,
+  type UserLicenseReviewHistoryDto,
   type UserCreatePayload,
   type UserDto,
   type UserProfileDto,
@@ -62,6 +64,7 @@ function userToEditForm(u: UserDto): FormEdit {
 type Props = {
   refreshKey?: number
 }
+type UserAdminTab = 'users' | 'history'
 
 function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -101,6 +104,8 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<UserAdminTab>('users')
+  const [historyItems, setHistoryItems] = useState<UserLicenseReviewHistoryDto[]>([])
   const editFetchSeq = useRef(0)
 
   const [modal, setModal] = useState<'create' | 'edit' | null>(null)
@@ -139,9 +144,27 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
     }
   }, [page, size, sortBy, sortDir])
 
+  const loadHistory = useCallback(async () => {
+    setError(null)
+    setLoading(true)
+    try {
+      const rows = await fetchUserLicenseReviewHistory()
+      setHistoryItems(rows)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Không tải được lịch sử duyệt user')
+      setHistoryItems([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    void load()
-  }, [load, refreshKey])
+    if (activeTab === 'users') {
+      void load()
+    } else {
+      void loadHistory()
+    }
+  }, [load, loadHistory, activeTab, refreshKey])
 
   useEffect(() => {
     writeAdminSession(ADMIN_SESSION_KEYS.users, {
@@ -319,6 +342,28 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
         </div>
       </div>
 
+      <div className="adm-bk-tabs" role="tablist" aria-label="Admin users tabs">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'users'}
+          className={`adm-bk-tab ${activeTab === 'users' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          Danh sách user
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'history'}
+          className={`adm-bk-tab ${activeTab === 'history' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          History approve
+        </button>
+      </div>
+
+      {activeTab === 'users' ? (
       <div className="adm-users__filters">
         <div className="adm-users__search-field">
           <label className="adm-users__filter-label" htmlFor="adm-users-search">
@@ -379,6 +424,7 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
           </select>
         </label>
       </div>
+      ) : null}
 
       {error ? (
         <p className="adm-veh__msg adm-veh__msg--err" role="alert">
@@ -391,21 +437,24 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
         </p>
       ) : null}
 
-      {loading && content.length === 0 ? (
+      {loading && activeTab === 'users' && content.length === 0 ? (
         <div className="adm-veh__loading">Đang tải…</div>
       ) : null}
+      {loading && activeTab === 'history' ? (
+        <div className="adm-veh__loading">Đang tải lịch sử duyệt/reject…</div>
+      ) : null}
 
-      {!loading && content.length === 0 ? (
+      {!loading && activeTab === 'users' && content.length === 0 ? (
         <p className="adm-veh__empty">Không có người dùng trên trang này.</p>
       ) : null}
 
-      {!loading && content.length > 0 && filteredRows.length === 0 ? (
+      {!loading && activeTab === 'users' && content.length > 0 && filteredRows.length === 0 ? (
         <p className="adm-veh__empty">
           Không có dòng nào khớp tìm kiếm. Đổi từ khóa hoặc chuyển trang.
         </p>
       ) : null}
 
-      {filteredRows.length > 0 ? (
+      {activeTab === 'users' && filteredRows.length > 0 ? (
         <>
           <div className="adm-veh__scroll">
             <table className="adm-veh__table">
@@ -492,6 +541,41 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
             </div>
           </nav>
         </>
+      ) : null}
+
+      {activeTab === 'history' && !loading && historyItems.length === 0 ? (
+        <p className="adm-veh__empty">Chưa có lịch sử duyệt/từ chối user.</p>
+      ) : null}
+
+      {activeTab === 'history' && historyItems.length > 0 ? (
+        <div className="adm-veh__scroll">
+          <table className="adm-veh__table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Từ trạng thái</th>
+                <th>Sang trạng thái</th>
+                <th>Admin xử lý</th>
+                <th>Thời gian</th>
+                <th>Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historyItems.map((h) => (
+                <tr key={h.id}>
+                  <td className="adm-veh__mono">#{h.id}</td>
+                  <td>{h.userEmail ?? (h.userId != null ? `#${h.userId}` : '—')}</td>
+                  <td>{licenseVerificationLabel(h.fromStatus)}</td>
+                  <td>{licenseVerificationLabel(h.toStatus)}</td>
+                  <td>{h.adminEmail ?? (h.adminId != null ? `#${h.adminId}` : '—')}</td>
+                  <td>{formatDateTime(h.createdAt)}</td>
+                  <td>{h.note?.trim() || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
 
       {modal === 'create' ? (

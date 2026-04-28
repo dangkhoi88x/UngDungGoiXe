@@ -135,6 +135,10 @@
   color: #b57b00;
 }
 
+.uoh-status--active {
+  color: #3730a3;
+}
+
 .uoh-status--completed {
   color: #067647;
 }

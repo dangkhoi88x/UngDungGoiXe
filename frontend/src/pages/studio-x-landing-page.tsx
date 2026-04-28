@@ -130,43 +130,6 @@ function FloatingDock() {
   )
 }
 
-function AboutSection() {
-  return (
-    <section id="about" className="sx-about">
-      <p className="sx-section-label">(Đồ án)</p>
-      <h2 className="sx-about__title">
-        Website cho thuê xe kết nối chủ xe và người thuê: đặt xe trực tuyến, nhận
-        và trả xe tại bãi (station), nền tảng thu phí dịch vụ ở giữa.
-      </h2>
-      <div className="sx-about__grid">
-        <div className="sx-about__visual">
-          <img
-            src="/studio-x/image-c6cdb887-89e5-4f60-912f-416dffc9349d.png"
-            alt=""
-            loading="lazy"
-            width={560}
-            height={720}
-          />
-        </div>
-        <div className="sx-about__copy">
-          <p className="sx-about__body">
-            Hệ thống hỗ trợ nhiều vai trò: người thuê (renter) có quyền tìm xe và
-            đặt lịch; chủ xe (owner) có thể đăng phương tiện cho thuê; bãi xe là
-            điểm bàn giao minh bạch thay vì giao nhận tùy tiện.
-          </p>
-          <p className="sx-about__body">
-            Chủ trang web / nền tảng đóng vai trò trung gian: cung cấp công nghệ,
-            quy trình booking và mô hình thu phí — phù hợp báo cáo đồ án và triển
-            khai mở rộng (thanh toán, kiểm duyệt, báo cáo doanh thu).
-          </p>
-          <a className="sx-text-link" href="/auth">
-            Đăng ký / đăng nhập ↗
-          </a>
-        </div>
-      </div>
-    </section>
-  )
-}
 
 type SolutionTabKey = 'booking' | 'station' | 'vehicle' | 'renter'
 
@@ -335,7 +298,7 @@ const SOLUTIONS_DATA: Record<
   },
 }
 
-function SolutionsSection() {
+function SolutionsBlock() {
   const [activeTab, setActiveTab] = useState<SolutionTabKey>('booking')
   const activeTabIndex = SOLUTION_TABS.findIndex((t) => t.key === activeTab)
   const activeData = useMemo(() => SOLUTIONS_DATA[activeTab], [activeTab])
@@ -365,7 +328,7 @@ function SolutionsSection() {
   }
 
   return (
-    <section id="solutions" className="sx-solutions">
+    <div id="solutions" className="sx-solutions sx-solutions--in-about">
       <div className="sx-solutions__inner">
         <aside className="sx-solutions__media" aria-hidden="true">
           <img src={activeData.image} alt="" loading="lazy" />
@@ -434,7 +397,7 @@ function SolutionsSection() {
           </div>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
@@ -461,10 +424,34 @@ function vfleetDoorsGuess(cap: number | null | undefined): number {
   return cap <= 4 ? 4 : 5
 }
 
-function ProjectsSection() {
+type HomeFleetFuelFilter = 'all' | 'GASOLINE' | 'ELECTRICITY'
+
+function vfleetNormalizeFuel(v: VehicleDto): string {
+  return (v.fuelType || '').trim().toUpperCase()
+}
+
+const VFLEET_FUEL_TABS: { key: HomeFleetFuelFilter; label: string }[] = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'GASOLINE', label: 'Xe xăng' },
+  { key: 'ELECTRICITY', label: 'Xe điện' },
+]
+
+type HomeFleetSeatFilter = 'all' | 5 | 7 | 9 | 16
+
+const VFLEET_SEAT_TABS: { key: HomeFleetSeatFilter; label: string }[] = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 5, label: '5 chỗ' },
+  { key: 7, label: '7 chỗ' },
+  { key: 9, label: '9 chỗ' },
+  { key: 16, label: '16 chỗ' },
+]
+
+function FleetPreviewBlock() {
   const [vehicles, setVehicles] = useState<VehicleDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [fuelFilter, setFuelFilter] = useState<HomeFleetFuelFilter>('all')
+  const [seatFilter, setSeatFilter] = useState<HomeFleetSeatFilter>('all')
 
   useEffect(() => {
     let cancelled = false
@@ -485,16 +472,91 @@ function ProjectsSection() {
     }
   }, [])
 
-  const preview = vehicles.slice(0, VFLEET_PREVIEW_MAX)
+  const filteredVehicles = useMemo(() => {
+    let list = vehicles
+    if (fuelFilter !== 'all') {
+      list = list.filter((v) => vfleetNormalizeFuel(v) === fuelFilter)
+    }
+    if (seatFilter !== 'all') {
+      list = list.filter((v) => v.capacity === seatFilter)
+    }
+    return list
+  }, [vehicles, fuelFilter, seatFilter])
+
+  const preview = filteredVehicles.slice(0, VFLEET_PREVIEW_MAX)
 
   return (
-    <section id="projects" className="sx-projects sx-projects--fleet">
+    <div id="projects" className="sx-projects sx-projects--fleet sx-projects--in-about">
       <p className="sx-section-label">(Hệ thống)</p>
-      <h2 className="sx-projects__title">Các phân hệ chính của đồ án</h2>
+      <h2 className="sx-projects__title">Lựa xe trên hệ thống</h2>
       <p className="sx-projects__fleet-hint">
         Xe có trạng thái <strong>AVAILABLE</strong> từ API{' '}
         <code>/vehicles?status=AVAILABLE</code> — cùng giao diện thẻ như trang thuê xe.
       </p>
+      {!loading && !error && vehicles.length > 0 ? (
+        <div className="sx-vfleet-filters">
+          <div
+            className="sx-vfleet-fuel-filter"
+            role="group"
+            aria-label="Lọc theo nhiên liệu"
+          >
+            <span className="sx-vfleet-fuel-filter__label" id="sx-vfleet-fuel-label">
+              Nhiên liệu
+            </span>
+            <div
+              className="sx-vfleet-fuel-filter__tabs"
+              role="tablist"
+              aria-labelledby="sx-vfleet-fuel-label"
+            >
+              {VFLEET_FUEL_TABS.map((tab) => {
+                const active = fuelFilter === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={`sx-vfleet-fuel-filter__tab ${active ? 'is-active' : ''}`}
+                    onClick={() => setFuelFilter(tab.key)}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div
+            className="sx-vfleet-fuel-filter"
+            role="group"
+            aria-label="Lọc theo số chỗ"
+          >
+            <span className="sx-vfleet-fuel-filter__label" id="sx-vfleet-seat-label">
+              Số chỗ
+            </span>
+            <div
+              className="sx-vfleet-fuel-filter__tabs"
+              role="tablist"
+              aria-labelledby="sx-vfleet-seat-label"
+            >
+              {VFLEET_SEAT_TABS.map((tab) => {
+                const active = seatFilter === tab.key
+                return (
+                  <button
+                    key={String(tab.key)}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={`sx-vfleet-fuel-filter__tab ${active ? 'is-active' : ''}`}
+                    onClick={() => setSeatFilter(tab.key)}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
       {loading ? (
         <p className="sx-projects__fleet-status" role="status">
           Đang tải danh sách xe…
@@ -503,6 +565,11 @@ function ProjectsSection() {
       {error ? (
         <p className="sx-projects__fleet-status sx-projects__fleet-status--error" role="alert">
           {error}
+        </p>
+      ) : null}
+      {!loading && !error && vehicles.length > 0 && filteredVehicles.length === 0 ? (
+        <p className="sx-vfleet-empty" role="status">
+          Không có xe trong nhóm này. Thử đổi bộ lọc nhiên liệu hoặc số chỗ (Tất cả).
         </p>
       ) : null}
       <div className="sx-vfleet-grid">
@@ -548,6 +615,51 @@ function ProjectsSection() {
           </div>
         </a>
       </div>
+    </div>
+  )
+}
+
+function AboutSection() {
+  return (
+    <section id="about" className="sx-about">
+      <p className="sx-section-label">(Đồ án)</p>
+      <h2 className="sx-about__title">
+        Website cho thuê xe kết nối chủ xe và người thuê: đặt xe trực tuyến, nhận
+        và trả xe tại bãi (station), nền tảng thu phí dịch vụ ở giữa.
+      </h2>
+      <div className="sx-about__grid">
+        <div className="sx-about__visual">
+          <img
+            src="/studio-x/image-c6cdb887-89e5-4f60-912f-416dffc9349d.png"
+            alt=""
+            loading="lazy"
+            width={560}
+            height={720}
+          />
+        </div>
+        <div className="sx-about__copy">
+          <p className="sx-about__body">
+            Hệ thống hỗ trợ nhiều vai trò: người thuê (renter) có quyền tìm xe và
+            đặt lịch; chủ xe (owner) có thể đăng phương tiện cho thuê; bãi xe là
+            điểm bàn giao minh bạch thay vì giao nhận tùy tiện.
+          </p>
+          <p className="sx-about__body">
+            Chủ trang web / nền tảng đóng vai trò trung gian: cung cấp công nghệ,
+            quy trình booking và mô hình thu phí — phù hợp báo cáo đồ án và triển
+            khai mở rộng (thanh toán, kiểm duyệt, báo cáo doanh thu).
+          </p>
+          <a className="sx-text-link" href="/auth">
+            Đăng ký / đăng nhập ↗
+          </a>
+        </div>
+      </div>
+
+      <div className="sx-about__modules">
+        <h2 className="sx-about__modules-title">Các phân hệ chính của đồ án</h2>
+        <SolutionsBlock />
+      </div>
+
+      <FleetPreviewBlock />
     </section>
   )
 }
@@ -781,8 +893,6 @@ function StudioXLandingPage() {
       <HeroSection />
       <main>
         <AboutSection />
-        <SolutionsSection />
-        <ProjectsSection />
         <ProcessSection />
         <BlogSection />
       </main>

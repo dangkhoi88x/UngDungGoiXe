@@ -60,6 +60,18 @@ export type PagedUsersResponse = {
   size: number
 }
 
+export type UserLicenseReviewHistoryDto = {
+  id: number
+  userId: number | null
+  userEmail: string | null
+  fromStatus: LicenseVerificationStatus | null
+  toStatus: LicenseVerificationStatus | null
+  adminId: number | null
+  adminEmail: string | null
+  note: string | null
+  createdAt: string | null
+}
+
 /** PUT /users/my-profile — null = không gửi trường đó (giữ nguyên trên server). */
 export type UpdateMyProfilePayload = {
   firstName?: string | null
@@ -118,6 +130,17 @@ export async function fetchUserById(id: number): Promise<UserProfileDto> {
   const user = unwrapApiData<UserProfileDto>(payload)
   if (!user) throw new Error('Phản hồi người dùng không hợp lệ.')
   return user
+}
+
+export async function fetchUserLicenseReviewHistory(): Promise<UserLicenseReviewHistoryDto[]> {
+  const res = await authFetch(`${API_BASE}/users/license-review-history`)
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const payload = (await res.json()) as unknown
+  const list = unwrapApiData<unknown>(payload)
+  if (!Array.isArray(list)) return []
+  return list as UserLicenseReviewHistoryDto[]
 }
 
 export async function createUser(

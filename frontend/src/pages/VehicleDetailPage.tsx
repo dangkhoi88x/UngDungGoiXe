@@ -299,6 +299,12 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
             <p className="vd-sub">
               Biển số <strong>{vehicle.licensePlate}</strong> · Bãi (station) #{vehicle.stationId} · Trạng
               thái: <strong>{vehicle.status}</strong>
+              {vehicle.ownerEmail?.trim() ? (
+                <>
+                  {' '}
+                  · Chủ xe: <strong>{vehicle.ownerEmail.trim()}</strong>
+                </>
+              ) : null}
             </p>
 
             {!isAvailable ? (

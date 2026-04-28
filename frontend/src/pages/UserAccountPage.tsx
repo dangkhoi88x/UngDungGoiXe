@@ -195,6 +195,7 @@ export default function UserAccountPage() {
     if (!profile?.roles?.length) return [] as string[]
     return [...new Set(profile.roles.map(roleLabelVi))]
   }, [profile])
+  const canOpenLicenseUpdate = profile?.licenseVerificationStatus === 'NOT_SUBMITTED'
 
   async function handleCopyEmail() {
     if (!profile?.email) return
@@ -316,9 +317,11 @@ export default function UserAccountPage() {
               <div className="uacc__identity">
                 <div className="uacc__name-row">
                   <h1 className="uacc__name">{displayName}</h1>
-                  <a className="uacc__update-btn" href="/account/update">
-                    Cập nhật thông tin
-                  </a>
+                  {canOpenLicenseUpdate ? (
+                    <a className="uacc__update-btn" href="/account/update">
+                      Cập nhật thông tin
+                    </a>
+                  ) : null}
                 </div>
                 <p className="uacc__email-row">
                   <span className="uacc__email-text" title={profile.email}>

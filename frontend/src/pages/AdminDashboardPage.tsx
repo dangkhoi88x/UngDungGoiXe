@@ -7,6 +7,11 @@ import {
   useState,
 } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { fetchBookingsPaged } from '../api/bookings'
+import { fetchAdminOwnerVehicleRequests } from '../api/ownerVehicleRequests'
+import { fetchPendingAdjustments } from '../api/payments'
+import { fetchUsersPzage } from '../api/users'
+import { fetchVehiclesPage } from '../api/vehicles'
 import './AdminDashboardPage.css'
 
 const AdminVehiclesSection = lazy(() => import('./AdminVehiclesSection'))
@@ -39,12 +44,11 @@ const NAV_ITEMS: {
   id: NavId
   label: string
   icon: string
-  badge?: number
 }[] = [
   { id: 'home', label: 'Tổng quan', icon: '🏠' },
-  { id: 'vehicles', label: 'Phương tiện', icon: '🚗', badge: 3 },
+  { id: 'vehicles', label: 'Phương tiện', icon: '🚗' },
   { id: 'stations', label: 'Trạm & bãi', icon: '📍' },
-  { id: 'bookings', label: 'Đặt xe', icon: '📋', badge: 5 },
+  { id: 'bookings', label: 'Đặt xe', icon: '📋' },
   { id: 'ownerRequests', label: 'Yêu cầu owner', icon: '📝' },
   { id: 'users', label: 'Người dùng', icon: '👤' },
   { id: 'stats', label: 'Thống kê', icon: '📊' },
@@ -117,6 +121,31 @@ function navFromPath(pathname: string): NavId {
   return 'home'
 }
 
+function goLogoutRoute() {
+  window.location.replace('/logout')
+}
+
+async function countPendingLicenseUsers(): Promise<number> {
+  let page = 0
+  let totalPages = 1
+  let count = 0
+
+  while (page < totalPages) {
+    const res = await fetchUsersPage({
+      page,
+      size: 100,
+      sortBy: 'id',
+      sortDir: 'asc',
+    })
+    count += res.content.filter((u) => u.licenseVerificationStatus === 'PENDING').length
+    totalPages = res.totalPages
+    if (totalPages <= 0) break
+    page += 1
+  }
+
+  return count
+}
+
 export default function AdminDashboardPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -127,6 +156,7 @@ export default function AdminDashboardPage() {
   const [userRefreshKey, setUserRefreshKey] = useState(0)
   const [bookingRefreshKey, setBookingRefreshKey] = useState(0)
   const [ownerRequestRefreshKey, setOwnerRequestRefreshKey] = useState(0)
+  const [navBadges, setNavBadges] = useState<Partial<Record<NavId, number>>>({})
 
   const showDashboard =
     activeNav !== 'vehicles' &&
@@ -140,18 +170,95 @@ export default function AdminDashboardPage() {
   const closeSidebar = useCallback(() => setSidebarOpen(false), [])
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), [])
 
+  const loadNavBadges = useCallback(async () => {
+    try {
+      const [
+        ownerPending,
+        bookingPendingPage,
+        pendingTopups,
+        pendingRefunds,
+        vehicleMaintenancePage,
+        vehicleUnavailablePage,
+        usersPendingLicense,
+      ] = await Promise.all([
+        fetchAdminOwnerVehicleRequests({ status: 'PENDING' }),
+        fetchBookingsPaged({
+          page: 0,
+          size: 1,
+          sortBy: 'id',
+          sortDir: 'desc',
+          status: 'PENDING',
+        }),
+        fetchPendingAdjustments('TOPUP'),
+        fetchPendingAdjustments('REFUND'),
+        fetchVehiclesPage({
+          page: 0,
+          size: 1,
+          sortBy: 'id',
+          sortDir: 'desc',
+          status: 'MAINTENANCE',
+        }),
+        fetchVehiclesPage({
+          page: 0,
+          size: 1,
+          sortBy: 'id',
+          sortDir: 'desc',
+          status: 'UNAVAILABLE',
+        }),
+        countPendingLicenseUsers(),
+      ])
+
+      setNavBadges({
+        ownerRequests: ownerPending.length,
+        bookings:
+          (bookingPendingPage.totalElements ?? 0) +
+          pendingTopups.length +
+          pendingRefunds.length,
+        vehicles:
+          (vehicleMaintenancePage.totalElements ?? 0) +
+          (vehicleUnavailablePage.totalElements ?? 0),
+        users: usersPendingLicense,
+      })
+    } catch {
+      // Keep existing badges if one of the APIs fails.
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadNavBadges()
+  }, [loadNavBadges])
+
+  const navItems = useMemo(
+    () =>
+      NAV_ITEMS.map((item) => ({
+        ...item,
+        badge: navBadges[item.id],
+      })),
+    [navBadges],
+  )
+
+  const pagePill = useMemo(() => {
+    if (activeNav === 'vehicles') return `${navBadges.vehicles ?? 0} cảnh báo`
+    if (activeNav === 'bookings') return `${navBadges.bookings ?? 0} cần xử lý`
+    if (activeNav === 'ownerRequests') return `${navBadges.ownerRequests ?? 0} chờ duyệt`
+    return page.pill
+  }, [activeNav, navBadges, page.pill])
+
   useEffect(() => {
     if (location.pathname === '/admin' || location.pathname === '/admin/') {
       navigate('/admin/overview', { replace: true })
     }
   }, [location.pathname, navigate])
 
-  const onNav = useCallback((id: NavId) => {
-    navigate(NAV_TO_ROUTE[id])
-    setSidebarOpen(false)
-  }, [navigate])
+  const onNav = useCallback(
+    (id: NavId) => {
+      navigate(NAV_TO_ROUTE[id])
+      setSidebarOpen(false)
+    },
+    [navigate],
+  )
 
-  const bumpActiveSectionRefresh = useCallback(() => {
+  const bumpActiveSectionRefresh = useCallback(async () => {
     switch (activeNav) {
       case 'vehicles':
         setVehicleRefreshKey((k) => k + 1)
@@ -171,7 +278,8 @@ export default function AdminDashboardPage() {
       default:
         break
     }
-  }, [activeNav])
+    await loadNavBadges()
+  }, [activeNav, loadNavBadges])
 
   return (
     <div className="adm">
@@ -196,7 +304,7 @@ export default function AdminDashboardPage() {
 
         <nav aria-label="Điều hướng chính">
           <ul className="adm-nav" role="list">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <li key={item.id}>
                 <button
                   type="button"
@@ -218,14 +326,6 @@ export default function AdminDashboardPage() {
           </ul>
         </nav>
 
-        <div className="adm-upgrade">
-          <div className="adm-upgrade__icon" aria-hidden>
-            👑
-          </div>
-          <h3>Nâng cấp Pro</h3>
-          <p>Báo cáo nâng cao, xuất Excel và quản lý đội xe theo nhóm.</p>
-          <button type="button">Nâng cấp — liên hệ</button>
-        </div>
       </aside>
 
       <div className="adm-main">
@@ -245,7 +345,7 @@ export default function AdminDashboardPage() {
               <p className="adm-header__sub">{page.subtitle}</p>
             </div>
             <button type="button" className="adm-pill">
-              {page.pill}
+              {pagePill}
             </button>
           </div>
           <div className="adm-header__right">
@@ -273,6 +373,15 @@ export default function AdminDashboardPage() {
                 <strong>Quản trị viên</strong>
               </span>
               <span aria-hidden>▾</span>
+            </button>
+            <button
+              type="button"
+              className="adm-icon-btn"
+              aria-label="Đăng xuất"
+              onClick={goLogoutRoute}
+              title="Đăng xuất"
+            >
+              ↪
             </button>
           </div>
         </header>

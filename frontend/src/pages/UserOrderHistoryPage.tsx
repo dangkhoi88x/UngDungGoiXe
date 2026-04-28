@@ -5,7 +5,7 @@ import TopNav from '../components/TopNav'
 import './studio-x-landing-page.css'
 import './UserOrderHistoryPage.css'
 
-type HistoryTab = 'ALL' | 'PENDING' | 'COMPLETED' | 'CANCELLED'
+type HistoryTab = 'ALL' | 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'
 
 type RowWithPayments = {
   booking: BookingDto
@@ -24,9 +24,16 @@ function rentalStatusVi(status: string | null | undefined): string {
   return map[status] ?? status
 }
 
+function normalizeBookingStatus(status: string | null | undefined): string {
+  return (status || '').trim().toUpperCase()
+}
+
+/** Tab lọc: PENDING = chờ xác nhận; ACTIVE = đã xác nhận hoặc đang thuê (chưa hoàn tất). */
 function toTab(status: string | null | undefined): Exclude<HistoryTab, 'ALL'> {
-  if (status === 'CANCELLED') return 'CANCELLED'
-  if (status === 'COMPLETED') return 'COMPLETED'
+  const s = normalizeBookingStatus(status)
+  if (s === 'CANCELLED') return 'CANCELLED'
+  if (s === 'COMPLETED') return 'COMPLETED'
+  if (s === 'CONFIRMED' || s === 'ONGOING') return 'ACTIVE'
   return 'PENDING'
 }
 
@@ -118,17 +125,20 @@ export default function UserOrderHistoryPage() {
 
   const counters = useMemo(() => {
     let pending = 0
+    let active = 0
     let completed = 0
     let cancelled = 0
     for (const r of rows) {
       const tab = toTab(r.booking.status)
       if (tab === 'PENDING') pending += 1
+      if (tab === 'ACTIVE') active += 1
       if (tab === 'COMPLETED') completed += 1
       if (tab === 'CANCELLED') cancelled += 1
     }
     return {
       ALL: rows.length,
       PENDING: pending,
+      ACTIVE: active,
       COMPLETED: completed,
       CANCELLED: cancelled,
     }
@@ -167,7 +177,8 @@ export default function UserOrderHistoryPage() {
           {([
             ['ALL', 'All Order'],
             ['PENDING', 'Pending'],
-            ['COMPLETED', 'Completed'],
+            ['ACTIVE', 'Đã xác nhận'],
+            ['COMPLETED', 'Đơn hoàn thành'],
             ['CANCELLED', 'Cancelled'],
           ] as Array<[HistoryTab, string]>).map(([tab, label]) => (
             <button

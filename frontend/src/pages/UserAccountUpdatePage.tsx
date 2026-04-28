@@ -28,6 +28,7 @@ export default function UserAccountUpdatePage() {
   const [licenseNumber, setLicenseNumber] = useState('')
   const [frontFile, setFrontFile] = useState<File | null>(null)
   const [backFile, setBackFile] = useState<File | null>(null)
+  const [submittedForReview, setSubmittedForReview] = useState(false)
 
   const load = useCallback(async () => {
     if (!localStorage.getItem('accessToken')) {
@@ -94,6 +95,7 @@ export default function UserAccountUpdatePage() {
         type: 'ok',
         text: 'Đã gửi hồ sơ. Admin sẽ xem xét và cập nhật trạng thái GPLX trên hệ thống.',
       })
+      setSubmittedForReview(true)
     } catch (err) {
       setStatusMsg({
         type: 'err',
@@ -217,9 +219,19 @@ export default function UserAccountUpdatePage() {
               ) : null}
 
               <div className="uacc-form__actions">
-                <button type="submit" className="uacc__btn uacc__btn--primary" disabled={locked || saving}>
-                  {saving ? 'Đang gửi…' : 'Gửi hồ sơ chờ duyệt'}
-                </button>
+                {submittedForReview ? (
+                  <button
+                    type="button"
+                    className="uacc__btn uacc__btn--primary"
+                    onClick={() => window.location.assign('/')}
+                  >
+                    Quay về trang chủ
+                  </button>
+                ) : (
+                  <button type="submit" className="uacc__btn uacc__btn--primary" disabled={locked || saving}>
+                    {saving ? 'Đang gửi…' : 'Gửi hồ sơ chờ duyệt'}
+                  </button>
+                )}
               </div>
             </form>
           </article>

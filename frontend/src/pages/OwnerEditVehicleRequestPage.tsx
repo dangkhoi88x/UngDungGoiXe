@@ -22,6 +22,7 @@ import {
   splitLinesUrls,
   validateOwnerVehicleFormStrings,
 } from '../lib/ownerVehicleRequestForm'
+import { OwnerVehicleSeatPicker } from '../components/OwnerVehicleSeatPicker'
 import './OwnerRegisterVehiclePage.css'
 
 type PhotoUploadItem = {
@@ -447,33 +448,18 @@ export default function OwnerEditVehicleRequestPage() {
                     />
                   </label>
                 </div>
-                <div className="owreg__grid2">
-                  <label className="owreg__field">
-                    <span className="owreg__label">Nhiên liệu</span>
-                    <select
-                      className="owreg__input"
-                      value={fuelType}
-                      onChange={(e) => setFuelType(e.target.value as OwnerVehicleFuelType)}
-                    >
-                      <option value="GASOLINE">Xăng (GASOLINE)</option>
-                      <option value="ELECTRICITY">Điện (ELECTRICITY)</option>
-                    </select>
-                  </label>
-                  <label className="owreg__field">
-                    <span className="owreg__label">Số chỗ (tùy chọn)</span>
-                    <select
-                      className="owreg__input"
-                      value={capacity}
-                      onChange={(e) => setCapacity(e.target.value)}
-                    >
-                      <option value="">— Chọn số chỗ —</option>
-                      <option value="2">2</option>
-                      <option value="4">4</option>
-                      <option value="8">8</option>
-                      <option value="16">16</option>
-                    </select>
-                  </label>
-                </div>
+                <label className="owreg__field">
+                  <span className="owreg__label">Nhiên liệu</span>
+                  <select
+                    className="owreg__input"
+                    value={fuelType}
+                    onChange={(e) => setFuelType(e.target.value as OwnerVehicleFuelType)}
+                  >
+                    <option value="GASOLINE">Xăng (GASOLINE)</option>
+                    <option value="ELECTRICITY">Điện (ELECTRICITY)</option>
+                  </select>
+                </label>
+                <OwnerVehicleSeatPicker value={capacity} onChange={setCapacity} />
               </section>
 
               <section className="owreg__section">
