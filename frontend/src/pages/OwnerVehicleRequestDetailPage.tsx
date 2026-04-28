@@ -117,7 +117,7 @@ export default function OwnerVehicleRequestDetailPage() {
 
   return (
     <div className="owreg owreg--clean">
-      <TopNav solid />
+      <TopNav solid showSearch={false} />
       <main className="owreg__main owreg__main--clean owrd-main">
         <h1 className="owreg__title">Chi tiết yêu cầu #{requestId}</h1>
         {loading ? <p className="owrd-muted">Đang tải dữ liệu…</p> : null}

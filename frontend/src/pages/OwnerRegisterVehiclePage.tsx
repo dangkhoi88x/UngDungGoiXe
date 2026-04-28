@@ -338,7 +338,7 @@ export default function OwnerRegisterVehiclePage() {
 
   return (
     <div className="owreg owreg--clean">
-      <TopNav solid />
+      <TopNav solid showSearch={false} />
 
       <main className="owreg__main owreg__main--clean">
         <h1 className="owreg__title">Đăng xe cho thuê</h1>

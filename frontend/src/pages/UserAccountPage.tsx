@@ -244,7 +244,7 @@ export default function UserAccountPage() {
 
   return (
     <div className="uacc">
-      <TopNav solid />
+      <TopNav solid showSearch={false} />
       <header className="uacc__toolbar">
         <nav className="uacc__crumb" aria-label="Breadcrumb">
           <a className="uacc__crumb-link" href="/" title="Trang chủ">

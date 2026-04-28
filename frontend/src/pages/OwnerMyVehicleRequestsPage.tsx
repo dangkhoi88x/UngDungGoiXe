@@ -147,7 +147,7 @@ export default function OwnerMyVehicleRequestsPage() {
 
   return (
     <div className="owreg owreg--clean">
-      <TopNav solid />
+      <TopNav solid showSearch={false} />
       <main className="owreg__main owreg__main--clean owmr-main">
         <div className="owmr-head">
           <div>

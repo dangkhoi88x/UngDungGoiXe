@@ -9,6 +9,60 @@ import './MapStationPage.css'
 const DEFAULT_CENTER = { lat: 10.7769, lng: 106.7009 }
 const STATUS_OPTIONS = ['ALL', 'ACTIVE', 'INACTIVE', 'MAINTENANCE'] as const
 
+type LatLngLiteral = { lat: number; lng: number }
+
+type MapInstance = {
+  fitBounds: (bounds: LatLngBoundsInstance, padding?: number) => void
+  panTo: (latLng: LatLngLiteral) => void
+  setCenter: (latLng: LatLngLiteral) => void
+  setZoom: (zoom: number) => void
+}
+
+type MarkerInstance = {
+  addListener: (eventName: string, handler: () => void) => void
+  getPosition: () => { lat: () => number; lng: () => number } | null
+  setMap: (map: MapInstance | null) => void
+}
+
+type InfoWindowInstance = {
+  open: (options: { anchor: MarkerInstance; map: MapInstance }) => void
+  setContent: (content: string) => void
+}
+
+type LatLngBoundsInstance = {
+  extend: (point: LatLngLiteral) => void
+  getCenter: () => LatLngLiteral
+}
+
+type GoogleMapsRuntime = {
+  event: {
+    trigger: (instance: MarkerInstance, eventName: string) => void
+  }
+  InfoWindow: new () => InfoWindowInstance
+  LatLngBounds: new () => LatLngBoundsInstance
+  Map: new (
+    element: HTMLElement,
+    options: {
+      center: LatLngLiteral
+      fullscreenControl: boolean
+      mapId?: string
+      mapTypeControl: boolean
+      streetViewControl: boolean
+      zoom: number
+    },
+  ) => MapInstance
+  Marker: new (options: {
+    map: MapInstance
+    position: LatLngLiteral
+    title: string
+  }) => MarkerInstance
+}
+
+function getGoogleMapsRuntime(): GoogleMapsRuntime | null {
+  return ((globalThis as unknown as { google?: { maps?: GoogleMapsRuntime } }).google?.maps ??
+    null)
+}
+
 function toFriendlyMapError(raw: string): string {
   const msg = raw.trim()
   const low = msg.toLowerCase()
@@ -25,9 +79,9 @@ export default function MapStationPage() {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim()
   const mapId = import.meta.env.VITE_GOOGLE_MAP_ID?.trim()
   const mapElRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<google.maps.Map | null>(null)
-  const markersRef = useRef<google.maps.Marker[]>([])
-  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null)
+  const mapRef = useRef<MapInstance | null>(null)
+  const markersRef = useRef<MarkerInstance[]>([])
+  const infoWindowRef = useRef<InfoWindowInstance | null>(null)
 
   const [origin, setOrigin] = useState('')
   const [stations, setStations] = useState<StationDto[]>([])
@@ -134,9 +188,13 @@ export default function MapStationPage() {
 
     ensureGoogleMapsConfigured(apiKey, mapId)
     void loadGoogleMapsLibrary()
-      .then((mapsLib) => {
+      .then(() => {
         if (cancelled || !mapElRef.current) return
-        const opts: google.maps.MapOptions = {
+        const googleMaps = getGoogleMapsRuntime()
+        if (!googleMaps) {
+          throw new Error('Google Maps runtime chưa sẵn sàng sau khi tải thư viện.')
+        }
+        const opts: ConstructorParameters<GoogleMapsRuntime['Map']>[1] = {
           center: DEFAULT_CENTER,
           zoom: 12,
           mapTypeControl: false,
@@ -144,8 +202,8 @@ export default function MapStationPage() {
           fullscreenControl: true,
         }
         if (mapId) opts.mapId = mapId
-        mapRef.current = new mapsLib.Map(mapElRef.current, opts)
-        infoWindowRef.current = new google.maps.InfoWindow()
+        mapRef.current = new googleMaps.Map(mapElRef.current, opts)
+        infoWindowRef.current = new googleMaps.InfoWindow()
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -162,8 +220,9 @@ export default function MapStationPage() {
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
-    const info = infoWindowRef.current ?? new google.maps.InfoWindow()
+    const googleMaps = getGoogleMapsRuntime()
+    if (!map || !googleMaps) return
+    const info = infoWindowRef.current ?? new googleMaps.InfoWindow()
     infoWindowRef.current = info
 
     for (const mk of markersRef.current) mk.setMap(null)
@@ -175,7 +234,7 @@ export default function MapStationPage() {
       return
     }
 
-    const bounds = new google.maps.LatLngBounds()
+    const bounds = new googleMaps.LatLngBounds()
     for (const s of stationsWithCoords) {
       const position = {
         lat: Number(s.latitude),
@@ -183,7 +242,7 @@ export default function MapStationPage() {
       }
       const title = stationLabel(s)
       const status = String(s.status ?? '').toUpperCase() || 'UNKNOWN'
-      const marker = new google.maps.Marker({
+      const marker = new googleMaps.Marker({
         map,
         position,
         title,
@@ -216,7 +275,8 @@ export default function MapStationPage() {
 
   const focusStation = (station: StationDto) => {
     const map = mapRef.current
-    if (!map || station.latitude == null || station.longitude == null) return
+    const googleMaps = getGoogleMapsRuntime()
+    if (!map || !googleMaps || station.latitude == null || station.longitude == null) return
     const position = { lat: Number(station.latitude), lng: Number(station.longitude) }
     map.panTo(position)
     map.setZoom(16)
@@ -226,7 +286,7 @@ export default function MapStationPage() {
         Math.abs((m.getPosition()?.lng() ?? 0) - position.lng) < 1e-9,
     )
     if (mk && infoWindowRef.current) {
-      google.maps.event.trigger(mk, 'click')
+      googleMaps.event.trigger(mk, 'click')
     }
   }
 
