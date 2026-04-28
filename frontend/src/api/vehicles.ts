@@ -12,6 +12,7 @@ export type VehicleDto = {
   licensePlate: string
   name: string
   brand: string
+  ownerEmail?: string | null
   fuelType: string | null
   rating: number | null
   capacity: number | null

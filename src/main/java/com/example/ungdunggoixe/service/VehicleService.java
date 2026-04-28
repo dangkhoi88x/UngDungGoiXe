@@ -3,6 +3,7 @@ package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.common.FuelType;
+import com.example.ungdunggoixe.common.OwnerVehicleRequestStatus;
 import com.example.ungdunggoixe.common.VehiclePolicyTerm;
 import com.example.ungdunggoixe.common.VehicleStatus;
 import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
@@ -13,6 +14,7 @@ import com.example.ungdunggoixe.entity.Station;
 import com.example.ungdunggoixe.entity.Vehicle;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.mapper.VehicleMapper;
+import com.example.ungdunggoixe.repository.OwnerVehicleRequestRepository;
 import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
 import lombok.AllArgsConstructor;
@@ -38,6 +40,7 @@ public class VehicleService {
     );
 
     private final VehicleRepository vehicleRepository;
+    private final OwnerVehicleRequestRepository ownerVehicleRequestRepository;
     private final StationRepository stationRepository;
     private final I18nService i18nService;
 
@@ -154,7 +157,18 @@ public class VehicleService {
     public CreateVehicleResponse getVehicleById(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
-        return VehicleMapper.INSTANCE.toCreateVehicleResponse(vehicle);
+        CreateVehicleResponse response = VehicleMapper.INSTANCE.toCreateVehicleResponse(vehicle);
+        String ownerEmail = ownerVehicleRequestRepository.findFirstByApprovedVehicleIdOrderByCreatedAtDesc(id)
+                .map(req -> req.getOwner() != null ? req.getOwner().getEmail() : null)
+                .orElseGet(() -> ownerVehicleRequestRepository
+                        .findFirstByLicensePlateAndStatusOrderByCreatedAtDesc(
+                                vehicle.getLicensePlate(),
+                                OwnerVehicleRequestStatus.APPROVED
+                        )
+                        .map(req -> req.getOwner() != null ? req.getOwner().getEmail() : null)
+                        .orElse(null));
+        response.setOwnerEmail(ownerEmail);
+        return response;
     }
 
     @Transactional

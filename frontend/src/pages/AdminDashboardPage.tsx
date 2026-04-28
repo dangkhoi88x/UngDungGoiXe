@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { fetchAdminOwnerVehicleRequests } from '../api/ownerVehicleRequests'
 import './AdminDashboardPage.css'
 
 const AdminVehiclesSection = lazy(() => import('./AdminVehiclesSection'))
@@ -39,12 +40,11 @@ const NAV_ITEMS: {
   id: NavId
   label: string
   icon: string
-  badge?: number
 }[] = [
   { id: 'home', label: 'Tổng quan', icon: '🏠' },
-  { id: 'vehicles', label: 'Phương tiện', icon: '🚗', badge: 3 },
+  { id: 'vehicles', label: 'Phương tiện', icon: '🚗' },
   { id: 'stations', label: 'Trạm & bãi', icon: '📍' },
-  { id: 'bookings', label: 'Đặt xe', icon: '📋', badge: 5 },
+  { id: 'bookings', label: 'Đặt xe', icon: '📋' },
   { id: 'ownerRequests', label: 'Yêu cầu owner', icon: '📝' },
   { id: 'users', label: 'Người dùng', icon: '👤' },
   { id: 'stats', label: 'Thống kê', icon: '📊' },
@@ -127,6 +127,7 @@ export default function AdminDashboardPage() {
   const [userRefreshKey, setUserRefreshKey] = useState(0)
   const [bookingRefreshKey, setBookingRefreshKey] = useState(0)
   const [ownerRequestRefreshKey, setOwnerRequestRefreshKey] = useState(0)
+  const [pendingOwnerRequestsCount, setPendingOwnerRequestsCount] = useState(0)
 
   const showDashboard =
     activeNav !== 'vehicles' &&
@@ -145,6 +146,33 @@ export default function AdminDashboardPage() {
       navigate('/admin/overview', { replace: true })
     }
   }, [location.pathname, navigate])
+
+  const loadPendingOwnerRequestsCount = useCallback(async () => {
+    try {
+      const pending = await fetchAdminOwnerVehicleRequests({ status: 'PENDING' })
+      setPendingOwnerRequestsCount(pending.length)
+    } catch {
+      setPendingOwnerRequestsCount(0)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try {
+        const pending = await fetchAdminOwnerVehicleRequests({ status: 'PENDING' })
+        if (!cancelled) setPendingOwnerRequestsCount(pending.length)
+      } catch {
+        if (!cancelled) setPendingOwnerRequestsCount(0)
+      }
+    }
+    void run()
+    const timer = window.setInterval(() => void run(), 30000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [])
 
   const onNav = useCallback((id: NavId) => {
     navigate(NAV_TO_ROUTE[id])
@@ -167,11 +195,12 @@ export default function AdminDashboardPage() {
         break
       case 'ownerRequests':
         setOwnerRequestRefreshKey((k) => k + 1)
+        void loadPendingOwnerRequestsCount()
         break
       default:
         break
     }
-  }, [activeNav])
+  }, [activeNav, loadPendingOwnerRequestsCount])
 
   return (
     <div className="adm">
@@ -209,8 +238,8 @@ export default function AdminDashboardPage() {
                     {item.icon}
                   </span>
                   {item.label}
-                  {item.badge != null && item.badge > 0 ? (
-                    <span className="adm-nav__badge">{item.badge}</span>
+                  {item.id === 'ownerRequests' && pendingOwnerRequestsCount > 0 ? (
+                    <span className="adm-nav__badge">{pendingOwnerRequestsCount}</span>
                   ) : null}
                 </button>
               </li>

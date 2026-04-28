@@ -19,6 +19,7 @@ import './CarRentalPage.css'
 const PLACEHOLDER_IMG =
   'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=800&q=80'
 const FUEL_FILTER_OPTIONS = ['GASOLINE', 'ELECTRICITY', 'DIESEL'] as const
+const PAGE_SIZE = 8
 
 function cardImage(v: VehicleDto): string {
   const p = v.photos?.[0]
@@ -71,6 +72,7 @@ export default function CarRentalPage() {
   const [fuelFilter, setFuelFilter] = useState('all')
   const [stationFilter, setStationFilter] = useState('all')
   const [priceFilter, setPriceFilter] = useState<{ min: number; max: number } | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
   const [availabilityOnly, setAvailabilityOnly] = useState(false)
   const [availabilityLoading, setAvailabilityLoading] = useState(false)
   const [availabilityError, setAvailabilityError] = useState<string | null>(null)
@@ -281,6 +283,21 @@ export default function CarRentalPage() {
     if (!availabilityOnly || !hasValidAvailabilityWindow) return baseFiltered
     return baseFiltered.filter((v) => availabilityMap[v.id] === true)
   }, [availabilityOnly, hasValidAvailabilityWindow, baseFiltered, availabilityMap])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [query, seatFilter, fuelFilter, stationFilter, priceFilter, availabilityOnly, pickupAt, returnAt])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+
+  useEffect(() => {
+    setCurrentPage((prev) => Math.min(prev, totalPages))
+  }, [totalPages])
+
+  const pagedVehicles = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE
+    return filtered.slice(start, start + PAGE_SIZE)
+  }, [filtered, currentPage])
 
   function handleSearchSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -564,37 +581,73 @@ export default function CarRentalPage() {
             database hoặc đổi danh mục / từ khóa.
           </div>
         ) : (
-          <div className="cr-grid">
-            {filtered.map((v) => (
-              <a key={v.id} className="cr-card" href={`/rent/${v.id}`}>
-                <div className="cr-card__media">
-                  <img src={cardImage(v)} alt={vehicleDisplayName(v)} loading="lazy" />
-                </div>
-                <div className="cr-card__body">
-                  <h3 className="cr-card__title">{vehicleDisplayName(v)}</h3>
-                  <div className="cr-card__meta">
-                    <span title="Nhiên liệu / hộp số (demo)">⚙ {fuelLabel(v.fuelType)}</span>
-                    <span title="Số chỗ">👥 {v.capacity ?? '—'}</span>
-                    <span title="Cửa (ước lượng)">🚪 {doorsGuess(v.capacity)}</span>
-                    <span title="Đánh giá">⭐ {ratingDisplay(v)}</span>
-                    {v.rentCount != null && v.rentCount > 0 ? (
-                      <span title="Số lượt thuê">📋 {v.rentCount}</span>
-                    ) : null}
+          <>
+            <div className="cr-grid">
+              {pagedVehicles.map((v) => (
+                <a key={v.id} className="cr-card" href={`/rent/${v.id}`}>
+                  <div className="cr-card__media">
+                    <img src={cardImage(v)} alt={vehicleDisplayName(v)} loading="lazy" />
                   </div>
-                </div>
-                <div className="cr-card__price">
-                  <span className="cr-card__price-label">Start from</span>
-                  <div>
-                    <strong>{formatDailyPrice(v)}</strong>
-                    <span> / day</span>
+                  <div className="cr-card__body">
+                    <h3 className="cr-card__title">{vehicleDisplayName(v)}</h3>
+                    <div className="cr-card__meta">
+                      <span title="Nhiên liệu / hộp số (demo)">⚙ {fuelLabel(v.fuelType)}</span>
+                      <span title="Số chỗ">👥 {v.capacity ?? '—'}</span>
+                      <span title="Cửa (ước lượng)">🚪 {doorsGuess(v.capacity)}</span>
+                      <span title="Đánh giá">⭐ {ratingDisplay(v)}</span>
+                      {v.rentCount != null && v.rentCount > 0 ? (
+                        <span title="Số lượt thuê">📋 {v.rentCount}</span>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="cr-card__plate">
-                    {stationNameById.get(v.stationId) ?? `Bãi #${v.stationId}`} · {v.licensePlate}
+                  <div className="cr-card__price">
+                    <span className="cr-card__price-label">Start from</span>
+                    <div>
+                      <strong>{formatDailyPrice(v)}</strong>
+                      <span> / day</span>
+                    </div>
+                    <div className="cr-card__plate">
+                      {stationNameById.get(v.stationId) ?? `Bãi #${v.stationId}`} · {v.licensePlate}
+                    </div>
                   </div>
+                </a>
+              ))}
+            </div>
+            {filtered.length > PAGE_SIZE ? (
+              <div
+                style={{
+                  marginTop: 18,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ color: '#5b6474', fontSize: 14 }}>
+                  Trang {currentPage}/{totalPages} · {filtered.length} xe
+                </span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="cr-nav__logout-btn"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Trước
+                  </button>
+                  <button
+                    type="button"
+                    className="cr-nav__logout-btn"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Sau
+                  </button>
                 </div>
-              </a>
-            ))}
-          </div>
+              </div>
+            ) : null}
+          </>
         )}
       </section>
 
