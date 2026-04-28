@@ -34,6 +34,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
         Page<Booking> findByStatus(BookingStatus status, Pageable pageable);
 
+        @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
+        List<Booking> findByVehicleIdOrderByStartTimeDesc(Long vehicleId);
+
         /**
          * Tìm các booking đang hoạt động (PENDING / CONFIRMED / ONGOING)
          * mà khoảng thời gian [startTime, expectedEndTime] bị giao nhau với

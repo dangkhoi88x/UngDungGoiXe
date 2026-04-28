@@ -274,6 +274,11 @@ export default function OwnerMyVehicleRequestsPage() {
                         Chi tiết
                       </a>
                       {r.status === 'APPROVED' && r.approvedVehicleId != null ? (
+                        <a className="owmr-link" href={`/owner/vehicle-requests/${r.id}/bookings`}>
+                          Lịch sử booking
+                        </a>
+                      ) : null}
+                      {r.status === 'APPROVED' && r.approvedVehicleId != null ? (
                         <a
                           className="owmr-link"
                           href={`/rent/${r.approvedVehicleId}`}

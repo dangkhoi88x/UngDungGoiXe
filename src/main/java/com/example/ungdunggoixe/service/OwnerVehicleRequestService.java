@@ -5,6 +5,7 @@ import com.example.ungdunggoixe.common.OwnerVehicleRequestStatus;
 import com.example.ungdunggoixe.common.VehicleStatus;
 import com.example.ungdunggoixe.dto.request.CreateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateOwnerVehicleRequest;
+import com.example.ungdunggoixe.dto.response.BookingResponse;
 import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestResponse;
 import com.example.ungdunggoixe.entity.OwnerVehicleRequest;
 import com.example.ungdunggoixe.entity.OwnerVehicleRequestHistoryItem;
@@ -13,6 +14,8 @@ import com.example.ungdunggoixe.entity.User;
 import com.example.ungdunggoixe.entity.Vehicle;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.mapper.OwnerVehicleRequestMapper;
+import com.example.ungdunggoixe.mapper.BookingMapper;
+import com.example.ungdunggoixe.repository.BookingRepository;
 import com.example.ungdunggoixe.repository.OwnerVehicleRequestRepository;
 import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.UserRepository;
@@ -37,6 +40,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class OwnerVehicleRequestService {
     private final OwnerVehicleRequestRepository ownerVehicleRequestRepository;
+    private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final StationRepository stationRepository;
     private final VehicleRepository vehicleRepository;
@@ -368,6 +372,22 @@ public class OwnerVehicleRequestService {
             throw new AppException(ErrorCode.FORBIDDEN);
         }
         return OwnerVehicleRequestMapper.INSTANCE.toResponse(req);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getMyApprovedVehicleBookings(Long requestId) {
+        Long ownerId = currentUserId();
+        OwnerVehicleRequest req = requireById(requestId);
+        if (!req.getOwner().getId().equals(ownerId)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+        if (req.getApprovedVehicle() == null || req.getApprovedVehicle().getId() == null) {
+            return List.of();
+        }
+        return bookingRepository.findByVehicleIdOrderByStartTimeDesc(req.getApprovedVehicle().getId())
+                .stream()
+                .map(BookingMapper.INSTANCE::toBookingResponse)
+                .toList();
     }
 
     @Transactional
