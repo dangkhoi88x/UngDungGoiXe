@@ -8,6 +8,7 @@ ALTER TABLE users ADD COLUMN license_number VARCHAR(255) NULL;
 ALTER TABLE users ADD COLUMN license_card_front_image_url VARCHAR(2048) NULL;
 ALTER TABLE users ADD COLUMN license_card_back_image_url VARCHAR(2048) NULL;
 ALTER TABLE users ADD COLUMN updated_at DATETIME(6) NULL DEFAULT (CURRENT_TIMESTAMP(6)) ON UPDATE CURRENT_TIMESTAMP(6);
+ALTER TABLE users ADD COLUMN created_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6);
 ALTER TABLE users ADD COLUMN verified_at DATETIME(6) NULL;
 
 -- Đổi GPLX: boolean is_license_verified → enum license_verification_status (chạy lại an toàn nhờ continue-on-error).

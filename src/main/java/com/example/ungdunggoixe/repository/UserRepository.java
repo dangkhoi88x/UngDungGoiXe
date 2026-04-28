@@ -28,4 +28,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
     @Override
     Page<User> findAll(Pageable pageable);
+
+    long countByCreatedAtGreaterThanEqual(java.time.LocalDateTime from);
 }

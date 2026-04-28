@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,4 +38,49 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             @Param("cutoff") LocalDateTime cutoff,
             @Param("expirableStatuses") List<Payment.PaymentStatus> expirableStatuses,
             @Param("bkPending") BookingStatus bkPending);
+
+    @Query("""
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN p.paymentPurpose = com.example.ungdunggoixe.entity.Payment$PaymentPurpose.REFUND
+                        THEN -p.amount
+                    ELSE p.amount
+                END
+            ), 0)
+            FROM Payment p
+            WHERE p.status = com.example.ungdunggoixe.entity.Payment$PaymentStatus.PAID
+              AND COALESCE(p.paidAt, p.createdAt) >= :from
+              AND COALESCE(p.paidAt, p.createdAt) < :to
+            """)
+    BigDecimal sumNetPaidAmountBetween(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+    @Query("""
+            SELECT b.vehicle.id,
+                   COALESCE(v.name, ''),
+                   COALESCE(v.licensePlate, ''),
+                   COALESCE(SUM(
+                       CASE
+                           WHEN p.paymentPurpose = com.example.ungdunggoixe.entity.Payment$PaymentPurpose.REFUND
+                               THEN -p.amount
+                           ELSE p.amount
+                       END
+                   ), 0)
+            FROM Payment p
+            JOIN p.booking b
+            JOIN b.vehicle v
+            WHERE p.status = com.example.ungdunggoixe.entity.Payment$PaymentStatus.PAID
+              AND b.vehicle IS NOT NULL
+            GROUP BY b.vehicle.id, v.name, v.licensePlate
+            ORDER BY COALESCE(SUM(
+                       CASE
+                           WHEN p.paymentPurpose = com.example.ungdunggoixe.entity.Payment$PaymentPurpose.REFUND
+                               THEN -p.amount
+                           ELSE p.amount
+                       END
+                   ), 0) DESC
+            """)
+    List<Object[]> findTopVehicleRevenueRows(org.springframework.data.domain.Pageable pageable);
 }

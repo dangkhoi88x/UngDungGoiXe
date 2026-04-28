@@ -21,6 +21,23 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
         List<Booking> findByStatus(BookingStatus status);
 
+        long countByStatus(BookingStatus status);
+
+        long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
+
+        @Query("""
+                SELECT COALESCE(SUM(b.totalAmount), 0)
+                FROM Booking b
+                WHERE b.status = :status
+                  AND b.updatedAt >= :from
+                  AND b.updatedAt < :to
+                """)
+        java.math.BigDecimal sumTotalAmountByStatusAndUpdatedAtBetween(
+                @Param("status") BookingStatus status,
+                @Param("from") LocalDateTime from,
+                @Param("to") LocalDateTime to
+        );
+
         @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
         @Override
         Page<Booking> findAll(Pageable pageable);

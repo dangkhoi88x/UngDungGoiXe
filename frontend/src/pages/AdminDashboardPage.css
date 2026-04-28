@@ -438,6 +438,137 @@
   gap: 20px;
 }
 
+.adm-chart-box {
+  display: grid;
+  gap: 10px;
+}
+
+.adm-line-chart {
+  width: 100%;
+  height: 180px;
+  border-radius: 10px;
+  background:
+    linear-gradient(to bottom, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.02)),
+    repeating-linear-gradient(
+      to top,
+      transparent 0,
+      transparent 35px,
+      rgba(148, 163, 184, 0.16) 35px,
+      rgba(148, 163, 184, 0.16) 36px
+    );
+}
+
+.adm-line-labels {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  font-size: 11px;
+  color: var(--adm-muted);
+}
+
+.adm-line-labels span {
+  text-align: center;
+}
+
+.adm-mini-bars {
+  height: 190px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.adm-mini-bars__item {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.adm-mini-bars__bar {
+  width: 22px;
+  border-radius: 8px 8px 4px 4px;
+  min-height: 6px;
+}
+
+.adm-mini-bars__item span {
+  font-size: 11px;
+  color: var(--adm-muted);
+}
+
+.adm-donut-wrap {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 18px;
+  align-items: center;
+}
+
+.adm-donut {
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.adm-donut__center {
+  width: 102px;
+  height: 102px;
+  border-radius: 50%;
+  background: var(--adm-white);
+  box-shadow: inset 0 0 0 1px var(--adm-border);
+  display: grid;
+  place-items: center;
+}
+
+.adm-donut__center strong {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.adm-donut__center span {
+  font-size: 12px;
+  color: var(--adm-muted);
+}
+
+.adm-donut-legend {
+  display: grid;
+  gap: 10px;
+}
+
+.adm-donut-legend__item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.adm-donut-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.adm-top-list {
+  display: grid;
+  gap: 10px;
+}
+
+.adm-top-item {
+  border: 1px solid var(--adm-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.adm-top-item p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--adm-muted);
+}
+
 .adm-panel {
   background: var(--adm-white);
   padding: 20px;
@@ -730,6 +861,11 @@
 
   .adm-grid2 {
     grid-template-columns: 1fr;
+  }
+
+  .adm-donut-wrap {
+    grid-template-columns: 1fr;
+    justify-items: center;
   }
 }
 

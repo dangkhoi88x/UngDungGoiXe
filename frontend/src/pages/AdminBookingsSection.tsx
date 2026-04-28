@@ -120,7 +120,9 @@ type Props = {
 }
 
 export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
-  const [activeTab, setActiveTab] = useState<'bookings' | PaymentPurpose>('bookings')
+  const [activeTab, setActiveTab] = useState<
+    'bookings' | 'completed-history' | PaymentPurpose
+  >('bookings')
   const initialFilters = useMemo(() => initialBookingsFilters(), [])
   const [page, setPage] = useState(initialFilters.page)
   const [size, setSize] = useState(initialFilters.size)
@@ -224,7 +226,10 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
         size,
         sortBy,
         sortDir,
-        status: filterStatus || undefined,
+        status:
+          activeTab === 'completed-history'
+            ? 'COMPLETED'
+            : filterStatus || undefined,
         stationId:
           stationId != null && Number.isInteger(stationId) && stationId > 0
             ? stationId
@@ -247,6 +252,7 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
       setLoading(false)
     }
   }, [
+    activeTab,
     page,
     size,
     sortBy,
@@ -491,7 +497,7 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
     !deleting,
   )
 
-  if (activeTab !== 'bookings') {
+  if (activeTab === 'TOPUP' || activeTab === 'REFUND') {
     return (
       <section className="adm-veh adm-bookings-section" aria-labelledby="adm-bk-title">
         <div className="adm-veh__toolbar">
@@ -517,6 +523,18 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
             onClick={() => setActiveTab('bookings')}
           >
             Danh sach dat xe
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={false}
+            className="adm-bk-tab"
+            onClick={() => {
+              setActiveTab('completed-history')
+              setPage(0)
+            }}
+          >
+            Lịch sử hoàn thành
           </button>
           <button
             type="button"
@@ -658,11 +676,26 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
         <button
           type="button"
           role="tab"
-          aria-selected={true}
-          className="adm-bk-tab is-active"
-          onClick={() => setActiveTab('bookings')}
+          aria-selected={activeTab === 'bookings'}
+          className={`adm-bk-tab ${activeTab === 'bookings' ? 'is-active' : ''}`}
+          onClick={() => {
+            setActiveTab('bookings')
+            setPage(0)
+          }}
         >
           Danh sách đặt xe
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'completed-history'}
+          className={`adm-bk-tab ${activeTab === 'completed-history' ? 'is-active' : ''}`}
+          onClick={() => {
+            setActiveTab('completed-history')
+            setPage(0)
+          }}
+        >
+          Lịch sử hoàn thành
         </button>
         <button
           type="button"
@@ -702,13 +735,16 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
         <label>
           <span className="adm-users__filter-label">Trạng thái</span>
           <select
+            disabled={activeTab === 'completed-history'}
             value={filterStatus}
             onChange={(e) => {
               setFilterStatus(e.target.value)
               setPage(0)
             }}
           >
-            <option value="">Tất cả</option>
+            <option value="">
+              {activeTab === 'completed-history' ? 'Hoàn thành (cố định)' : 'Tất cả'}
+            </option>
             {BOOKING_STATUSES.filter(Boolean).map((s) => (
               <option key={s} value={s}>
                 {statusVi(s)}
