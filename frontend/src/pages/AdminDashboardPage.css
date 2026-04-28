@@ -132,53 +132,6 @@
   place-items: center;
 }
 
-.adm-upgrade {
-  margin-top: auto;
-  padding-top: 20px;
-  border-top: 1px solid var(--adm-border);
-}
-
-.adm-upgrade__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--adm-lime);
-  display: grid;
-  place-items: center;
-  font-size: 1.1rem;
-  margin-bottom: 10px;
-}
-
-.adm-upgrade h3 {
-  margin: 0 0 4px;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.adm-upgrade p {
-  margin: 0 0 12px;
-  font-size: 12px;
-  color: var(--adm-muted);
-  line-height: 1.45;
-}
-
-.adm-upgrade button {
-  width: 100%;
-  border: none;
-  border-radius: 8px;
-  background: var(--adm-dark);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: filter 0.2s ease;
-}
-
-.adm-upgrade button:hover {
-  filter: brightness(1.08);
-}
-
 /* ── Main shell ────────────────────────────────── */
 .adm-main {
   margin-left: var(--adm-sidebar-w);
@@ -232,22 +185,45 @@
   color: var(--adm-muted);
 }
 
-.adm-pill {
-  border: none;
-  border-radius: 6px;
-  background: var(--adm-blue);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
 .adm-header__right {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.adm-refresh-btn {
+  height: 40px;
+  border: 1px solid var(--adm-border);
+  border-radius: 10px;
+  background: var(--adm-white);
+  color: var(--adm-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.adm-refresh-btn:hover:not(:disabled) {
+  background: var(--adm-light);
+}
+
+.adm-refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.adm-refresh-btn__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.adm-refresh-btn.is-loading .adm-refresh-btn__icon {
+  animation: adm-spin 0.8s linear infinite;
 }
 
 .adm-icon-btn {
@@ -299,6 +275,23 @@
 .adm-profile__text strong {
   font-size: 13px;
   font-weight: 600;
+}
+
+.adm-logout-btn {
+  height: 40px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fff1f2;
+  color: #b91c1c;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.adm-logout-btn:hover {
+  background: #ffe4e6;
 }
 
 /* ── Content ───────────────────────────────────── */
@@ -874,7 +867,7 @@
     grid-template-columns: 1fr;
   }
 
-  .adm-header__right .adm-icon-btn:nth-child(2) {
+  .adm-refresh-btn span:last-child {
     display: none;
   }
 

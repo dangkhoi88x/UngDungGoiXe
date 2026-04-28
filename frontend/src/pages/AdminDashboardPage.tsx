@@ -61,42 +61,35 @@ const NAV_ITEMS: {
 
 const PAGE_COPY: Record<
   NavId,
-  { title: string; subtitle: string; pill: string }
+  { title: string; subtitle: string }
 > = {
   home: {
     title: 'Tổng quan',
     subtitle: 'Theo dõi hoạt động thuê xe và trạm trong hệ thống.',
-    pill: '3 mới',
   },
   vehicles: {
     title: 'Phương tiện',
     subtitle: 'Quản lý danh sách xe, trạng thái và giá.',
-    pill: '3 mới',
   },
   stations: {
     title: 'Trạm & bãi',
     subtitle: 'Vị trí đỗ xe và công suất từng trạm.',
-    pill: 'Cập nhật',
   },
   bookings: {
     title: 'Đặt xe',
     subtitle: 'Đơn đặt chờ xác nhận và lịch sử giao nhận.',
-    pill: '5 mới',
   },
   ownerRequests: {
     title: 'Yêu cầu xe owner',
     subtitle: 'Duyệt xe người dùng gửi lên hệ thống cho thuê.',
-    pill: 'PENDING',
   },
   users: {
     title: 'Người dùng',
     subtitle: 'Tài khoản khách hàng và tài xế.',
-    pill: '2 mới',
   },
   stats: {
     title: 'Thống kê',
     subtitle: 'Doanh thu, tỷ lệ lấp đầy và xu hướng theo tháng.',
-    pill: 'Báo cáo',
   },
 }
 
@@ -279,6 +272,7 @@ export default function AdminDashboardPage() {
   const [pendingOwnerRequestsCount, setPendingOwnerRequestsCount] = useState(0)
   const [overviewStats, setOverviewStats] = useState<AdminOverviewStatsDto | null>(null)
   const [chartData, setChartData] = useState<AdminDashboardChartsDto | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   const showDashboard =
     activeNav !== 'vehicles' &&
@@ -304,6 +298,20 @@ export default function AdminDashboardPage() {
       setPendingOwnerRequestsCount(pending.length)
     } catch {
       setPendingOwnerRequestsCount(0)
+    }
+  }, [])
+
+  const loadDashboardData = useCallback(async () => {
+    try {
+      const [stats, charts] = await Promise.all([
+        fetchAdminOverviewStats(),
+        fetchAdminDashboardCharts(),
+      ])
+      setOverviewStats(stats)
+      setChartData(charts)
+    } catch {
+      setOverviewStats(null)
+      setChartData(null)
     }
   }, [])
 
@@ -365,6 +373,8 @@ export default function AdminDashboardPage() {
   }, [navigate])
 
   const bumpActiveSectionRefresh = useCallback(() => {
+    if (refreshing) return
+    setRefreshing(true)
     switch (activeNav) {
       case 'vehicles':
         setVehicleRefreshKey((k) => k + 1)
@@ -383,9 +393,15 @@ export default function AdminDashboardPage() {
         void loadPendingOwnerRequestsCount()
         break
       default:
+        void loadDashboardData()
         break
     }
-  }, [activeNav, loadPendingOwnerRequestsCount])
+    window.setTimeout(() => setRefreshing(false), 700)
+  }, [activeNav, loadDashboardData, loadPendingOwnerRequestsCount, refreshing])
+
+  const onLogout = useCallback(() => {
+    navigate('/logout')
+  }, [navigate])
 
   return (
     <div className="adm">
@@ -431,15 +447,6 @@ export default function AdminDashboardPage() {
             ))}
           </ul>
         </nav>
-
-        <div className="adm-upgrade">
-          <div className="adm-upgrade__icon" aria-hidden>
-            👑
-          </div>
-          <h3>Nâng cấp Pro</h3>
-          <p>Báo cáo nâng cao, xuất Excel và quản lý đội xe theo nhóm.</p>
-          <button type="button">Nâng cấp — liên hệ</button>
-        </div>
       </aside>
 
       <div className="adm-main">
@@ -458,25 +465,17 @@ export default function AdminDashboardPage() {
               <h1 className="adm-header__title">{page.title}</h1>
               <p className="adm-header__sub">{page.subtitle}</p>
             </div>
-            <button type="button" className="adm-pill">
-              {page.pill}
-            </button>
           </div>
           <div className="adm-header__right">
             <button
               type="button"
-              className="adm-icon-btn"
-              aria-label="Tìm kiếm"
-            >
-              🔍
-            </button>
-            <button
-              type="button"
-              className="adm-icon-btn"
+              className={`adm-refresh-btn${refreshing ? ' is-loading' : ''}`}
               aria-label="Làm mới dữ liệu"
               onClick={bumpActiveSectionRefresh}
+              disabled={refreshing}
             >
-              ↻
+              <span aria-hidden className="adm-refresh-btn__icon">↻</span>
+              <span>{refreshing ? 'Đang tải...' : 'Làm mới'}</span>
             </button>
             <button type="button" className="adm-profile">
               <span className="adm-profile__avatar" aria-hidden>
@@ -486,7 +485,14 @@ export default function AdminDashboardPage() {
                 <small>Xin chào</small>
                 <strong>Quản trị viên</strong>
               </span>
-              <span aria-hidden>▾</span>
+            </button>
+            <button
+              type="button"
+              className="adm-logout-btn"
+              onClick={onLogout}
+              aria-label="Đăng xuất"
+            >
+              Đăng xuất
             </button>
           </div>
         </header>
