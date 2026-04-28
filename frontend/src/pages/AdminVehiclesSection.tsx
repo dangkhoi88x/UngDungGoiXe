@@ -30,7 +30,7 @@ const STATUSES = [
   'UNAVAILABLE',
 ] as const
 
-const FUELS = ['GASOLINE', 'ELECTRICITY'] as const
+const FUELS = ['GASOLINE', 'ELECTRICITY', 'DIESEL'] as const
 
 const VEHICLE_SORT_OPTIONS = [
   { value: 'id', label: 'ID' },
@@ -842,7 +842,7 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
                   >
                     {FUELS.map((f) => (
                       <option key={f} value={f}>
-                        {f === 'GASOLINE' ? 'Xăng' : 'Điện'}
+                        {fuelLabel(f)}
                       </option>
                     ))}
                   </select>

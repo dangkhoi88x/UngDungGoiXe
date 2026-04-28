@@ -32,7 +32,9 @@ type PhotoUploadItem = {
 }
 
 function fuelFromDto(raw: string | null | undefined): OwnerVehicleFuelType {
-  return raw === 'ELECTRICITY' ? 'ELECTRICITY' : 'GASOLINE'
+  if (raw === 'ELECTRICITY') return 'ELECTRICITY'
+  if (raw === 'DIESEL') return 'DIESEL'
+  return 'GASOLINE'
 }
 
 function statusLabelVi(s: OwnerVehicleRequestStatus): string {
@@ -457,6 +459,7 @@ export default function OwnerEditVehicleRequestPage() {
                     >
                       <option value="GASOLINE">Xăng (GASOLINE)</option>
                       <option value="ELECTRICITY">Điện (ELECTRICITY)</option>
+                      <option value="DIESEL">Dầu (DIESEL)</option>
                     </select>
                   </label>
                   <label className="owreg__field">

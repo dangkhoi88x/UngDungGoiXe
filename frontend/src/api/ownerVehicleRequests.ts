@@ -53,7 +53,7 @@ export type AdminReviewPayload = {
 }
 
 /** Khớp `com.example.ungdunggoixe.common.FuelType` */
-export type OwnerVehicleFuelType = 'GASOLINE' | 'ELECTRICITY'
+export type OwnerVehicleFuelType = 'GASOLINE' | 'ELECTRICITY' | 'DIESEL'
 
 /** Payload POST `/owner/vehicle-requests` */
 export type CreateOwnerVehicleRequestPayload = {

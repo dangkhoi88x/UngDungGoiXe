@@ -18,6 +18,7 @@ import './CarRentalPage.css'
 
 const PLACEHOLDER_IMG =
   'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=800&q=80'
+const FUEL_FILTER_OPTIONS = ['GASOLINE', 'ELECTRICITY', 'DIESEL'] as const
 
 function cardImage(v: VehicleDto): string {
   const p = v.photos?.[0]
@@ -159,10 +160,6 @@ export default function CarRentalPage() {
     )
     values.sort((a, b) => a - b)
     return values
-  }, [vehicles])
-
-  const fuelOptions = useMemo(() => {
-    return Array.from(new Set(vehicles.map((v) => v.fuelType).filter((v): v is string => Boolean(v))))
   }, [vehicles])
 
   const stationOptions = useMemo(() => {
@@ -421,14 +418,11 @@ export default function CarRentalPage() {
                     <span>Loại nhiên liệu</span>
                     <select value={fuelFilter} onChange={(e) => setFuelFilter(e.target.value)}>
                       <option value="all">Tất cả</option>
-                      {fuelOptions.map((fuel) => {
-                        const normalizedFuel = fuel.toUpperCase()
-                        return (
-                          <option key={normalizedFuel} value={normalizedFuel}>
-                            {fuelLabel(normalizedFuel)}
-                          </option>
-                        )
-                      })}
+                      {FUEL_FILTER_OPTIONS.map((fuel) => (
+                        <option key={fuel} value={fuel}>
+                          {fuelLabel(fuel)}
+                        </option>
+                      ))}
                     </select>
                   </label>
 

@@ -218,6 +218,7 @@ export function fuelLabel(fuel: string | null | undefined): string {
   if (!fuel) return '—'
   if (fuel === 'GASOLINE') return 'Xăng'
   if (fuel === 'ELECTRICITY') return 'Điện'
+  if (fuel === 'DIESEL') return 'Dầu'
   return fuel
 }
 

@@ -11,7 +11,6 @@ import {
   uploadOwnerVehiclePhotoWithProgress,
 } from '../api/uploads'
 import {
-  parseOptionalDouble,
   parseOptionalInt,
   parseRequiredMoney,
   validateOwnerVehicleFormStrings,
@@ -62,8 +61,6 @@ export default function OwnerRegisterVehiclePage() {
   const [depositAmount, setDepositAmount] = useState('')
   const [description, setDescription] = useState('')
   const [address, setAddress] = useState('')
-  const [latitude, setLatitude] = useState('')
-  const [longitude, setLongitude] = useState('')
   const [registrationDocUrl, setRegistrationDocUrl] = useState('')
   const [insuranceDocUrl, setInsuranceDocUrl] = useState('')
   const [photoUrlsState, setPhotoUrlsState] = useState<string[]>([])
@@ -146,8 +143,8 @@ export default function OwnerRegisterVehiclePage() {
         hourlyRate,
         dailyRate,
         depositAmount,
-        latitude,
-        longitude,
+        latitude: '',
+        longitude: '',
         registrationDocUrl,
         insuranceDocUrl,
       },
@@ -184,8 +181,6 @@ export default function OwnerRegisterVehiclePage() {
     }
     const sid = Number(stationId)
     const cap = parseOptionalInt(capacity)
-    const lat = parseOptionalDouble(latitude)
-    const lng = parseOptionalDouble(longitude)
     const h = parseRequiredMoney(hourlyRate, 'Giá theo giờ')
     const d = parseRequiredMoney(dailyRate, 'Giá theo ngày')
     const dep = parseRequiredMoney(depositAmount, 'Tiền cọc')
@@ -203,8 +198,6 @@ export default function OwnerRegisterVehiclePage() {
       depositAmount: dep.value,
       description: description.trim() || undefined,
       address: address.trim() || undefined,
-      latitude: lat ?? undefined,
-      longitude: lng ?? undefined,
       registrationDocUrl: registrationDocUrl.trim(),
       insuranceDocUrl: insuranceDocUrl.trim(),
       photos: photoUrls,
@@ -501,6 +494,7 @@ export default function OwnerRegisterVehiclePage() {
                   >
                     <option value="GASOLINE">Xăng (GASOLINE)</option>
                     <option value="ELECTRICITY">Điện (ELECTRICITY)</option>
+                    <option value="DIESEL">Dầu (DIESEL)</option>
                   </select>
                 </label>
                 <label className="owreg__field">
@@ -511,9 +505,9 @@ export default function OwnerRegisterVehiclePage() {
                     onChange={(e) => setCapacity(e.target.value)}
                   >
                     <option value="">— Chọn số chỗ —</option>
-                    <option value="2">2</option>
-                    <option value="4">4</option>
-                    <option value="8">8</option>
+                    <option value="5">5</option>
+                    <option value="7">7</option>
+                    <option value="9">9</option>
                     <option value="16">16</option>
                   </select>
                 </label>
@@ -586,26 +580,6 @@ export default function OwnerRegisterVehiclePage() {
                   ))}
                 </select>
               </label>
-              <div className="owreg__grid2">
-                <label className="owreg__field">
-                  <span className="owreg__label">Vĩ độ (tùy chọn)</span>
-                  <input
-                    className="owreg__input"
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    placeholder="10.7769"
-                  />
-                </label>
-                <label className="owreg__field">
-                  <span className="owreg__label">Kinh độ (tùy chọn)</span>
-                  <input
-                    className="owreg__input"
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    placeholder="106.7009"
-                  />
-                </label>
-              </div>
             </section>
 
             <section className="owreg__section" style={{ display: step === 1 ? 'block' : 'none' }}>

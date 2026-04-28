@@ -465,7 +465,7 @@ function ProjectsSection() {
   const [vehicles, setVehicles] = useState<VehicleDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [fuelFilter, setFuelFilter] = useState<'ALL' | 'GASOLINE' | 'ELECTRICITY'>('ALL')
+  const [fuelFilter, setFuelFilter] = useState<'ALL' | 'GASOLINE' | 'ELECTRICITY' | 'DIESEL'>('ALL')
   const [seatFilter, setSeatFilter] = useState<'ALL' | 5 | 7 | 9 | 16>('ALL')
 
   useEffect(() => {
@@ -527,6 +527,13 @@ function ProjectsSection() {
           onClick={() => setFuelFilter('ELECTRICITY')}
         >
           Điện
+        </button>
+        <button
+          type="button"
+          className={`sx-projects__fleet-filter ${fuelFilter === 'DIESEL' ? 'is-active' : ''}`}
+          onClick={() => setFuelFilter('DIESEL')}
+        >
+          Dầu
         </button>
       </div>
       <div className="sx-projects__fleet-filters" role="group" aria-label="Lọc theo số chỗ">
