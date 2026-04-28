@@ -99,3 +99,31 @@
   white-space: pre-wrap;
 }
 
+/* Light/clean theme synced with owner register + owner list */
+.owreg--clean .owrd-kv,
+.owreg--clean .owrd-step-sub,
+.owreg--clean .owrd-note-text {
+  color: #1f2937;
+}
+
+.owreg--clean .owrd-muted,
+.owreg--clean .owrd-step-time,
+.owreg--clean .owrd-note-meta {
+  color: #667085;
+}
+
+.owreg--clean .owrd-step {
+  border-left-color: #c8dcff;
+}
+
+.owreg--clean .owrd-step-note {
+  background: #fff;
+  border-color: #e7ecf3;
+  color: #1f2937;
+}
+
+.owreg--clean .owrd-note-item {
+  border-color: #e7ecf3;
+  background: #fff;
+}
+

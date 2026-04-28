@@ -14,6 +14,8 @@ export type OwnerVehicleRequestHistoryItemDto = {
   eventType?: string | null
   status?: OwnerVehicleRequestStatus | null
   actorRole?: string | null
+  actorId?: number | null
+  actorEmail?: string | null
   note?: string | null
   createdAt?: string | null
 }

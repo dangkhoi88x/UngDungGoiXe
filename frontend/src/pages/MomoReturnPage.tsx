@@ -81,7 +81,7 @@ export default function MomoReturnPage() {
 
   return (
     <div className="momo-return-shell uacc">
-      <TopNav solid />
+      <TopNav solid showSearch={false} />
       <main className="momo-return">
         <section className={`momo-return__card${ok ? '' : ' is-error'}`}>
           <div className={`momo-return__badge${ok ? '' : ' is-error'}`} aria-hidden>

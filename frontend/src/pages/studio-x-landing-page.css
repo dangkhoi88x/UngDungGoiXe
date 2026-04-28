@@ -1090,6 +1090,36 @@ a.sx-text-link {
   background: rgba(0, 0, 0, 0.06);
 }
 
+.sx-projects__fleet-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.sx-projects__fleet-filter {
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  background: #fff;
+  color: #1a1a1a;
+  font-family: var(--sx-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sx-projects__fleet-filter:hover {
+  border-color: rgba(0, 0, 0, 0.35);
+}
+
+.sx-projects__fleet-filter.is-active {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+
 .sx-projects__fleet-status {
   margin: 0 0 1rem;
   font-family: var(--sx-sans);

@@ -146,7 +146,7 @@ export default function UserOrderHistoryPage() {
 
   return (
     <div className="sx-page uoh-page">
-      <TopNav solid />
+      <TopNav solid showSearch={false} />
       <main className="uoh-main">
         <header className="uoh-head">
           <div>
@@ -154,8 +154,8 @@ export default function UserOrderHistoryPage() {
             <p>Lịch sử các đơn đặt xe bạn đã giao dịch.</p>
           </div>
           <div className="uoh-actions">
-            <a className="uoh-btn uoh-btn--ghost" href="/account">
-              View Profile
+            <a className="uoh-btn uoh-btn--ghost" href="/owner/vehicle-requests">
+              Lịch sử cho thuê xe
             </a>
             <a className="uoh-btn uoh-btn--primary" href="/rent">
               View Order

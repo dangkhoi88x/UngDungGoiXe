@@ -465,6 +465,8 @@ function ProjectsSection() {
   const [vehicles, setVehicles] = useState<VehicleDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [fuelFilter, setFuelFilter] = useState<'ALL' | 'GASOLINE' | 'ELECTRICITY'>('ALL')
+  const [seatFilter, setSeatFilter] = useState<'ALL' | 5 | 7 | 9 | 16>('ALL')
 
   useEffect(() => {
     let cancelled = false
@@ -485,7 +487,16 @@ function ProjectsSection() {
     }
   }, [])
 
-  const preview = vehicles.slice(0, VFLEET_PREVIEW_MAX)
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter((v) => {
+      const fuelOk =
+        fuelFilter === 'ALL' || (v.fuelType ?? '').toUpperCase() === fuelFilter
+      const seatOk = seatFilter === 'ALL' || v.capacity === seatFilter
+      return fuelOk && seatOk
+    })
+  }, [fuelFilter, seatFilter, vehicles])
+
+  const preview = filteredVehicles.slice(0, VFLEET_PREVIEW_MAX)
 
   return (
     <section id="projects" className="sx-projects sx-projects--fleet">
@@ -495,6 +506,66 @@ function ProjectsSection() {
         Xe có trạng thái <strong>AVAILABLE</strong> từ API{' '}
         <code>/vehicles?status=AVAILABLE</code> — cùng giao diện thẻ như trang thuê xe.
       </p>
+      <div className="sx-projects__fleet-filters" role="group" aria-label="Lọc theo nhiên liệu">
+        <button
+          type="button"
+          className={`sx-projects__fleet-filter ${fuelFilter === 'ALL' ? 'is-active' : ''}`}
+          onClick={() => setFuelFilter('ALL')}
+        >
+          Tất cả
+        </button>
+        <button
+          type="button"
+          className={`sx-projects__fleet-filter ${fuelFilter === 'GASOLINE' ? 'is-active' : ''}`}
+          onClick={() => setFuelFilter('GASOLINE')}
+        >
+          Xăng
+        </button>
+        <button
+          type="button"
+          className={`sx-projects__fleet-filter ${fuelFilter === 'ELECTRICITY' ? 'is-active' : ''}`}
+          onClick={() => setFuelFilter('ELECTRICITY')}
+        >
+          Điện
+        </button>
+      </div>
+      <div className="sx-projects__fleet-filters" role="group" aria-label="Lọc theo số chỗ">
+        <button
+          type="button"
+          className={`sx-projects__fleet-filter ${seatFilter === 'ALL' ? 'is-active' : ''}`}
+          onClick={() => setSeatFilter('ALL')}
+        >
+          Tất cả chỗ
+        </button>
+        <button
+          type="button"
+          className={`sx-projects__fleet-filter ${seatFilter === 5 ? 'is-active' : ''}`}
+          onClick={() => setSeatFilter(5)}
+        >
+          5 chỗ
+        </button>
+        <button
+          type="button"
+          className={`sx-projects__fleet-filter ${seatFilter === 7 ? 'is-active' : ''}`}
+          onClick={() => setSeatFilter(7)}
+        >
+          7 chỗ
+        </button>
+        <button
+          type="button"
+          className={`sx-projects__fleet-filter ${seatFilter === 9 ? 'is-active' : ''}`}
+          onClick={() => setSeatFilter(9)}
+        >
+          9 chỗ
+        </button>
+        <button
+          type="button"
+          className={`sx-projects__fleet-filter ${seatFilter === 16 ? 'is-active' : ''}`}
+          onClick={() => setSeatFilter(16)}
+        >
+          16 chỗ
+        </button>
+      </div>
       {loading ? (
         <p className="sx-projects__fleet-status" role="status">
           Đang tải danh sách xe…
@@ -503,6 +574,11 @@ function ProjectsSection() {
       {error ? (
         <p className="sx-projects__fleet-status sx-projects__fleet-status--error" role="alert">
           {error}
+        </p>
+      ) : null}
+      {!loading && !error && preview.length === 0 ? (
+        <p className="sx-projects__fleet-status" role="status">
+          Không có xe phù hợp với bộ lọc nhiên liệu đã chọn.
         </p>
       ) : null}
       <div className="sx-vfleet-grid">
@@ -777,7 +853,7 @@ function StudioXLandingPage() {
 
   return (
     <div className="sx-page">
-      <TopNav solid={navSolid} />
+      <TopNav solid={navSolid} showSearch={false} />
       <HeroSection />
       <main>
         <AboutSection />

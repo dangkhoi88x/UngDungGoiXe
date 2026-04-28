@@ -15,6 +15,7 @@ import {
   formatHourlyPrice,
   fuelLabel,
   inferCategory,
+  vehiclePolicyLabel,
   vehicleDisplayName,
 } from '../api/vehicles'
 import './VehicleDetailPage.css'
@@ -386,7 +387,7 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
             <h2 id="vd-policies-title">Chính sách &amp; điều khoản</h2>
             <ul className="vd-policies">
               {vehicle.policies.map((p, i) => (
-                <li key={i}>{p}</li>
+                <li key={i}>{vehiclePolicyLabel(p)}</li>
               ))}
             </ul>
           </section>

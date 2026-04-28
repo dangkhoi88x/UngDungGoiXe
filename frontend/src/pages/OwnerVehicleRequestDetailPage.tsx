@@ -6,6 +6,7 @@ import {
   type OwnerVehicleRequestHistoryItemDto,
   type OwnerVehicleRequestStatus,
 } from '../api/ownerVehicleRequests'
+import TopNav from '../components/TopNav'
 import './OwnerRegisterVehiclePage.css'
 import './OwnerVehicleRequestDetailPage.css'
 
@@ -115,22 +116,9 @@ export default function OwnerVehicleRequestDetailPage() {
   )
 
   return (
-    <div className="owreg">
-      <header className="owreg__toolbar">
-        <nav className="owreg__crumb" aria-label="Breadcrumb">
-          <a className="owreg__crumb-link" href="/">
-            Trang chủ
-          </a>
-          <span className="owreg__crumb-sep">/</span>
-          <a className="owreg__crumb-link" href="/owner/vehicle-requests">
-            Yêu cầu xe của tôi
-          </a>
-          <span className="owreg__crumb-sep">/</span>
-          <span className="owreg__crumb-current">Chi tiết #{requestId}</span>
-        </nav>
-      </header>
-
-      <main className="owreg__main owrd-main">
+    <div className="owreg owreg--clean">
+      <TopNav solid showSearch={false} />
+      <main className="owreg__main owreg__main--clean owrd-main">
         <h1 className="owreg__title">Chi tiết yêu cầu #{requestId}</h1>
         {loading ? <p className="owrd-muted">Đang tải dữ liệu…</p> : null}
         {error ? (

@@ -220,3 +220,19 @@ export function fuelLabel(fuel: string | null | undefined): string {
   if (fuel === 'ELECTRICITY') return 'Điện'
   return fuel
 }
+
+export function vehiclePolicyLabel(policy: string | null | undefined): string {
+  if (!policy) return '—'
+  const key = policy.trim().toUpperCase()
+  if (key === 'NO_SMOKING') return 'Không hút thuốc trong xe'
+  if (key === 'LATE_RETURN_SURCHARGE') return 'Trả xe trễ sẽ bị tính phụ phí theo giờ/ngày'
+  if (key === 'EXTENSION_REQUIRES_APPROVAL')
+    return 'Muốn gia hạn phải thông báo trước và được bên cho thuê đồng ý'
+  if (key === 'NO_SUBLEASING') return 'Không cho người khác thuê lại nếu chưa được phép'
+  if (key === 'PET_POLICY') return 'Quy định về thú cưng'
+  if (key === 'HOME_DELIVERY_SURCHARGE') return 'Phụ phí giao xe tận nơi'
+  if (key === 'FREE_CANCELLATION_FEE') return 'Miễn phí phí hủy đặt xe'
+  if (key === 'DEPOSIT_FORFEIT_CANCELLATION_FEE') return 'Mất cọc phí hủy đặt xe'
+  if (key === 'ADDITIONAL_DRIVER_FEE') return 'Tính phí người lái phụ'
+  return policy
+}

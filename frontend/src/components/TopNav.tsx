@@ -2,9 +2,10 @@ import { useEffect, useState, type FormEvent } from 'react'
 
 type TopNavProps = {
   solid?: boolean
+  showSearch?: boolean
 }
 
-export default function TopNav({ solid = false }: TopNavProps) {
+export default function TopNav({ solid = false, showSearch = true }: TopNavProps) {
   const [authUi, setAuthUi] = useState<{ loggedIn: boolean; displayName: string | null }>({
     loggedIn: false,
     displayName: null,
@@ -41,24 +42,29 @@ export default function TopNav({ solid = false }: TopNavProps) {
         <ul className="cr-nav__links">
           <li><a href="/blog">Blog</a></li>
           <li><a href="/rent">Car Rental</a></li>
+          <li><a href="/mapstation">Trạm xe</a></li>
           <li>
             <a href="/account/orders">Lịch sử</a>
           </li>
         </ul>
       </div>
-      <div className="cr-nav__search-wrap">
-        <form className="cr-nav__search" onSubmit={handleNavSearchSubmit} role="search">
-          <span aria-hidden="true">🔍</span>
-          <input
-            type="search"
-            name="navSearch"
-            placeholder="Search destination..."
-            aria-label="Search destination"
-            value={navQuery}
-            onChange={(ev) => setNavQuery(ev.target.value)}
-          />
-        </form>
-      </div>
+      {showSearch ? (
+        <div className="cr-nav__search-wrap">
+          <form className="cr-nav__search" onSubmit={handleNavSearchSubmit} role="search">
+            <span aria-hidden="true">🔍</span>
+            <input
+              type="search"
+              name="navSearch"
+              placeholder="Search destination..."
+              aria-label="Search destination"
+              value={navQuery}
+              onChange={(ev) => setNavQuery(ev.target.value)}
+            />
+          </form>
+        </div>
+      ) : (
+        <div className="cr-nav__search-wrap" aria-hidden="true" />
+      )}
       <div className="cr-nav__right">
         <button type="button" className="cr-nav__lang" aria-label="Language English">
           🌐 EN

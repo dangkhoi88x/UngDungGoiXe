@@ -8,6 +8,7 @@ import {
   type OwnerVehicleRequestStatus,
 } from '../api/ownerVehicleRequests'
 import { useOwnerRequestStatusWatcher } from '../hooks/useOwnerRequestStatusWatcher'
+import TopNav from '../components/TopNav'
 import './OwnerRegisterVehiclePage.css'
 import './OwnerMyVehicleRequestsPage.css'
 
@@ -145,22 +146,9 @@ export default function OwnerMyVehicleRequestsPage() {
   }
 
   return (
-    <div className="owreg">
-      <header className="owreg__toolbar">
-        <nav className="owreg__crumb" aria-label="Breadcrumb">
-          <a className="owreg__crumb-link" href="/">
-            Trang chủ
-          </a>
-          <span className="owreg__crumb-sep">/</span>
-          <a className="owreg__crumb-link" href="/account">
-            Tài khoản
-          </a>
-          <span className="owreg__crumb-sep">/</span>
-          <span className="owreg__crumb-current">Yêu cầu xe của tôi</span>
-        </nav>
-      </header>
-
-      <main className="owreg__main owmr-main">
+    <div className="owreg owreg--clean">
+      <TopNav solid showSearch={false} />
+      <main className="owreg__main owreg__main--clean owmr-main">
         <div className="owmr-head">
           <div>
             <h1 className="owreg__title owmr-title">Yêu cầu xe của tôi</h1>

@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -49,6 +50,8 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final MomoService momoService;
     private final BookingService bookingService;
+    private final MailService mailService;
+    private static final DateTimeFormatter EMAIL_DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     @Transactional
     public PaymentResponse createPayment(CreatePaymentRequest request) {
@@ -109,6 +112,7 @@ public class PaymentService {
 
         Payment saved = paymentRepository.save(payment);
         updateBookingPaymentStatus(payment.getBooking());
+        sendPaymentSuccessEmail(saved);
         return PaymentMapper.INSTANCE.toPaymentResponse(saved);
     }
 
@@ -120,6 +124,7 @@ public class PaymentService {
         resolveCurrentUser().ifPresent(payment::setProcessedBy);
         Payment saved = paymentRepository.save(payment);
         updateBookingPaymentStatus(saved.getBooking());
+        sendPaymentSuccessEmail(saved);
         return PaymentMapper.INSTANCE.toPaymentResponse(saved);
     }
 
@@ -131,6 +136,7 @@ public class PaymentService {
         resolveCurrentUser().ifPresent(payment::setProcessedBy);
         Payment saved = paymentRepository.save(payment);
         updateBookingPaymentStatus(saved.getBooking());
+        sendPaymentSuccessEmail(saved);
         return PaymentMapper.INSTANCE.toPaymentResponse(saved);
     }
 
@@ -343,6 +349,9 @@ public class PaymentService {
         }
         Payment saved = paymentRepository.save(payment);
         updateBookingPaymentStatus(saved.getBooking());
+        if (target == Payment.PaymentStatus.PAID) {
+            sendPaymentSuccessEmail(saved);
+        }
         return true;
     }
 
@@ -521,5 +530,44 @@ public class PaymentService {
             }
         }
         return null;
+    }
+
+    private void sendPaymentSuccessEmail(Payment payment) {
+        if (payment == null || payment.getStatus() != Payment.PaymentStatus.PAID) {
+            return;
+        }
+        Booking booking = payment.getBooking();
+        if (booking == null || booking.getRenter() == null) {
+            return;
+        }
+
+        String to = booking.getRenter().getEmail();
+        if (to == null || to.isBlank()) {
+            return;
+        }
+
+        String renterName = booking.getRenter().getFirstName() == null
+                ? "bạn"
+                : booking.getRenter().getFirstName().trim();
+        String bookingCode = booking.getBookingCode() == null ? String.valueOf(booking.getId()) : booking.getBookingCode();
+        String amount = payment.getAmount() == null
+                ? "0"
+                : payment.getAmount().setScale(0, RoundingMode.HALF_UP).toPlainString();
+        String paidAt = payment.getPaidAt() == null
+                ? LocalDateTime.now().format(EMAIL_DATE_TIME_FMT)
+                : payment.getPaidAt().format(EMAIL_DATE_TIME_FMT);
+
+        String subject = "Thanh toán thuê xe thành công - " + bookingCode;
+        String body = "Xin chào " + renterName + ",\n\n"
+                + "Thanh toán cho đơn thuê xe của bạn đã thành công.\n"
+                + "- Mã booking: " + bookingCode + "\n"
+                + "- Số tiền: " + amount + " VND\n"
+                + "- Thời gian thanh toán: " + paidAt + "\n\n"
+                + "Cảm ơn bạn đã sử dụng dịch vụ.";
+        try {
+            mailService.sendMail(to, subject, body);
+        } catch (Exception ex) {
+            log.error("Failed to send payment success email for paymentId={}", payment.getId(), ex);
+        }
     }
 }
