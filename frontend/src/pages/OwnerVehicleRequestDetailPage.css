@@ -25,48 +25,110 @@
   color: rgba(232, 236, 241, 0.58);
 }
 
-.owrd-timeline {
+.owrd-track {
   margin: 0;
-  padding: 0 0 0 20px;
+  padding: 14px;
+  list-style: none;
+  border: 1px solid #e4e9f1;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
   display: grid;
+  gap: 22px;
+}
+
+.owrd-track-item {
+  display: grid;
+  grid-template-columns: 34px 1fr;
   gap: 12px;
 }
 
-.owrd-step {
-  border-left: 2px solid rgba(138, 180, 255, 0.35);
-  padding-left: 12px;
-}
-
-.owrd-step-head {
+.owrd-track-rail {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 6px 12px;
+  justify-content: center;
 }
 
-.owrd-step-title {
-  font-weight: 700;
+.owrd-track-item .owrd-track-rail::after {
+  content: '';
+  position: absolute;
+  top: 32px;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 2px dashed #c5cfdd;
+}
+
+.owrd-track-item:last-child .owrd-track-rail::after {
+  display: none;
+}
+
+.owrd-track-item.is-active .owrd-track-rail::after {
+  border-left-style: solid;
+  border-left-color: #f08a24;
+}
+
+.owrd-track-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #d2dae7;
+  color: #667085;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.owrd-track-item.is-active .owrd-track-dot {
+  background: #f08a24;
+  color: #fff;
+}
+
+.owrd-track-body {
+  min-width: 0;
+}
+
+.owrd-track-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.owrd-track-date {
   font-size: 14px;
 }
 
-.owrd-step-time {
-  color: rgba(232, 236, 241, 0.6);
+.owrd-track-time {
   font-size: 12px;
+  color: #667085;
 }
 
-.owrd-step-sub {
+.owrd-track-message {
   margin: 4px 0 0;
-  color: rgba(232, 236, 241, 0.76);
-  font-size: 13px;
+  font-size: 14px;
+  color: #1f2937;
 }
 
-.owrd-step-note {
-  margin: 6px 0 0;
-  padding: 10px 12px;
+.owrd-track-message.is-highlight {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.owrd-track-address {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: #98a2b3;
+}
+
+.owrd-track-note {
+  margin: 7px 0 0;
+  padding: 9px 11px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(232, 236, 241, 0.92);
+  border: 1px solid #e4e9f1;
+  background: #f8fafc;
+  color: #334155;
   font-size: 13px;
   white-space: pre-wrap;
 }
@@ -101,25 +163,13 @@
 
 /* Light/clean theme synced with owner register + owner list */
 .owreg--clean .owrd-kv,
-.owreg--clean .owrd-step-sub,
 .owreg--clean .owrd-note-text {
   color: #1f2937;
 }
 
 .owreg--clean .owrd-muted,
-.owreg--clean .owrd-step-time,
 .owreg--clean .owrd-note-meta {
   color: #667085;
-}
-
-.owreg--clean .owrd-step {
-  border-left-color: #c8dcff;
-}
-
-.owreg--clean .owrd-step-note {
-  background: #fff;
-  border-color: #e7ecf3;
-  color: #1f2937;
 }
 
 .owreg--clean .owrd-note-item {

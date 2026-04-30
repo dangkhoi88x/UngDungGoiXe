@@ -78,6 +78,38 @@ function moneyToNumber(v: string | number | null | undefined): number {
   return Number.isFinite(n) ? n : 0
 }
 
+function bookingAnchorDate(booking: BookingDto): Date | null {
+  const base = booking.startTime || booking.createdAt || booking.expectedEndTime
+  if (!base) return null
+  const d = new Date(base)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function bookingDayMeta(booking: BookingDto): { month: string; weekday: string; day: string } {
+  const d = bookingAnchorDate(booking)
+  if (!d) return { month: '—', weekday: '—', day: '—' }
+  const month = d.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' })
+  const day = String(d.getDate())
+  return { month, weekday, day }
+}
+
+function dateTimeLabel(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+function bookingDateTimeRange(booking: BookingDto): string {
+  return `${dateTimeLabel(booking.startTime)} - ${dateTimeLabel(booking.expectedEndTime)}`
+}
+
+function paidBadge(payments: PaymentDto[]): 'PAID' | 'UNPAID' {
+  const hasPaid = payments.some((p) => String(p.status || '').toUpperCase() === 'PAID')
+  return hasPaid ? 'PAID' : 'UNPAID'
+}
+
 export default function UserOrderHistoryPage() {
   const [rows, setRows] = useState<RowWithPayments[]>([])
   const [loading, setLoading] = useState(true)
@@ -186,57 +218,66 @@ export default function UserOrderHistoryPage() {
         {!loading && !error && visible.length === 0 ? <p className="uoh-note">Không có đơn nào trong tab này.</p> : null}
 
         {!loading && !error && visible.length > 0 ? (
-          <section className="uoh-table-wrap" aria-label="My booking history">
-            <table className="uoh-table">
-              <thead>
-                <tr>
-                  <th>Đơn</th>
-                  <th>Trạm nhận xe</th>
-                  <th>Tạo lúc</th>
-                  <th>Trạng thái thuê</th>
-                  <th>PT thanh toán</th>
-                  <th>Đã trả</th>
-                  <th>Còn lại</th>
-                  <th>TOPUP / REFUND</th>
-                  <th>Chi tiết</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map(({ booking, payments }) => {
-                  const total = moneyToNumber(booking.totalAmount)
-                  const paid = moneyToNumber(booking.partiallyPaid)
-                  const remaining = Math.max(0, total - paid)
-                  return (
-                    <tr key={booking.id}>
-                      <td>
-                        <div className="uoh-item">
-                          <div className="uoh-item__name">{booking.vehicleName || `Xe #${booking.vehicleId}`}</div>
-                          <div className="uoh-item__sub">Mã: {booking.bookingCode}</div>
-                          <div className="uoh-item__sub">Nhận: {fmtDate(booking.startTime)}</div>
-                          <div className="uoh-item__sub">Trả: {fmtDate(booking.expectedEndTime)}</div>
-                        </div>
-                      </td>
-                      <td>{booking.stationName || `Trạm #${booking.stationId}`}</td>
-                      <td>{fmtDate(booking.createdAt)}</td>
-                      <td>
-                        <span className={`uoh-status uoh-status--${toTab(booking.status).toLowerCase()}`}>
-                          {rentalStatusVi(booking.status)}
-                        </span>
-                      </td>
-                      <td>{paymentMethodVi(payments)}</td>
-                      <td>{formatBookingMoney(booking.partiallyPaid)}</td>
-                      <td>{formatBookingMoney(remaining)}</td>
-                      <td className="uoh-adjust">{adjustmentStatus(payments)}</td>
-                      <td>
-                        <a className="uoh-detail-btn" href={`/rent/${booking.vehicleId}`}>
-                          Order Details
-                        </a>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          <section className="uoh-booking-list" aria-label="My booking history">
+            {visible.map(({ booking, payments }) => {
+              const total = moneyToNumber(booking.totalAmount)
+              const paid = moneyToNumber(booking.partiallyPaid)
+              const remaining = Math.max(0, total - paid)
+              const dayMeta = bookingDayMeta(booking)
+              const badge = paidBadge(payments)
+              const confirmed = payments.filter((p) => String(p.status || '').toUpperCase() === 'PAID').length
+              const totalPayments = payments.length
+              const extraCount = payments.filter((p) => {
+                const purpose = String(p.paymentPurpose || '').toUpperCase()
+                return purpose === 'TOPUP' || purpose === 'REFUND'
+              }).length
+              return (
+                <article key={booking.id} className="uoh-booking-card">
+                  <div className="uoh-booking-day">
+                    <span className="uoh-booking-day__month">{dayMeta.month}</span>
+                    <span className="uoh-booking-day__weekday">{dayMeta.weekday}</span>
+                    <strong className="uoh-booking-day__num">{dayMeta.day}</strong>
+                  </div>
+
+                  <div className="uoh-booking-schedule">
+                    <p className="uoh-booking-schedule__time">🕒 {bookingDateTimeRange(booking)}</p>
+                    <p className="uoh-booking-schedule__place">
+                      📍 {booking.stationName || `Trạm #${booking.stationId}`}
+                    </p>
+                    <p className="uoh-booking-schedule__meta">
+                      Mã: {booking.bookingCode} · Tạo lúc {fmtDate(booking.createdAt)}
+                    </p>
+                  </div>
+
+                  <div className="uoh-booking-detail">
+                    <div className="uoh-booking-detail__head">
+                      <h3>{booking.vehicleName || `Xe #${booking.vehicleId}`}</h3>
+                      <span className={`uoh-pay-badge uoh-pay-badge--${badge.toLowerCase()}`}>{badge}</span>
+                    </div>
+                    <p className="uoh-booking-detail__confirmed">
+                      {confirmed}/{totalPayments} confirmed · {rentalStatusVi(booking.status)}
+                    </p>
+                    <p className="uoh-booking-detail__money">
+                      Đã trả {formatBookingMoney(booking.partiallyPaid)} · Còn lại {formatBookingMoney(remaining)}
+                    </p>
+                    <p className="uoh-booking-detail__sub">
+                      {paymentMethodVi(payments)} · {adjustmentStatus(payments)}
+                    </p>
+                  </div>
+
+                  <div className="uoh-booking-extra">+{extraCount}</div>
+
+                  <div className="uoh-booking-actions">
+                    <a className="uoh-action-btn" href={`/rent/${booking.vehicleId}`} aria-label="Thêm chi tiết">
+                      +
+                    </a>
+                    <a className="uoh-action-btn" href={`/rent/${booking.vehicleId}`} aria-label="Chỉnh sửa đơn">
+                      ✎
+                    </a>
+                  </div>
+                </article>
+              )
+            })}
           </section>
         ) : null}
       </main>

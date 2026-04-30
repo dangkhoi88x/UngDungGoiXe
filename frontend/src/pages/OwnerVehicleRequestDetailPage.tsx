@@ -49,6 +49,30 @@ function toDate(value?: string | null): string {
   return d.toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function toDateOnly(value?: string | null): string {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (!Number.isFinite(d.getTime())) return value
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function toTimeOnly(value?: string | null): string {
+  if (!value) return '--:--'
+  const d = new Date(value)
+  if (!Number.isFinite(d.getTime())) return '--:--'
+  return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function timelineIcon(eventType?: string | null, status?: string | null): string {
+  const st = String(status || '').toUpperCase()
+  const evt = String(eventType || '').toUpperCase()
+  if (st === 'APPROVED') return '✓'
+  if (st === 'REJECTED' || st === 'CANCELLED') return '✕'
+  if (st === 'NEED_MORE_INFO') return '!'
+  if (evt === 'UPDATED_BY_OWNER' || evt === 'RESUBMITTED' || evt === 'SUBMITTED') return '🚗'
+  return '•'
+}
+
 export default function OwnerVehicleRequestDetailPage() {
   const { id: idParam } = useParams<{ id: string }>()
   const requestId = Number(idParam)
@@ -115,6 +139,8 @@ export default function OwnerVehicleRequestDetailPage() {
     [timeline],
   )
 
+  const timelineForDisplay = useMemo(() => [...timeline], [timeline])
+
   return (
     <div className="owreg owreg--clean">
       <TopNav solid showSearch={false} />
@@ -160,23 +186,36 @@ export default function OwnerVehicleRequestDetailPage() {
 
             <section className="owreg__section">
               <h2 className="owreg__section-title">Timeline xử lý</h2>
-              {timeline.length === 0 ? (
+              {timelineForDisplay.length === 0 ? (
                 <p className="owrd-muted">Chưa có mốc xử lý.</p>
               ) : (
-                <ol className="owrd-timeline">
-                  {timeline.map((h, idx) => (
-                    <li key={`${h.eventType ?? 'evt'}-${h.createdAt ?? idx}`} className="owrd-step">
-                      <div className="owrd-step-head">
-                        <span className="owrd-step-title">{eventLabel(h.eventType)}</span>
-                        <span className="owrd-step-time">{toDate(h.createdAt)}</span>
-                      </div>
-                      <p className="owrd-step-sub">
-                        <strong>{actorLabel(h.actorRole)}</strong> · Trạng thái:{' '}
-                        {statusLabel(h.status)}
-                      </p>
-                      {h.note?.trim() ? <p className="owrd-step-note">{h.note}</p> : null}
-                    </li>
-                  ))}
+                <ol className="owrd-track">
+                  {timelineForDisplay.map((h, idx) => {
+                    const active = idx === timelineForDisplay.length - 1
+                    return (
+                      <li
+                        key={`${h.eventType ?? 'evt'}-${h.createdAt ?? idx}`}
+                        className={`owrd-track-item${active ? ' is-active' : ''}`}
+                      >
+                        <div className="owrd-track-rail" aria-hidden="true">
+                          <span className="owrd-track-dot">{timelineIcon(h.eventType, h.status)}</span>
+                        </div>
+                        <div className="owrd-track-body">
+                          <div className="owrd-track-head">
+                            <strong className="owrd-track-date">{toDateOnly(h.createdAt)}</strong>
+                            <span className="owrd-track-time">{toTimeOnly(h.createdAt)}</span>
+                          </div>
+                          <p className={`owrd-track-message${active ? ' is-highlight' : ''}`}>
+                            {eventLabel(h.eventType)} · {statusLabel(h.status)}
+                          </p>
+                          <p className="owrd-track-address">
+                            {actorLabel(h.actorRole)} · Hồ sơ xe {item?.licensePlate || 'đang xử lý'}
+                          </p>
+                          {h.note?.trim() ? <p className="owrd-track-note">{h.note}</p> : null}
+                        </div>
+                      </li>
+                    )
+                  })}
                 </ol>
               )}
             </section>
