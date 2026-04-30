@@ -731,12 +731,8 @@ function ProjectsSection() {
 
   return (
     <section id="projects" className="sx-projects sx-projects--fleet">
-      <p className="sx-section-label">(Hệ thống)</p>
-      <h2 className="sx-projects__title">Các phân hệ chính của đồ án</h2>
-      <p className="sx-projects__fleet-hint">
-        Xe có trạng thái <strong>AVAILABLE</strong> từ API{' '}
-        <code>/vehicles?status=AVAILABLE</code> — cùng giao diện thẻ như trang thuê xe.
-      </p>
+      <h2 className="sx-projects__title">Khám phá xe phù hợp cho bạn</h2>
+
       <div className="sx-projects__fleet-filters" role="group" aria-label="Lọc theo nhiên liệu">
         <button
           type="button"
@@ -987,8 +983,8 @@ function StudioXLandingPage() {
       <HeroSection />
       <main>
         <QuickSearchSection />
-        <SolutionsSection />
         <ProjectsSection />
+        <SolutionsSection />
         <BlogSection />
       </main>
       <FooterSection />

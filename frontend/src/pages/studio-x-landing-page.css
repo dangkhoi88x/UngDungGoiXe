@@ -1338,10 +1338,12 @@ a.sx-text-link {
 }
 
 .sx-projects__title {
-  margin: 0 0 0.75rem;
-  font-family: var(--sx-serif);
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  font-weight: 300;
+  margin: 0 0 1.2rem;
+  text-align: center;
+  font-family: var(--sx-sans);
+  font-size: clamp(1.7rem, 3.5vw, 2.45rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .sx-projects__fleet-hint {
@@ -1363,31 +1365,40 @@ a.sx-text-link {
 .sx-projects__fleet-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0 0 1rem;
+  justify-content: center;
+  gap: 1.1rem;
+  margin: 0 0 0.55rem;
+  width: 100%;
 }
 
 .sx-projects__fleet-filter {
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  background: #fff;
-  color: #1a1a1a;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #4b5563;
   font-family: var(--sx-sans);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  padding: 0.4rem 0.8rem;
-  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.25rem 0.15rem 0.38rem;
+  border-radius: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .sx-projects__fleet-filter:hover {
-  border-color: rgba(0, 0, 0, 0.35);
+  color: #111827;
+}
+
+.sx-projects__fleet-filter:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.42);
+  outline-offset: 2px;
 }
 
 .sx-projects__fleet-filter.is-active {
-  background: #1a1a1a;
-  color: #fff;
-  border-color: #1a1a1a;
+  color: #111827;
+  border-bottom-color: #7c8ee6;
 }
 
 .sx-projects__fleet-status {
