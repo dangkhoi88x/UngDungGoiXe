@@ -2,12 +2,11 @@ import {
   useEffect,
   useMemo,
   useState,
+  type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
 import {
   BLOG_POSTS,
-  PROCESS_STEPS,
-  type ProcessStep,
 } from './studio-x-content'
 import {
   type VehicleDto,
@@ -20,12 +19,11 @@ import {
 import TopNav from '../components/TopNav'
 import './studio-x-landing-page.css'
 
-const VEX_HERO_VIDEO_URL =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260403_050628_c4e32401-fab4-4a27-b7a8-6e9291cd5959.mp4'
+
 
 function VexHeroHeading() {
-  const line1 = 'Shaping tomorrow'
-  const line2 = 'with vision and action.'
+  const line1 = 'Thuê xe'
+  const line2 = 'phù hợp cho mọi chuyến đi'
   const [animate, setAnimate] = useState(false)
 
   useEffect(() => {
@@ -72,7 +70,7 @@ function HeroSection() {
         playsInline
         aria-hidden="true"
       >
-        <source src={VEX_HERO_VIDEO_URL} type="video/mp4" />
+        <source src="public/videos/cars-hero.mp4" type="video/mp4" />
       </video>
       <div className="vex-hero__scrim" aria-hidden="true" />
 
@@ -81,7 +79,7 @@ function HeroSection() {
           <div className="vex-hero__col vex-hero__col--left">
             <VexHeroHeading />
             <p className="vex-hero__sub">
-              We back visionaries and craft ventures that define what comes next.
+            Hàng trăm lựa chọn với một mục tiêu là làm bạn có trải nghiệm hài lòng
             </p>
             <div className="vex-hero__actions">
               <a className="vex-hero__btn vex-hero__btn--primary" href="/auth">
@@ -90,7 +88,7 @@ function HeroSection() {
               <button
                 type="button"
                 className="vex-hero__btn vex-hero__btn--glass liquid-glass"
-                onClick={() => go('about')}
+                onClick={() => go('solutions')}
               >
                 Explore Now
               </button>
@@ -98,10 +96,281 @@ function HeroSection() {
           </div>
           <div className="vex-hero__col vex-hero__col--right">
             <p className="vex-hero__tag liquid-glass">
-              Investing. Building. Advisory.
+              Tự Do.An Toàn.Tiện Lợi.
             </p>
           </div>
         </div>
+      </div>
+    </section>
+  )
+}
+
+const LANDING_FUEL_OPTIONS = ['GASOLINE', 'DIESEL', 'ELECTRICITY'] as const
+const LANDING_SEAT_OPTIONS = [4, 5, 7, 9, 16] as const
+
+function formatCompactPrice(value: number): string {
+  return new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.round(value)))
+}
+
+function datetimeLocalNowMin(): string {
+  const now = new Date()
+  const offsetMs = now.getTimezoneOffset() * 60 * 1000
+  return new Date(now.getTime() - offsetMs).toISOString().slice(0, 16)
+}
+
+function QuickSearchSection() {
+  const [pickupAt, setPickupAt] = useState('')
+  const [returnAt, setReturnAt] = useState('')
+  const [seatFilter, setSeatFilter] = useState('all')
+  const [fuelFilter, setFuelFilter] = useState('all')
+  const [stationFilter, setStationFilter] = useState('all')
+  const [availabilityOnly, setAvailabilityOnly] = useState(false)
+  const [driverMode, setDriverMode] = useState<'without' | 'with'>('without')
+  const [vehicles, setVehicles] = useState<VehicleDto[]>([])
+  const [priceFilter, setPriceFilter] = useState<{ min: number; max: number } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const nowMinDateTime = useMemo(() => datetimeLocalNowMin(), [])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const list = await fetchAvailableVehicles()
+        if (!cancelled) setVehicles(list)
+      } catch {
+        if (!cancelled) setVehicles([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const stationOptions = useMemo(() => {
+    const ids = new Set<number>()
+    for (const v of vehicles) {
+      if (typeof v.stationId === 'number' && Number.isFinite(v.stationId)) {
+        ids.add(v.stationId)
+      }
+    }
+    return Array.from(ids).sort((a, b) => a - b)
+  }, [vehicles])
+
+  const priceBounds = useMemo(() => {
+    const prices = vehicles
+      .map((v) => Number(v.dailyRate))
+      .filter((value) => Number.isFinite(value) && value > 0)
+    if (prices.length === 0) return null
+    return { min: Math.min(...prices), max: Math.max(...prices) }
+  }, [vehicles])
+
+  useEffect(() => {
+    if (!priceBounds) {
+      setPriceFilter(null)
+      return
+    }
+    setPriceFilter((prev) => {
+      if (!prev) return { ...priceBounds }
+      return {
+        min: Math.max(priceBounds.min, Math.min(prev.min, priceBounds.max)),
+        max: Math.min(priceBounds.max, Math.max(prev.max, priceBounds.min)),
+      }
+    })
+  }, [priceBounds])
+
+  const hasValidAvailabilityWindow = useMemo(() => {
+    if (!pickupAt || !returnAt) return false
+    return new Date(returnAt).getTime() > new Date(pickupAt).getTime()
+  }, [pickupAt, returnAt])
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (availabilityOnly && !hasValidAvailabilityWindow) {
+      setError('Vui lòng chọn mốc nhận/trả hợp lệ để tìm xe trống theo thời gian.')
+      return
+    }
+    setError(null)
+    const params = new URLSearchParams()
+    if (pickupAt) params.set('pickupAt', pickupAt)
+    if (returnAt) params.set('returnAt', returnAt)
+    if (seatFilter !== 'all') params.set('seat', seatFilter)
+    if (fuelFilter !== 'all') params.set('fuel', fuelFilter)
+    if (stationFilter !== 'all') params.set('stationId', stationFilter)
+    if (availabilityOnly) params.set('availabilityOnly', '1')
+    params.set('driverMode', driverMode)
+    if (
+      priceBounds &&
+      priceFilter &&
+      (priceFilter.min !== priceBounds.min || priceFilter.max !== priceBounds.max)
+    ) {
+      params.set('minDailyRate', String(priceFilter.min))
+      params.set('maxDailyRate', String(priceFilter.max))
+    }
+    const query = params.toString()
+    window.location.href = query ? `/rent?${query}` : '/rent'
+  }
+
+  return (
+    <section id="quick-search" className="sx-quick-search" aria-label="Tìm xe nhanh">
+      <div className="sx-quick-search__shell">
+        <form className="sx-quick-search__form" onSubmit={onSubmit}>
+          <div className="sx-quick-search__row sx-quick-search__row--date">
+            <label className="sx-quick-search__field">
+              <span className="sx-quick-search__label">Pick Up Date &amp; Time</span>
+              <div className="sx-quick-search__input">
+                <span aria-hidden="true">📅</span>
+                <input
+                  type="datetime-local"
+                  min={nowMinDateTime}
+                  value={pickupAt}
+                  onChange={(e) => setPickupAt(e.target.value)}
+                />
+              </div>
+            </label>
+            <label className="sx-quick-search__field">
+              <span className="sx-quick-search__label">Return Date &amp; Time</span>
+              <div className="sx-quick-search__input">
+                <span aria-hidden="true">📅</span>
+                <input
+                  type="datetime-local"
+                  min={pickupAt || nowMinDateTime}
+                  value={returnAt}
+                  onChange={(e) => setReturnAt(e.target.value)}
+                />
+              </div>
+            </label>
+          </div>
+
+          <div className="sx-quick-search__row sx-quick-search__row--filters">
+            <label className="sx-quick-search__select">
+              <span>Số chỗ</span>
+              <select value={seatFilter} onChange={(e) => setSeatFilter(e.target.value)}>
+                <option value="all">Tất cả</option>
+                {LANDING_SEAT_OPTIONS.map((seat) => (
+                  <option key={seat} value={String(seat)}>
+                    {seat} chỗ
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="sx-quick-search__select">
+              <span>Loại nhiên liệu</span>
+              <select value={fuelFilter} onChange={(e) => setFuelFilter(e.target.value)}>
+                <option value="all">Tất cả</option>
+                {LANDING_FUEL_OPTIONS.map((fuel) => (
+                  <option key={fuel} value={fuel}>
+                    {fuelLabel(fuel)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="sx-quick-search__select">
+              <span>Trạm</span>
+              <select value={stationFilter} onChange={(e) => setStationFilter(e.target.value)}>
+                <option value="all">Tất cả</option>
+                {stationOptions.map((stationId) => (
+                  <option key={stationId} value={String(stationId)}>
+                    Trạm #{stationId}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label className="sx-quick-search__toggle">
+            <input
+              type="checkbox"
+              checked={availabilityOnly}
+              onChange={(e) => setAvailabilityOnly(e.target.checked)}
+            />
+            Chỉ hiển thị xe trống trong khung thời gian đã chọn (Pick up / Return)
+          </label>
+
+          {priceBounds && priceFilter ? (
+            <div className="sx-quick-search__price" role="group" aria-label="Giá theo ngày">
+              <div className="sx-quick-search__price-head">
+                <strong>Giá theo ngày</strong>
+                <span>
+                  {formatCompactPrice(priceFilter.min)} - {formatCompactPrice(priceFilter.max)} ₫
+                </span>
+              </div>
+              <div className="sx-quick-search__price-sliders">
+                <div className="sx-quick-search__price-slider-wrap">
+                  <div className="sx-quick-search__price-track" aria-hidden="true" />
+                  <div
+                    className="sx-quick-search__price-active"
+                    aria-hidden="true"
+                    style={{
+                      left: `${((priceFilter.min - priceBounds.min) / (priceBounds.max - priceBounds.min || 1)) * 100}%`,
+                      right: `${100 - ((priceFilter.max - priceBounds.min) / (priceBounds.max - priceBounds.min || 1)) * 100}%`,
+                    }}
+                  />
+                  <input
+                    className="sx-quick-search__price-thumb sx-quick-search__price-thumb--min"
+                    type="range"
+                    min={priceBounds.min}
+                    max={priceBounds.max}
+                    step={50000}
+                    value={priceFilter.min}
+                    aria-label="Giá thấp nhất"
+                    onChange={(e) => {
+                      const nextMin = Number(e.target.value)
+                      setPriceFilter((prev) => {
+                        if (!prev) return prev
+                        return { min: Math.min(nextMin, prev.max), max: prev.max }
+                      })
+                    }}
+                  />
+                  <input
+                    className="sx-quick-search__price-thumb sx-quick-search__price-thumb--max"
+                    type="range"
+                    min={priceBounds.min}
+                    max={priceBounds.max}
+                    step={50000}
+                    value={priceFilter.max}
+                    aria-label="Giá cao nhất"
+                    onChange={(e) => {
+                      const nextMax = Number(e.target.value)
+                      setPriceFilter((prev) => {
+                        if (!prev) return prev
+                        return { min: prev.min, max: Math.max(nextMax, prev.min) }
+                      })
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="sx-quick-search__price-ends">
+                <span>Từ: {formatCompactPrice(priceBounds.min)} ₫</span>
+                <span>Đến: {formatCompactPrice(priceBounds.max)} ₫</span>
+              </div>
+            </div>
+          ) : null}
+
+          {error ? <p className="sx-quick-search__error">{error}</p> : null}
+
+          <div className="sx-quick-search__actions">
+            <div className="sx-quick-search__driver" role="group" aria-label="Driver option">
+              <button
+                type="button"
+                className={driverMode === 'without' ? 'is-active' : ''}
+                onClick={() => setDriverMode('without')}
+              >
+                Without Driver
+              </button>
+              <button
+                type="button"
+                className={driverMode === 'with' ? 'is-active' : ''}
+                onClick={() => setDriverMode('with')}
+              >
+                With Driver
+              </button>
+            </div>
+            <button type="submit" className="sx-quick-search__submit">
+              Search →
+            </button>
+          </div>
+        </form>
       </div>
     </section>
   )
@@ -127,44 +396,6 @@ function FloatingDock() {
         </a>
       </div>
     </nav>
-  )
-}
-
-function AboutSection() {
-  return (
-    <section id="about" className="sx-about">
-      <p className="sx-section-label">(Đồ án)</p>
-      <h2 className="sx-about__title">
-        Website cho thuê xe kết nối chủ xe và người thuê: đặt xe trực tuyến, nhận
-        và trả xe tại bãi (station), nền tảng thu phí dịch vụ ở giữa.
-      </h2>
-      <div className="sx-about__grid">
-        <div className="sx-about__visual">
-          <img
-            src="/studio-x/image-c6cdb887-89e5-4f60-912f-416dffc9349d.png"
-            alt=""
-            loading="lazy"
-            width={560}
-            height={720}
-          />
-        </div>
-        <div className="sx-about__copy">
-          <p className="sx-about__body">
-            Hệ thống hỗ trợ nhiều vai trò: người thuê (renter) có quyền tìm xe và
-            đặt lịch; chủ xe (owner) có thể đăng phương tiện cho thuê; bãi xe là
-            điểm bàn giao minh bạch thay vì giao nhận tùy tiện.
-          </p>
-          <p className="sx-about__body">
-            Chủ trang web / nền tảng đóng vai trò trung gian: cung cấp công nghệ,
-            quy trình booking và mô hình thu phí — phù hợp báo cáo đồ án và triển
-            khai mở rộng (thanh toán, kiểm duyệt, báo cáo doanh thu).
-          </p>
-          <a className="sx-text-link" href="/auth">
-            Đăng ký / đăng nhập ↗
-          </a>
-        </div>
-      </div>
-    </section>
   )
 }
 
@@ -635,108 +866,6 @@ function ProjectsSection() {
   )
 }
 
-function ProcessModal({
-  step,
-  onClose,
-}: {
-  step: ProcessStep | null
-  onClose: () => void
-}) {
-  useEffect(() => {
-    if (!step) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [step, onClose])
-
-  if (!step) return null
-
-  const n = String(step.id).padStart(2, '0')
-
-  return (
-    <div
-      className="sx-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="sx-modal-title"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
-      <div className="sx-modal">
-        <button
-          type="button"
-          className="sx-modal__close"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          ×
-        </button>
-        <span className="sx-modal__num">{n}</span>
-        <h2 id="sx-modal-title" className="sx-modal__title">
-          {step.title}
-        </h2>
-        <p className="sx-modal__short">{step.short}</p>
-        <p className="sx-modal__detail">{step.detail}</p>
-      </div>
-    </div>
-  )
-}
-
-function ProcessSection() {
-  const [open, setOpen] = useState<ProcessStep | null>(null)
-
-  return (
-    <section id="process" className="sx-process">
-      <p className="sx-section-label">(Quy trình)</p>
-      <h2 className="sx-process__intro">
-        Từ đăng ký đến trả xe: quy trình rõ ràng cho mô hình cho thuê ngang hàng,
-        nhận xe tại bãi và phí dịch vụ do nền tảng thu.
-      </h2>
-
-      <div className="sx-process__scroll">
-        <div className="sx-process__track">
-          {PROCESS_STEPS.map((s, i) => (
-            <div key={s.id} className="sx-process__col">
-              {i > 0 ? <div className="sx-process__divider" aria-hidden /> : null}
-              <button
-                type="button"
-                className="sx-process__step"
-                onClick={() => setOpen(s)}
-              >
-                <span className="sx-process__num">
-                  {String(s.id).padStart(2, '0')}
-                </span>
-                <h3 className="sx-process__name">{s.title}</h3>
-                <p className="sx-process__short">{s.short}</p>
-                <span className="sx-process__more">Chi tiết ↗</span>
-                <div className="sx-process__image-wrap">
-                  <img
-                    className="sx-process__image"
-                    src={s.image}
-                    alt={s.title}
-                    loading="lazy"
-                  />
-                </div>
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="sx-process__drag-fab" aria-hidden="true">
-        <span className="sx-process__drag-arrow">‹</span>
-        <span className="sx-process__drag-pill">Drag</span>
-        <span className="sx-process__drag-arrow">›</span>
-      </div>
-
-      <ProcessModal step={open} onClose={() => setOpen(null)} />
-    </section>
-  )
-}
-
 function BlogSection() {
   return (
     <section id="insights" className="sx-blog">
@@ -797,9 +926,6 @@ function FooterSection() {
             <h3 className="sx-footer__col-title">Trang</h3>
             <ul>
               <li>
-                <a href="#about">Giới thiệu</a>
-              </li>
-              <li>
                 <a href="#solutions">Vai trò</a>
               </li>
               <li>
@@ -816,9 +942,6 @@ function FooterSection() {
           <div>
             <h3 className="sx-footer__col-title">Thêm</h3>
             <ul>
-              <li>
-                <a href="#process">Quy trình</a>
-              </li>
               <li>
                 <a href="#insights">Bài viết</a>
               </li>
@@ -863,10 +986,9 @@ function StudioXLandingPage() {
       <TopNav solid={navSolid} showSearch={false} />
       <HeroSection />
       <main>
-        <AboutSection />
+        <QuickSearchSection />
         <SolutionsSection />
         <ProjectsSection />
-        <ProcessSection />
         <BlogSection />
       </main>
       <FooterSection />

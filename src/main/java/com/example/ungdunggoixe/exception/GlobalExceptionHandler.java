@@ -20,10 +20,7 @@ public class GlobalExceptionHandler {
 
     private final I18nService i18nService;
 
-    /**
-     * Dùng setter thay vì {@code ApiResponse.builder().code(...)} để tránh {@link NoSuchMethodError}
-     * khi bytecode builder (int vs {@link Integer}) hoặc bản biên dịch cũ/mới lệch nhau.
-     */
+
     private static ApiResponse<Void> errorBody(int code, String message) {
         ApiResponse<Void> r = new ApiResponse<>();
         r.setStatus("error");

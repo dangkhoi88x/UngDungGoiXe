@@ -78,6 +78,7 @@ export default function CarRentalPage() {
   const [availabilityError, setAvailabilityError] = useState<string | null>(null)
   const [availabilityMap, setAvailabilityMap] = useState<Record<number, boolean>>({})
   const [nowMinDateTime, setNowMinDateTime] = useState(() => toDateTimeLocalMinValue(new Date()))
+  const [initialPriceRange, setInitialPriceRange] = useState<{ min: number; max: number } | null>(null)
 
   useEffect(() => {
     const sync = () => {
@@ -126,6 +127,44 @@ export default function CarRentalPage() {
     }
   }, [])
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const pickupParam = params.get('pickupAt')
+    const returnParam = params.get('returnAt')
+    const seatParam = params.get('seat')
+    const fuelParam = params.get('fuel')
+    const stationParam = params.get('stationId')
+    const availabilityParam = params.get('availabilityOnly')
+    const driverModeParam = params.get('driverMode')
+    const minRateParam = params.get('minDailyRate')
+    const maxRateParam = params.get('maxDailyRate')
+    const qParam = params.get('q')
+
+    if (pickupParam) setPickupAt(pickupParam)
+    if (returnParam) setReturnAt(returnParam)
+    if (seatParam) setSeatFilter(seatParam)
+    if (fuelParam) {
+      const normalizedFuel = fuelParam.toUpperCase()
+      if (fuelParam === 'all') setFuelFilter('all')
+      else if (FUEL_FILTER_OPTIONS.includes(normalizedFuel as (typeof FUEL_FILTER_OPTIONS)[number])) {
+        setFuelFilter(normalizedFuel)
+      }
+    }
+    if (stationParam) setStationFilter(stationParam)
+    if (availabilityParam === '1' || availabilityParam === 'true') setAvailabilityOnly(true)
+    if (driverModeParam === 'with' || driverModeParam === 'without') setDriverMode(driverModeParam)
+    if (qParam) {
+      setNavQuery(qParam)
+      setQuery(qParam)
+    }
+
+    const minRate = minRateParam ? Number(minRateParam) : NaN
+    const maxRate = maxRateParam ? Number(maxRateParam) : NaN
+    if (Number.isFinite(minRate) && Number.isFinite(maxRate) && minRate >= 0 && maxRate >= minRate) {
+      setInitialPriceRange({ min: minRate, max: maxRate })
+    }
+  }, [])
+
   const priceBounds = useMemo(() => {
     const rates = vehicles
       .map((v) => parseRate(v.dailyRate))
@@ -142,13 +181,20 @@ export default function CarRentalPage() {
       setPriceFilter(null)
       return
     }
+    if (initialPriceRange) {
+      const min = Math.max(priceBounds.min, Math.min(initialPriceRange.min, priceBounds.max))
+      const max = Math.min(priceBounds.max, Math.max(initialPriceRange.max, priceBounds.min))
+      setPriceFilter(min <= max ? { min, max } : { min: priceBounds.min, max: priceBounds.max })
+      setInitialPriceRange(null)
+      return
+    }
     setPriceFilter((prev) => {
       if (!prev) return { min: priceBounds.min, max: priceBounds.max }
       const min = Math.max(priceBounds.min, Math.min(prev.min, priceBounds.max))
       const max = Math.min(priceBounds.max, Math.max(prev.max, priceBounds.min))
       return min <= max ? { min, max } : { min: priceBounds.min, max: priceBounds.max }
     })
-  }, [priceBounds])
+  }, [priceBounds, initialPriceRange])
 
   const stationNameById = useMemo(() => {
     const map = new Map<number, string>()
