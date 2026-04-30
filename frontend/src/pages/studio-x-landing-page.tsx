@@ -399,12 +399,10 @@ function FloatingDock() {
   )
 }
 
-type SolutionTabKey = 'booking' | 'station' | 'vehicle' | 'renter'
+type SolutionTabKey = 'vehicle' | 'renter'
 
 const SOLUTION_TABS: { key: SolutionTabKey; label: string }[] = [
-  { key: 'booking', label: 'Đặt xe' },
-  { key: 'station', label: 'Bãi xe' },
-  { key: 'vehicle', label: 'Phương tiện' },
+  { key: 'vehicle', label: 'Người cho thuê' },
   { key: 'renter', label: 'Người thuê' },
 ]
 
@@ -416,106 +414,32 @@ const SOLUTIONS_DATA: Record<
     industries: { id: string; icon: string; name: string }[]
   }
 > = {
-  booking: {
-    image: '/studio-x/image-3f6a4c78-a451-4312-9842-714013e08e43.png',
-    useCases: [
-      {
-        id: 'b1',
-        icon: 'Đ',
-        title: 'Tạo đơn thuê',
-        description: 'Chọn xe, khung giờ, bãi nhận — hệ thống khóa lịch trùng.',
-      },
-      {
-        id: 'b2',
-        icon: '₫',
-        title: 'Tính phí & phí nền tảng',
-        description: 'Hiển thị tổng tiền, phần phí sàn và phần dành cho chủ xe.',
-      },
-      {
-        id: 'b3',
-        icon: 'TT',
-        title: 'Thanh toán',
-        description: 'Xác nhận thanh toán trước khi bàn giao (tích hợp trong đồ án).',
-      },
-      {
-        id: 'b4',
-        icon: 'TB',
-        title: 'Thông báo trạng thái',
-        description: 'Email / thông báo: đã đặt, chờ nhận xe, đang thuê, đã trả.',
-      },
-    ],
-    industries: [
-      { id: 'bi1', icon: 'CN', name: 'Thuê theo ngày' },
-      { id: 'bi2', icon: 'TG', name: 'Thuê cuối tuần' },
-      { id: 'bi3', icon: 'SB', name: 'Sân bay ↔ bãi' },
-      { id: 'bi4', icon: 'CT', name: 'Công tác ngắn hạn' },
-      { id: 'bi5', icon: 'GD', name: 'Gia đình đi chơi' },
-      { id: 'bi6', icon: 'TX', name: 'Thay xe tạm thời' },
-    ],
-  },
-  station: {
-    image: '/studio-x/image-c6cdb887-89e5-4f60-912f-416dffc9349d.png',
-    useCases: [
-      {
-        id: 's1',
-        icon: 'B',
-        title: 'Quản lý bãi',
-        description: 'Danh sách điểm giao: địa chỉ, giờ mở cửa, sức chứa.',
-      },
-      {
-        id: 's2',
-        icon: 'BG',
-        title: 'Bàn giao tại bãi',
-        description: 'Checklist nhận / trả: ảnh, km, xăng — giảm tranh chấp.',
-      },
-      {
-        id: 's3',
-        icon: 'LK',
-        title: 'Liên kết xe — bãi',
-        description: 'Mỗi booking gắn station để renter biết chính xác nơi đến.',
-      },
-      {
-        id: 's4',
-        icon: 'BC',
-        title: 'Báo cáo cho đồ án',
-        description: 'Thống kê lượt giao nhận theo bãi, phục vụ slide & demo.',
-      },
-    ],
-    industries: [
-      { id: 'si1', icon: 'T1', name: 'Bãi nội thành' },
-      { id: 'si2', icon: 'T2', name: 'Bãi gần cao tốc' },
-      { id: 'si3', icon: 'T3', name: 'Khu công nghiệp' },
-      { id: 'si4', icon: 'T4', name: 'Trung tâm thương mại' },
-      { id: 'si5', icon: 'T5', name: 'Ký túc / khu nhà ở' },
-      { id: 'si6', icon: 'T6', name: 'Điểm hợp tác đại lý' },
-    ],
-  },
   vehicle: {
     image: '/studio-x/image-70b64552-357c-4099-b9d0-0e9e60fac1bb.png',
     useCases: [
       {
         id: 'v1',
-        icon: 'XE',
-        title: 'Hồ sơ phương tiện',
-        description: 'Biển số, loại xe, ảnh, trạng thái (available / rented).',
+        icon: 'B1',
+        title: 'Đăng ký hồ sơ xe',
+        description: 'Chủ xe khai thông tin cơ bản, giấy tờ xe, ảnh thực tế và chọn bãi bàn giao.',
       },
       {
         id: 'v2',
-        icon: 'CH',
-        title: 'Chủ xe cho thuê',
-        description: 'Owner đăng tin, đặt giá và khung giờ cho thuê.',
+        icon: 'B2',
+        title: 'Thiết lập giá và lịch cho thuê',
+        description: 'Đặt giá theo ngày, tiền cọc và khung giờ mở lịch để nhận booking phù hợp.',
       },
       {
         id: 'v3',
-        icon: 'BH',
-        title: 'Chính sách & giấy tờ',
-        description: 'Gợi ý: điều khoản thuê, yêu cầu GPLX khi nhận xe.',
+        icon: 'B3',
+        title: 'Xác nhận và bàn giao tại bãi',
+        description: 'Duyệt booking, kiểm tra checklist nhận xe, ghi nhận ảnh và tình trạng ban đầu.',
       },
       {
         id: 'v4',
-        icon: 'BD',
-        title: 'Bảo dưỡng đơn giản',
-        description: 'Ghi chú bảo dưỡng / hạn đăng kiểm (mở rộng đồ án).',
+        icon: 'B4',
+        title: 'Đối soát doanh thu',
+        description: 'Theo dõi trạng thái đơn, doanh thu nhận về và lịch sử đánh giá từ người thuê.',
       },
     ],
     industries: [
@@ -532,27 +456,27 @@ const SOLUTIONS_DATA: Record<
     useCases: [
       {
         id: 'r1',
-        icon: 'TK',
-        title: 'Tìm xe theo nhu cầu',
-        description: 'Lọc khu vực, giá, loại xe và bãi nhận gần bạn.',
+        icon: 'B1',
+        title: 'Đăng ký và xác minh tài khoản',
+        description: 'Người thuê tạo tài khoản, xác thực thông tin cơ bản để đủ điều kiện đặt xe.',
       },
       {
         id: 'r2',
-        icon: 'Q',
-        title: 'Quyền người thuê',
-        description: 'Chỉ renter đã xác thực mới đặt được — phù hợp mô hình đồ án.',
+        icon: 'B2',
+        title: 'Chọn xe phù hợp nhu cầu',
+        description: 'Lọc theo loại xe, số chỗ, giá và bãi nhận để chọn đúng chuyến đi mong muốn.',
       },
       {
         id: 'r3',
-        icon: 'NX',
-        title: 'Nhận xe tại bãi',
-        description: 'Đến đúng station, ký biên bản, kiểm tra xe trước khi chạy.',
+        icon: 'B3',
+        title: 'Thanh toán và xác nhận đơn',
+        description: 'Kiểm tra tổng phí, cọc và trạng thái đơn trước khi đến nhận xe tại bãi.',
       },
       {
         id: 'r4',
-        icon: 'LS',
-        title: 'Lịch sử booking',
-        description: 'Theo dõi đơn đang chạy, đã hoàn tất và đánh giá sau thuê.',
+        icon: 'B4',
+        title: 'Nhận xe và tận hưởng chuyến đi',
+        description: 'Nhận xe đúng trạm, kiểm tra bàn giao nhanh và theo dõi lịch sử thuê sau chuyến đi.',
       },
     ],
     industries: [
@@ -567,7 +491,7 @@ const SOLUTIONS_DATA: Record<
 }
 
 function SolutionsSection() {
-  const [activeTab, setActiveTab] = useState<SolutionTabKey>('booking')
+  const [activeTab, setActiveTab] = useState<SolutionTabKey>('vehicle')
   const activeTabIndex = SOLUTION_TABS.findIndex((t) => t.key === activeTab)
   const activeData = useMemo(() => SOLUTIONS_DATA[activeTab], [activeTab])
 
@@ -645,20 +569,6 @@ function SolutionsSection() {
                   </span>
                   <h4>{item.title}</h4>
                   <p>{item.description}</p>
-                </article>
-              ))}
-            </div>
-
-            <h3 className="sx-solutions__section-title sx-solutions__section-title--industries">
-              Kịch bản &amp; đối tượng
-            </h3>
-            <div className="sx-solutions__industries">
-              {activeData.industries.map((industry) => (
-                <article key={industry.id} className="sx-solutions__industry">
-                  <span className="sx-solutions__icon sx-solutions__icon--small" aria-hidden="true">
-                    {industry.icon}
-                  </span>
-                  <span>{industry.name}</span>
                 </article>
               ))}
             </div>
@@ -903,6 +813,72 @@ function BlogSection() {
   )
 }
 
+function ImpactStatsSection() {
+  return (
+    <section className="sx-impact" aria-label="Thống kê nền tảng">
+      <div className="sx-impact__grid">
+        <article className="sx-impact__item">
+          <strong className="sx-impact__value">100+</strong>
+          <span className="sx-impact__label">Hãng xe / Chủ xe tham gia</span>
+        </article>
+        <article className="sx-impact__item">
+          <strong className="sx-impact__value">500k+</strong>
+          <span className="sx-impact__label">Phiên đặt xe toàn hệ thống</span>
+        </article>
+        <article className="sx-impact__item">
+          <strong className="sx-impact__value">4.9+</strong>
+          <span className="sx-impact__label">Điểm đánh giá trung bình từ khách thuê</span>
+        </article>
+      </div>
+    </section>
+  )
+}
+
+function ValueShowcaseSection() {
+  return (
+    <section className="sx-value-showcase" aria-label="Giới thiệu giá trị nền tảng">
+      <div className="sx-value-showcase__grid">
+        <article className="sx-value-showcase__intro">
+          <p className="sx-value-showcase__eyebrow">Nền tảng cho thuê xe thông minh</p>
+          <h2 className="sx-value-showcase__title">
+            Khám phá giá trị thật từ mô hình kết nối chủ xe và người thuê
+          </h2>
+          <p className="sx-value-showcase__desc">
+            Chúng tôi xây dựng quy trình đặt xe rõ ràng, tập trung vào tính minh bạch khi
+            nhận/trả tại bãi, giúp người thuê chọn xe phù hợp và giúp chủ xe tối ưu hiệu suất khai
+            thác.
+          </p>
+          <a className="sx-value-showcase__cta" href="/rent">
+            Tìm xe phù hợp ngay →
+          </a>
+        </article>
+
+        <div className="sx-value-showcase__visual">
+          <article className="sx-value-card">
+            <h3>Gợi ý thông minh</h3>
+            <p>Hệ thống lọc theo thời gian, loại xe, trạm và khoảng giá để rút ngắn thời gian tìm kiếm.</p>
+          </article>
+          <article className="sx-value-card">
+            <h3>Đối soát rõ ràng</h3>
+            <p>Phân tách phí nền tảng, doanh thu chủ xe và lịch sử booking minh bạch theo từng đơn.</p>
+          </article>
+          <article className="sx-value-card sx-value-card--image">
+            <img
+              src="/studio-x/image-c6cdb887-89e5-4f60-912f-416dffc9349d.png"
+              alt="Bãi giao nhận xe"
+              loading="lazy"
+            />
+            <div>
+              <h3>Nhận xe đúng điểm</h3>
+              <p>Bàn giao tại trạm giúp giảm tranh chấp và tăng trải nghiệm an toàn cho cả hai phía.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function FooterSection() {
   return (
     <footer id="footer" className="sx-footer">
@@ -985,6 +961,8 @@ function StudioXLandingPage() {
         <QuickSearchSection />
         <ProjectsSection />
         <SolutionsSection />
+        <ImpactStatsSection />
+        <ValueShowcaseSection />
         <BlogSection />
       </main>
       <FooterSection />
