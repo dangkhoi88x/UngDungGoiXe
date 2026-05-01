@@ -27,7 +27,7 @@ const STATUSES: Array<OwnerVehicleRequestStatus | 'ALL'> = [
 type Props = { refreshKey?: number }
 
 type ReviewAction = 'approve' | 'reject' | 'need-more-info'
-type OwnerReqAdminTab = 'pending' | 'approved-history'
+type OwnerReqAdminTab = 'pending' | 'review-history'
 
 function statusLabel(s: OwnerVehicleRequestStatus | 'ALL'): string {
   const map: Record<string, string> = {
@@ -167,9 +167,14 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
 
   const filtered = useMemo(() => {
     const byTab =
-      activeTab === 'approved-history'
-        ? items.filter((x) => x.status === 'APPROVED')
-        : items
+      activeTab === 'review-history'
+        ? items.filter(
+            (x) =>
+              x.status === 'APPROVED' ||
+              x.status === 'REJECTED' ||
+              x.status === 'CANCELLED',
+          )
+        : items.filter((x) => x.status === 'PENDING')
 
     const q = keyword.trim().toLowerCase()
     if (!q) return byTab
@@ -189,19 +194,19 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
     })
   }, [items, keyword, activeTab])
 
-  const approvedHistoryRows = useMemo(() => {
+  const reviewHistoryRows = useMemo(() => {
     return filtered.map((r) => {
-      const adminApprovedHistory = r.history
-        ?.filter((h) => h.actorRole === 'ADMIN' && h.status === 'APPROVED')
+      const latestMatchedHistory = r.history
+        ?.filter((h) => h.status === r.status)
         .sort((a, b) => {
           const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
           const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0
           return tb - ta
         })[0]
-      const reviewedAt = adminApprovedHistory?.createdAt ?? r.updatedAt ?? r.createdAt
-      const actorEmail = adminApprovedHistory?.actorEmail?.trim() || null
-      const actorId = adminApprovedHistory?.actorId ?? null
-      return { request: r, reviewedAt, actorEmail, actorId }
+      const reviewedAt = latestMatchedHistory?.createdAt ?? r.updatedAt ?? r.createdAt
+      const actorEmail = latestMatchedHistory?.actorEmail?.trim() || null
+      const actorId = latestMatchedHistory?.actorId ?? null
+      return { request: r, reviewedAt, actorEmail, actorId, actorRole: latestMatchedHistory?.actorRole ?? null }
     })
   }, [filtered])
 
@@ -324,14 +329,14 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
         <button
           type="button"
           role="tab"
-          aria-selected={activeTab === 'approved-history'}
-          className={`adm-bk-tab ${activeTab === 'approved-history' ? 'is-active' : ''}`}
+          aria-selected={activeTab === 'review-history'}
+          className={`adm-bk-tab ${activeTab === 'review-history' ? 'is-active' : ''}`}
           onClick={() => {
-            setActiveTab('approved-history')
+            setActiveTab('review-history')
             setStatus('ALL')
           }}
         >
-          Lịch sử đã duyệt
+          Lịch sử xử lý
         </button>
       </div>
 
@@ -395,13 +400,13 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
 
       {loading ? (
         <div className="adm-veh__loading">
-          {activeTab === 'approved-history' ? 'Đang tải lịch sử duyệt…' : 'Đang tải yêu cầu owner…'}
+          {activeTab === 'review-history' ? 'Đang tải lịch sử xử lý…' : 'Đang tải yêu cầu owner…'}
         </div>
       ) : null}
       {!loading && filtered.length === 0 ? (
         <p className="adm-veh__empty">
-          {activeTab === 'approved-history'
-            ? 'Chưa có yêu cầu nào đã được duyệt.'
+          {activeTab === 'review-history'
+            ? 'Chưa có yêu cầu nào đã xử lý.'
             : 'Không có yêu cầu nào khớp bộ lọc.'}
         </p>
       ) : null}
@@ -551,7 +556,7 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
         </div>
       ) : null}
 
-      {approvedHistoryRows.length > 0 && activeTab === 'approved-history' ? (
+      {reviewHistoryRows.length > 0 && activeTab === 'review-history' ? (
         <div className="adm-veh__scroll">
           <table className="adm-veh__table">
             <thead>
@@ -561,13 +566,14 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
                 <th>Biển số</th>
                 <th>Tên/Hãng</th>
                 <th>Xe đã tạo</th>
-                <th>Thời gian duyệt</th>
-                <th>Admin duyệt</th>
+                <th>Trạng thái</th>
+                <th>Thời gian xử lý</th>
+                <th>Người xử lý</th>
                 <th>Ghi chú admin</th>
               </tr>
             </thead>
             <tbody>
-              {approvedHistoryRows.map(({ request: r, reviewedAt, actorEmail, actorId }) => (
+              {reviewHistoryRows.map(({ request: r, reviewedAt, actorEmail, actorId, actorRole }) => (
                 <tr key={`approved-${r.id}`}>
                   <td className="adm-veh__mono">#{r.id}</td>
                   <td className="adm-veh__mono">#{r.ownerId}</td>
@@ -579,8 +585,16 @@ export default function AdminOwnerVehicleRequestsSection({ refreshKey = 0 }: Pro
                   <td className="adm-veh__mono">
                     {r.approvedVehicleId != null ? `#${r.approvedVehicleId}` : '—'}
                   </td>
+                  <td>
+                    <span className="adm-veh__pill">{statusLabel(r.status)}</span>
+                  </td>
                   <td>{toDate(reviewedAt)}</td>
-                  <td>{actorEmail ?? (actorId != null ? `#${actorId}` : '—')}</td>
+                  <td>
+                    {actorEmail ??
+                      (actorId != null
+                        ? `${actorRole ?? 'USER'} #${actorId}`
+                        : actorRole ?? '—')}
+                  </td>
                   <td>{r.adminNote?.trim() || '—'}</td>
                 </tr>
               ))}

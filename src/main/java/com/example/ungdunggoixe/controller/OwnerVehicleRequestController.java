@@ -3,6 +3,7 @@ package com.example.ungdunggoixe.controller;
 import com.example.ungdunggoixe.dto.request.CreateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
+import com.example.ungdunggoixe.dto.response.BookingResponse;
 import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.OwnerVehicleRequestService;
@@ -70,6 +71,19 @@ public class OwnerVehicleRequestController {
         return ApiResponse.<OwnerVehicleRequestResponse>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.owner_vehicle_request.get_by_id.success"))
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/{id}/bookings")
+    @Operation(summary = "Lay lich su booking cua xe da duyet", description = "Lay booking cua xe duoc tao tu owner request nay.")
+    public ApiResponse<List<BookingResponse>> getMyRequestBookings(@PathVariable Long id) {
+        List<BookingResponse> result = ownerVehicleRequestService.getMyApprovedVehicleBookings(id);
+        return ApiResponse.<List<BookingResponse>>builder()
+                .status("success")
+                .message("Lay lich su booking cua xe thanh cong")
                 .data(result)
                 .timestamp(Instant.now())
                 .build();

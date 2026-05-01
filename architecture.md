@@ -571,3 +571,108 @@ sequenceDiagram
 - **2026-04-20:** Thêm mục “Security learning flow” chi tiết (login/validate/refresh/logout/frontend retry).
 - **2026-04-20:** Thêm sequence cực ngắn cho luồng validate access token.
 - **2026-04-20:** Khởi tạo `architecture.md` — sơ đồ context, tầng backend, ER rút gọn, security, FE layers, sequence đặt xe.
+
+---
+
+## 15. Flow cập nhật UI/API gần đây (Owner + Rent + Admin)
+
+Mục này ghi lại luồng của các thay đổi mới để agent/phiên sau đọc nhanh và biết điểm nối backend-frontend.
+
+### 15.1 Owner đăng xe / sửa yêu cầu: chuẩn hóa form
+
+**Frontend liên quan:**
+
+- `frontend/src/pages/OwnerRegisterVehiclePage.tsx`
+- `frontend/src/pages/OwnerEditVehicleRequestPage.tsx`
+- `frontend/src/lib/ownerVehicleRequestForm.ts`
+- `frontend/src/api/ownerVehicleRequests.ts`
+
+**Các điểm chính đã đồng bộ:**
+
+- Nhiên liệu bổ sung `DIESEL` (label hiển thị: **Dầu**).
+- Số chỗ chuẩn hóa theo option: **5 / 7 / 9 / 16**.
+- Bỏ trường `latitude/longitude` khỏi form owner create/edit (payload không gửi 2 trường này từ UI).
+- Section “Điều khoản (tùy chọn)” ở trang edit chuyển từ text enum sang checkbox options giống trang create.
+- Trang edit owner chuyển sang style `owreg--clean` (TopNav, nền sáng, section đồng bộ; các khối giấy tờ/ảnh nằm dọc 1 cột).
+
+### 15.2 Owner request list -> lịch sử booking xe đã duyệt
+
+**Mục tiêu:** Từ trang owner request list, request `APPROVED` có thể mở lịch sử booking của xe đã tạo.
+
+**Frontend:**
+
+- `frontend/src/pages/OwnerMyVehicleRequestsPage.tsx`
+  - Action mới: `Lịch sử booking` (hiện khi request `APPROVED`).
+- `frontend/src/pages/OwnerVehicleRequestBookingsPage.tsx` (mới)
+  - Route: `/owner/vehicle-requests/:id/bookings`.
+  - Hiển thị danh sách booking: mã booking, người thuê, thời gian, trạng thái, tổng tiền, payment status.
+- `frontend/src/App.tsx`
+  - Khai báo route mới.
+- `frontend/src/api/ownerVehicleRequests.ts`
+  - API mới `fetchMyOwnerRequestBookings(id)`.
+
+**Backend:**
+
+- `GET /owner/vehicle-requests/{id}/bookings`
+  - Controller: `OwnerVehicleRequestController`.
+  - Service: `OwnerVehicleRequestService#getMyApprovedVehicleBookings`.
+  - Chỉ owner của request được xem; lấy booking theo `approvedVehicleId`.
+- Repo bổ sung:
+  - `BookingRepository#findByVehicleIdOrderByStartTimeDesc`.
+
+```mermaid
+sequenceDiagram
+  participant O as Owner FE
+  participant OR as GET /owner/vehicle-requests
+  participant BR as GET /owner/vehicle-requests/{id}/bookings
+  participant S as OwnerVehicleRequestService
+  participant B as BookingRepository
+  O->>OR: tải danh sách request
+  OR-->>O: request APPROVED có action "Lịch sử booking"
+  O->>BR: mở lịch sử booking của request
+  BR->>S: verify owner + resolve approvedVehicleId
+  S->>B: findByVehicleIdOrderByStartTimeDesc
+  B-->>O: danh sách booking của xe
+```
+
+### 15.3 Admin owner request: badge và tab lịch sử xử lý
+
+**Sidebar badge (Admin dashboard):**
+
+- File: `frontend/src/pages/AdminDashboardPage.tsx`
+- Badge sidebar bỏ hardcode ở `Phương tiện`/`Đặt xe`.
+- Badge mục `Yêu cầu owner` lấy dữ liệu thật: số request `PENDING`.
+- Có poll định kỳ (30s) để cập nhật badge.
+
+**Trang admin owner requests:**
+
+- File: `frontend/src/pages/AdminOwnerVehicleRequestsSection.tsx`
+- Tab `Chờ xử lý`:
+  - Chỉ hiển thị đúng request `PENDING`.
+- Tab lịch sử đổi thành `Lịch sử xử lý`:
+  - Hiển thị `APPROVED`, `REJECTED`, `CANCELLED` (không chỉ approved).
+
+### 15.4 Trang thuê xe (`/rent`) và chi tiết xe (`/rent/:id`)
+
+**`/rent` phân trang:**
+
+- File: `frontend/src/pages/CarRentalPage.tsx`
+- Phân trang client-side với `PAGE_SIZE = 8`.
+- Có nút `Trước/Sau`, hiển thị số trang; reset về trang 1 khi đổi filter/tìm kiếm.
+- Filter nhiên liệu có đủ fixed options: `GASOLINE`, `ELECTRICITY`, `DIESEL`.
+
+**`/rent/:id` hiển thị owner email:**
+
+- Frontend:
+  - `frontend/src/api/vehicles.ts` thêm field `ownerEmail` trong `VehicleDto`.
+  - `frontend/src/pages/VehicleDetailPage.tsx` hiển thị:
+    - `Người cho thuê: <ownerEmail>`
+- Backend:
+  - `dto/response/CreateVehicleResponse` thêm `ownerEmail`.
+  - `VehicleService#getVehicleById` gán `ownerEmail` từ owner request.
+  - Repo `OwnerVehicleRequestRepository` thêm:
+    - `findFirstByApprovedVehicleIdOrderByCreatedAtDesc(...)`
+    - fallback `findFirstByLicensePlateAndStatusOrderByCreatedAtDesc(..., APPROVED)`
+      để hỗ trợ dữ liệu cũ chưa gắn `approved_vehicle_id`.
+
+---

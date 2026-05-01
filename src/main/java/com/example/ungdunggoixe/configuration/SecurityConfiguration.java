@@ -38,6 +38,12 @@ public class SecurityConfiguration {
                         .requestMatchers("/users/**").permitAll() // ✅ wildcard sau
 
                         .requestMatchers("/bookings/vehicle-availability").permitAll()
+                        .requestMatchers(
+                                        "/blog/posts",
+                                        "/blog/posts/**",
+                                        "/api/blog/posts",
+                                        "/api/blog/posts/**")
+                                .permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer((oauth2) -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))

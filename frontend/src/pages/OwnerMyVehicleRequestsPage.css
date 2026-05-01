@@ -103,77 +103,164 @@
   color: rgba(232, 236, 241, 0.7);
 }
 
-.owmr-scroll {
-  margin-top: 8px;
-  overflow-x: auto;
+.owmr-booking-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 12px;
 }
 
-.owmr-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  overflow: hidden;
+.owmr-bookhist-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 12px;
 }
 
-.owmr-table th,
-.owmr-table td {
+.owmr-bookhist-card {
+  grid-template-columns: 106px 1fr 1fr auto auto;
+}
+
+.owmr-booking-card {
+  display: grid;
+  grid-template-columns: 106px 1fr 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  background: linear-gradient(130deg, #f3f7f7, #edf1f8);
+  border: 1px solid #dbe3ed;
+  border-radius: 16px;
   padding: 12px 14px;
-  text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  vertical-align: top;
 }
 
-.owmr-table th {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.5);
+.owmr-booking-day {
+  border-right: 1px solid #d8e0eb;
+  padding-right: 10px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.owmr-booking-day__month {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #697586;
+}
+
+.owmr-booking-day__weekday {
+  color: #58667c;
+}
+
+.owmr-booking-day__num {
+  font-size: 2rem;
+  line-height: 1;
+  color: #eb5b2f;
+}
+
+.owmr-booking-schedule {
+  border-right: 1px solid #d8e0eb;
+  padding-right: 10px;
+  display: grid;
+  gap: 2px;
+}
+
+.owmr-booking-schedule p {
+  margin: 0;
+}
+
+.owmr-booking-schedule__time {
   font-weight: 700;
-  background: rgba(0, 0, 0, 0.2);
+  color: #1f2a37;
 }
 
-.owmr-table tr:last-child td {
-  border-bottom: none;
+.owmr-booking-schedule__place {
+  color: #364152;
 }
 
-.owmr-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.owmr-cell-title {
-  font-weight: 600;
-}
-
-.owmr-cell-sub {
+.owmr-booking-schedule__meta {
+  color: #6b7280;
   font-size: 12px;
-  opacity: 0.75;
-  margin-top: 2px;
 }
 
-.owmr-note {
-  max-width: 220px;
-  font-size: 13px;
-  line-height: 1.45;
-  word-break: break-word;
-}
-
-.owmr-date {
-  font-size: 12px;
-  white-space: nowrap;
-  color: rgba(232, 236, 241, 0.75);
-}
-
-.owmr-actions {
+.owmr-booking-detail__head {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
   gap: 8px;
-  min-width: 120px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.owmr-booking-detail__head h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.owmr-pay-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.owmr-pay-badge--paid {
+  background: #0f172a;
+  color: #fff;
+}
+
+.owmr-pay-badge--unpaid {
+  background: #d4dae5;
+  color: #273247;
+}
+
+.owmr-booking-detail__confirmed,
+.owmr-booking-detail__money,
+.owmr-booking-detail__sub {
+  margin: 2px 0 0;
+  color: #5f6b7a;
+  font-size: 13px;
+}
+
+.owmr-booking-extra {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #e9eef7;
+  border: 1px solid #d6deea;
+  color: #2c3e57;
+  font-weight: 800;
+}
+
+.owmr-booking-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.owmr-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: rgba(255, 255, 255, 0.8);
+  color: #1f2937;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.owmr-action-btn--muted {
+  opacity: 0.45;
+}
+
+.owmr-booking-links {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
 }
 
 .owmr-link {
@@ -251,6 +338,37 @@
     width: 100%;
     margin-left: 0;
   }
+
+  .owmr-booking-card {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .owmr-bookhist-card {
+    grid-template-columns: 1fr;
+  }
+
+  .owmr-booking-day,
+  .owmr-booking-schedule {
+    border-right: none;
+    border-bottom: 1px solid #d8e0eb;
+    justify-items: flex-start;
+    padding-right: 0;
+    padding-bottom: 8px;
+  }
+
+  .owmr-booking-day__num {
+    font-size: 1.7rem;
+  }
+
+  .owmr-booking-links {
+    grid-column: auto;
+  }
+
+  .owmr-booking-actions {
+    grid-auto-flow: column;
+    justify-content: flex-start;
+  }
 }
 
 /* Light/clean theme synced with owner register page */
@@ -292,27 +410,6 @@
 
 .owreg--clean .owmr-empty p {
   color: #5b6474;
-}
-
-.owreg--clean .owmr-table {
-  background: #fff;
-  border: 1px solid #e7ecf3;
-}
-
-.owreg--clean .owmr-table th,
-.owreg--clean .owmr-table td {
-  border-bottom: 1px solid #edf2f7;
-  color: #1f2937;
-}
-
-.owreg--clean .owmr-table th {
-  color: #667085;
-  background: #f8fafc;
-}
-
-.owreg--clean .owmr-cell-sub,
-.owreg--clean .owmr-date {
-  color: #667085;
 }
 
 .owreg--clean .owmr-link {

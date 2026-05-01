@@ -7,6 +7,16 @@ import {
   useState,
 } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import {
+  fetchAdminDashboardCharts,
+  fetchAdminOverviewStats,
+  type AdminDashboardChartsDto,
+  type AdminOverviewStatsDto,
+  type DailyMetricDto,
+  type StatusMetricDto,
+  type TopVehicleMetricDto,
+} from '../api/adminDashboard'
+import { fetchAdminOwnerVehicleRequests } from '../api/ownerVehicleRequests'
 import './AdminDashboardPage.css'
 
 const AdminVehiclesSection = lazy(() => import('./AdminVehiclesSection'))
@@ -16,6 +26,7 @@ const AdminBookingsSection = lazy(() => import('./AdminBookingsSection'))
 const AdminOwnerVehicleRequestsSection = lazy(
   () => import('./AdminOwnerVehicleRequestsSection'),
 )
+const AdminBlogPostsSection = lazy(() => import('./AdminBlogPostsSection'))
 
 function AdminSectionFallback() {
   return (
@@ -32,6 +43,7 @@ type NavId =
   | 'stations'
   | 'bookings'
   | 'ownerRequests'
+  | 'blog'
   | 'users'
   | 'stats'
 
@@ -39,61 +51,54 @@ const NAV_ITEMS: {
   id: NavId
   label: string
   icon: string
-  badge?: number
 }[] = [
   { id: 'home', label: 'Tổng quan', icon: '🏠' },
-  { id: 'vehicles', label: 'Phương tiện', icon: '🚗', badge: 3 },
+  { id: 'vehicles', label: 'Phương tiện', icon: '🚗' },
   { id: 'stations', label: 'Trạm & bãi', icon: '📍' },
-  { id: 'bookings', label: 'Đặt xe', icon: '📋', badge: 5 },
+  { id: 'bookings', label: 'Đặt xe', icon: '📋' },
   { id: 'ownerRequests', label: 'Yêu cầu owner', icon: '📝' },
+  { id: 'blog', label: 'Blog', icon: '📰' },
   { id: 'users', label: 'Người dùng', icon: '👤' },
   { id: 'stats', label: 'Thống kê', icon: '📊' },
 ]
 
 const PAGE_COPY: Record<
   NavId,
-  { title: string; subtitle: string; pill: string }
+  { title: string; subtitle: string }
 > = {
   home: {
     title: 'Tổng quan',
     subtitle: 'Theo dõi hoạt động thuê xe và trạm trong hệ thống.',
-    pill: '3 mới',
   },
   vehicles: {
     title: 'Phương tiện',
     subtitle: 'Quản lý danh sách xe, trạng thái và giá.',
-    pill: '3 mới',
   },
   stations: {
     title: 'Trạm & bãi',
     subtitle: 'Vị trí đỗ xe và công suất từng trạm.',
-    pill: 'Cập nhật',
   },
   bookings: {
     title: 'Đặt xe',
     subtitle: 'Đơn đặt chờ xác nhận và lịch sử giao nhận.',
-    pill: '5 mới',
   },
   ownerRequests: {
     title: 'Yêu cầu xe owner',
     subtitle: 'Duyệt xe người dùng gửi lên hệ thống cho thuê.',
-    pill: 'PENDING',
+  },
+  blog: {
+    title: 'Blog',
+    subtitle: 'Soạn bài, xuất bản và quản lý nội dung hiển thị công khai.',
   },
   users: {
     title: 'Người dùng',
     subtitle: 'Tài khoản khách hàng và tài xế.',
-    pill: '2 mới',
   },
   stats: {
     title: 'Thống kê',
     subtitle: 'Doanh thu, tỷ lệ lấp đầy và xu hướng theo tháng.',
-    pill: 'Báo cáo',
   },
 }
-
-const BAR_MONTHS = ['T5', 'T6', 'T7', 'T8', 'T9']
-const BAR_HEIGHTS_BLUE = [45, 62, 55, 78, 70]
-const BAR_HEIGHTS_LIME = [38, 50, 48, 65, 58]
 
 const NAV_TO_ROUTE: Record<NavId, string> = {
   home: '/admin/overview',
@@ -101,6 +106,7 @@ const NAV_TO_ROUTE: Record<NavId, string> = {
   stations: '/admin/stations',
   bookings: '/admin/bookings',
   ownerRequests: '/admin/owner-vehicle-requests',
+  blog: '/admin/blog',
   users: '/admin/users',
   stats: '/admin/stats',
 }
@@ -111,10 +117,155 @@ function navFromPath(pathname: string): NavId {
   if (pathname.startsWith('/admin/stations')) return 'stations'
   if (pathname.startsWith('/admin/bookings')) return 'bookings'
   if (pathname.startsWith('/admin/owner-vehicle-requests')) return 'ownerRequests'
+  if (pathname.startsWith('/admin/blog')) return 'blog'
   if (pathname.startsWith('/admin/users')) return 'users'
   if (pathname.startsWith('/admin/stats')) return 'stats'
   if (pathname.startsWith('/admin/overview')) return 'home'
   return 'home'
+}
+
+const BOOKING_STATUS_META: Record<string, { label: string; color: string }> = {
+  PENDING: { label: 'Chờ xác nhận', color: '#f59e0b' },
+  CONFIRMED: { label: 'Đã xác nhận', color: '#2563eb' },
+  ONGOING: { label: 'Đang thuê', color: '#7c3aed' },
+  COMPLETED: { label: 'Hoàn thành', color: '#16a34a' },
+  CANCELLED: { label: 'Đã hủy', color: '#ef4444' },
+}
+
+const VEHICLE_STATUS_META: Record<string, { label: string; color: string }> = {
+  AVAILABLE: { label: 'Sẵn sàng', color: '#22c55e' },
+  RENTED: { label: 'Đang thuê', color: '#3b82f6' },
+  MAINTENANCE: { label: 'Bảo trì', color: '#f97316' },
+}
+
+function fmtShortDate(isoDate: string): string {
+  const d = new Date(isoDate)
+  if (!Number.isFinite(d.getTime())) return isoDate
+  return d.toLocaleDateString('vi-VN', { month: '2-digit', day: '2-digit' })
+}
+
+function toNum(v: number | string | null | undefined): number {
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+function DashboardLineChart({
+  data,
+  stroke,
+}: {
+  data: DailyMetricDto[]
+  stroke: string
+}) {
+  const values = data.map((x) => toNum(x.value))
+  const max = Math.max(...values, 1)
+  const points = values
+    .map((value, idx) => {
+      const x = (idx / Math.max(1, values.length - 1)) * 100
+      const y = 100 - (value / max) * 100
+      return `${x},${y}`
+    })
+    .join(' ')
+  return (
+    <div className="adm-chart-box">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="adm-line-chart">
+        <polyline
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2.8"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          points={points}
+        />
+      </svg>
+      <div className="adm-line-labels">
+        {data.map((x) => (
+          <span key={x.date}>{fmtShortDate(x.date)}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DashboardBarChart({
+  data,
+  color,
+}: {
+  data: DailyMetricDto[]
+  color: string
+}) {
+  const values = data.map((x) => toNum(x.value))
+  const max = Math.max(...values, 1)
+  return (
+    <div className="adm-chart-box">
+      <div className="adm-mini-bars">
+        {data.map((item) => (
+          <div key={item.date} className="adm-mini-bars__item">
+            <div
+              className="adm-mini-bars__bar"
+              style={{ height: `${Math.max(6, (toNum(item.value) / max) * 100)}%`, background: color }}
+              title={`${fmtShortDate(item.date)}: ${toNum(item.value).toLocaleString('vi-VN')}`}
+            />
+            <span>{fmtShortDate(item.date)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DashboardDonut({
+  title,
+  metrics,
+  meta,
+}: {
+  title: string
+  metrics: StatusMetricDto[]
+  meta: Record<string, { label: string; color: string }>
+}) {
+  const total = metrics.reduce((acc, x) => acc + toNum(x.count), 0)
+  let start = 0
+  const slices = metrics
+    .map((item) => {
+      const count = toNum(item.count)
+      const pct = total > 0 ? (count / total) * 100 : 0
+      const end = start + pct
+      const color = meta[item.status]?.color ?? '#94a3b8'
+      const segment = `${color} ${start}% ${end}%`
+      start = end
+      return segment
+    })
+    .join(', ')
+
+  return (
+    <section className="adm-panel" aria-label={title}>
+      <div className="adm-panel__head">
+        <h2 className="adm-panel__title">{title}</h2>
+      </div>
+      <div className="adm-donut-wrap">
+        <div
+          className="adm-donut"
+          style={{ background: `conic-gradient(${slices || '#e2e8f0 0% 100%'})` }}
+        >
+          <div className="adm-donut__center">
+            <strong>{total}</strong>
+            <span>Tổng</span>
+          </div>
+        </div>
+        <div className="adm-donut-legend">
+          {metrics.map((item) => (
+            <div key={item.status} className="adm-donut-legend__item">
+              <span
+                className="adm-donut-legend__dot"
+                style={{ background: meta[item.status]?.color ?? '#94a3b8' }}
+              />
+              <span>{meta[item.status]?.label ?? item.status}</span>
+              <strong>{toNum(item.count)}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
 }
 
 export default function AdminDashboardPage() {
@@ -127,13 +278,19 @@ export default function AdminDashboardPage() {
   const [userRefreshKey, setUserRefreshKey] = useState(0)
   const [bookingRefreshKey, setBookingRefreshKey] = useState(0)
   const [ownerRequestRefreshKey, setOwnerRequestRefreshKey] = useState(0)
+  const [blogRefreshKey, setBlogRefreshKey] = useState(0)
+  const [pendingOwnerRequestsCount, setPendingOwnerRequestsCount] = useState(0)
+  const [overviewStats, setOverviewStats] = useState<AdminOverviewStatsDto | null>(null)
+  const [chartData, setChartData] = useState<AdminDashboardChartsDto | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   const showDashboard =
     activeNav !== 'vehicles' &&
     activeNav !== 'stations' &&
     activeNav !== 'users' &&
     activeNav !== 'bookings' &&
-    activeNav !== 'ownerRequests'
+    activeNav !== 'ownerRequests' &&
+    activeNav !== 'blog'
 
   const page = useMemo(() => PAGE_COPY[activeNav], [activeNav])
 
@@ -146,12 +303,89 @@ export default function AdminDashboardPage() {
     }
   }, [location.pathname, navigate])
 
+  const loadPendingOwnerRequestsCount = useCallback(async () => {
+    try {
+      const pending = await fetchAdminOwnerVehicleRequests({ status: 'PENDING' })
+      setPendingOwnerRequestsCount(pending.length)
+    } catch {
+      setPendingOwnerRequestsCount(0)
+    }
+  }, [])
+
+  const loadDashboardData = useCallback(async () => {
+    try {
+      const [stats, charts] = await Promise.all([
+        fetchAdminOverviewStats(),
+        fetchAdminDashboardCharts(),
+      ])
+      setOverviewStats(stats)
+      setChartData(charts)
+    } catch {
+      setOverviewStats(null)
+      setChartData(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try {
+        const [stats, charts] = await Promise.all([
+          fetchAdminOverviewStats(),
+          fetchAdminDashboardCharts(),
+        ])
+        if (!cancelled) {
+          setOverviewStats(stats)
+          setChartData(charts)
+        }
+      } catch {
+        if (!cancelled) {
+          setOverviewStats(null)
+          setChartData(null)
+        }
+      }
+    }
+    void run()
+    const timer = window.setInterval(() => void run(), 30000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [])
+
+  const fmtMoney = (v: number | string | null | undefined): string => {
+    if (v == null || v === '') return '0 ₫'
+    const n = typeof v === 'number' ? v : Number(v)
+    if (!Number.isFinite(n)) return '0 ₫'
+    return `${new Intl.NumberFormat('vi-VN').format(n)} ₫`
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try {
+        const pending = await fetchAdminOwnerVehicleRequests({ status: 'PENDING' })
+        if (!cancelled) setPendingOwnerRequestsCount(pending.length)
+      } catch {
+        if (!cancelled) setPendingOwnerRequestsCount(0)
+      }
+    }
+    void run()
+    const timer = window.setInterval(() => void run(), 30000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [])
+
   const onNav = useCallback((id: NavId) => {
     navigate(NAV_TO_ROUTE[id])
     setSidebarOpen(false)
   }, [navigate])
 
   const bumpActiveSectionRefresh = useCallback(() => {
+    if (refreshing) return
+    setRefreshing(true)
     switch (activeNav) {
       case 'vehicles':
         setVehicleRefreshKey((k) => k + 1)
@@ -167,11 +401,21 @@ export default function AdminDashboardPage() {
         break
       case 'ownerRequests':
         setOwnerRequestRefreshKey((k) => k + 1)
+        void loadPendingOwnerRequestsCount()
+        break
+      case 'blog':
+        setBlogRefreshKey((k) => k + 1)
         break
       default:
+        void loadDashboardData()
         break
     }
-  }, [activeNav])
+    window.setTimeout(() => setRefreshing(false), 700)
+  }, [activeNav, loadDashboardData, loadPendingOwnerRequestsCount, refreshing])
+
+  const onLogout = useCallback(() => {
+    navigate('/logout')
+  }, [navigate])
 
   return (
     <div className="adm">
@@ -209,23 +453,14 @@ export default function AdminDashboardPage() {
                     {item.icon}
                   </span>
                   {item.label}
-                  {item.badge != null && item.badge > 0 ? (
-                    <span className="adm-nav__badge">{item.badge}</span>
+                  {item.id === 'ownerRequests' && pendingOwnerRequestsCount > 0 ? (
+                    <span className="adm-nav__badge">{pendingOwnerRequestsCount}</span>
                   ) : null}
                 </button>
               </li>
             ))}
           </ul>
         </nav>
-
-        <div className="adm-upgrade">
-          <div className="adm-upgrade__icon" aria-hidden>
-            👑
-          </div>
-          <h3>Nâng cấp Pro</h3>
-          <p>Báo cáo nâng cao, xuất Excel và quản lý đội xe theo nhóm.</p>
-          <button type="button">Nâng cấp — liên hệ</button>
-        </div>
       </aside>
 
       <div className="adm-main">
@@ -244,25 +479,17 @@ export default function AdminDashboardPage() {
               <h1 className="adm-header__title">{page.title}</h1>
               <p className="adm-header__sub">{page.subtitle}</p>
             </div>
-            <button type="button" className="adm-pill">
-              {page.pill}
-            </button>
           </div>
           <div className="adm-header__right">
             <button
               type="button"
-              className="adm-icon-btn"
-              aria-label="Tìm kiếm"
-            >
-              🔍
-            </button>
-            <button
-              type="button"
-              className="adm-icon-btn"
+              className={`adm-refresh-btn${refreshing ? ' is-loading' : ''}`}
               aria-label="Làm mới dữ liệu"
               onClick={bumpActiveSectionRefresh}
+              disabled={refreshing}
             >
-              ↻
+              <span aria-hidden className="adm-refresh-btn__icon">↻</span>
+              <span>{refreshing ? 'Đang tải...' : 'Làm mới'}</span>
             </button>
             <button type="button" className="adm-profile">
               <span className="adm-profile__avatar" aria-hidden>
@@ -272,7 +499,14 @@ export default function AdminDashboardPage() {
                 <small>Xin chào</small>
                 <strong>Quản trị viên</strong>
               </span>
-              <span aria-hidden>▾</span>
+            </button>
+            <button
+              type="button"
+              className="adm-logout-btn"
+              onClick={onLogout}
+              aria-label="Đăng xuất"
+            >
+              Đăng xuất
             </button>
           </div>
         </header>
@@ -311,30 +545,23 @@ export default function AdminDashboardPage() {
             </Suspense>
           ) : null}
 
+          {activeNav === 'blog' ? (
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminBlogPostsSection refreshKey={blogRefreshKey} />
+            </Suspense>
+          ) : null}
+
           {showDashboard ? (
             <>
           <section aria-label="Chỉ số nhanh" className="adm-metrics">
             <article className="adm-mcard adm-mcard--lime">
               <div className="adm-mcard__icon" aria-hidden>
-                💰
+                📅
               </div>
               <div>
-                <p className="adm-mcard__label">Doanh thu tháng</p>
-                <p className="adm-mcard__value">42.580.000 ₫</p>
-                <p className="adm-mcard__sub">So với tháng trước</p>
-              </div>
-            </article>
-            <article className="adm-mcard">
-              <div className="adm-mcard__icon" aria-hidden>
-                🎯
-              </div>
-              <div>
-                <p className="adm-mcard__label">Mục tiêu doanh thu</p>
-                <p className="adm-mcard__value">
-                  78%
-                  <span className="adm-mcard__badge">+5%</span>
-                </p>
-                <p className="adm-mcard__sub">62M / 80M ₫</p>
+                <p className="adm-mcard__label">Đơn đặt hôm nay</p>
+                <p className="adm-mcard__value">{overviewStats?.bookingsToday ?? 0}</p>
+                <p className="adm-mcard__sub">Tổng booking tạo trong ngày</p>
               </div>
             </article>
             <article className="adm-mcard">
@@ -342,162 +569,109 @@ export default function AdminDashboardPage() {
                 🚙
               </div>
               <div>
-                <p className="adm-mcard__label">Đặt xe mới</p>
-                <p className="adm-mcard__value">
-                  38
-                  <span className="adm-mcard__badge">+6</span>
-                </p>
-                <p className="adm-mcard__sub">Trong tháng này</p>
+                <p className="adm-mcard__label">Xe đang cho thuê</p>
+                <p className="adm-mcard__value">{overviewStats?.ongoingBookings ?? 0}</p>
+                <p className="adm-mcard__sub">Số booking ONGOING</p>
               </div>
             </article>
             <article className="adm-mcard">
               <div className="adm-mcard__icon" aria-hidden>
-                📈
+                ✅
               </div>
               <div>
-                <p className="adm-mcard__label">Tổng lũy kế</p>
-                <p className="adm-mcard__value">892.400.000 ₫</p>
-                <p className="adm-mcard__sub">Toàn thời gian</p>
+                <p className="adm-mcard__label">Xe sẵn sàng</p>
+                <p className="adm-mcard__value">{overviewStats?.availableVehicles ?? 0}</p>
+                <p className="adm-mcard__sub">Số xe AVAILABLE</p>
+              </div>
+            </article>
+            <article className="adm-mcard">
+              <div className="adm-mcard__icon" aria-hidden>
+                💰
+              </div>
+              <div>
+                <p className="adm-mcard__label">Doanh thu tháng này</p>
+                <p className="adm-mcard__value">{fmtMoney(overviewStats?.revenueThisMonth ?? 0)}</p>
+                <p className="adm-mcard__sub">Tổng tiền booking hoàn tất</p>
+              </div>
+            </article>
+            <article className="adm-mcard">
+              <div className="adm-mcard__icon" aria-hidden>
+                👤
+              </div>
+              <div>
+                <p className="adm-mcard__label">Người dùng mới</p>
+                <p className="adm-mcard__value">{overviewStats?.newUsersLast7Days ?? 0}</p>
+                <p className="adm-mcard__sub">Đăng ký trong 7 ngày gần nhất</p>
               </div>
             </article>
           </section>
 
           <div className="adm-grid2">
-            <section className="adm-panel" aria-labelledby="adm-stat-title">
+            <section className="adm-panel" aria-label="Booking 7 ngày gần đây">
               <div className="adm-panel__head">
-                <h2 className="adm-panel__title" id="adm-stat-title">
-                  <span aria-hidden>📊</span> Thống kê
-                </h2>
-                <div className="adm-panel__tools">
-                  <label htmlFor="adm-period" className="visually-hidden">
-                    Chu kỳ
-                  </label>
-                  <select id="adm-period" className="adm-select">
-                    <option>Theo tháng</option>
-                    <option>Theo quý</option>
-                  </select>
-                  <button
-                    type="button"
-                    className="adm-icon-btn"
-                    aria-label="Cài đặt biểu đồ"
-                  >
-                    ⚙
-                  </button>
-                </div>
+                <h2 className="adm-panel__title">Booking 7 ngày gần đây</h2>
               </div>
-              <div className="adm-stat-row">
-                <div className="adm-stat-box">
-                  <label>Thu nhập</label>
-                  <strong>150.090.000 ₫</strong>
-                  <div>
-                    <span className="up">+12,4%</span>
-                  </div>
-                </div>
-                <div className="adm-stat-box">
-                  <label>Chi phí vận hành</label>
-                  <strong>90.230.000 ₫</strong>
-                  <div>
-                    <span className="up">−3,1%</span>
-                  </div>
-                </div>
+              <DashboardLineChart
+                data={chartData?.bookingsLast7Days ?? []}
+                stroke="#2563eb"
+              />
+            </section>
+
+            <section className="adm-panel" aria-label="Doanh thu 7 ngày">
+              <div className="adm-panel__head">
+                <h2 className="adm-panel__title">Doanh thu 7 ngày</h2>
               </div>
-              <div
-                className="adm-bars"
-                role="img"
-                aria-label="Biểu đồ cột theo tháng, hai loại: đặt xe và doanh thu"
-              >
-                {BAR_MONTHS.map((m, i) => (
-                  <div key={m} className="adm-bar-group">
-                    <div className="adm-bar-pair">
-                      <div
-                        className="adm-bar adm-bar--blue"
-                        style={{ height: `${BAR_HEIGHTS_BLUE[i]}%` }}
-                        title={`Đặt ${BAR_HEIGHTS_BLUE[i]}%`}
-                      />
-                      <div
-                        className="adm-bar adm-bar--lime"
-                        style={{ height: `${BAR_HEIGHTS_LIME[i]}%` }}
-                        title={`Doanh thu ${BAR_HEIGHTS_LIME[i]}%`}
-                      />
+              <DashboardBarChart
+                data={chartData?.revenueLast7Days ?? []}
+                color="#16a34a"
+              />
+            </section>
+
+            <DashboardDonut
+              title="Trạng thái booking"
+              metrics={chartData?.bookingStatusBreakdown ?? []}
+              meta={BOOKING_STATUS_META}
+            />
+
+            <DashboardDonut
+              title="Trạng thái xe"
+              metrics={chartData?.vehicleStatusBreakdown ?? []}
+              meta={VEHICLE_STATUS_META}
+            />
+          </div>
+
+          <div className="adm-grid2" style={{ marginTop: 20 }}>
+            <section className="adm-panel" aria-label="Top xe theo lượt thuê">
+              <div className="adm-panel__head">
+                <h2 className="adm-panel__title">Top xe theo lượt thuê</h2>
+              </div>
+              <div className="adm-top-list">
+                {(chartData?.topVehiclesByRentCount ?? []).map((v: TopVehicleMetricDto) => (
+                  <div className="adm-top-item" key={`rent-${v.vehicleId ?? v.licensePlate}`}>
+                    <div>
+                      <strong>{v.vehicleName?.trim() || 'Xe chưa đặt tên'}</strong>
+                      <p>{v.licensePlate || '—'}</p>
                     </div>
-                    <span className="adm-bar-label">{m}</span>
+                    <span>{toNum(v.rentCount)} lượt</span>
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="adm-panel" aria-labelledby="adm-vis-title">
+            <section className="adm-panel" aria-label="Top xe theo doanh thu">
               <div className="adm-panel__head">
-                <h2 className="adm-panel__title" id="adm-vis-title">
-                  <span aria-hidden>👥</span> Người dùng &amp; kênh
-                </h2>
-                <div className="adm-panel__tools">
-                  <label htmlFor="adm-vis-period" className="visually-hidden">
-                    Khoảng thời gian
-                  </label>
-                  <select id="adm-vis-period" className="adm-select">
-                    <option>Tháng này</option>
-                    <option>Quý này</option>
-                  </select>
-                </div>
+                <h2 className="adm-panel__title">Top xe theo doanh thu</h2>
               </div>
-              <div className="adm-visitors__body">
-                <div
-                  className="adm-bubbles"
-                  role="img"
-                  aria-label="Tỷ lệ người dùng: cá nhân 2,3k, doanh nghiệp 1,2k, tổ chức 982"
-                >
-                  <div className="adm-bubble adm-bubble--lg">
-                    2,3k
-                    <span>Cá nhân</span>
-                  </div>
-                  <div className="adm-bubble adm-bubble--md">
-                    1,2k
-                    <span>DN</span>
-                  </div>
-                  <div className="adm-bubble adm-bubble--sm">
-                    982
-                    <span>Tổ chức</span>
-                  </div>
-                </div>
-                <div className="adm-targets">
-                  <div className="adm-target">
-                    <div className="adm-target__row">
-                      <span>Mục tiêu cá nhân</span>
-                      <span>92%</span>
+              <div className="adm-top-list">
+                {(chartData?.topVehiclesByRevenue ?? []).map((v: TopVehicleMetricDto) => (
+                  <div className="adm-top-item" key={`rev-${v.vehicleId ?? v.licensePlate}`}>
+                    <div>
+                      <strong>{v.vehicleName?.trim() || 'Xe chưa đặt tên'}</strong>
+                      <p>{v.licensePlate || '—'}</p>
                     </div>
-                    <div className="adm-progress">
-                      <div
-                        className="adm-progress__fill adm-progress__fill--lime"
-                        style={{ width: '92%' }}
-                      />
-                    </div>
+                    <span>{fmtMoney(v.revenue)}</span>
                   </div>
-                  <div className="adm-target">
-                    <div className="adm-target__row">
-                      <span>Mục tiêu doanh nghiệp</span>
-                      <span>67%</span>
-                    </div>
-                    <div className="adm-progress">
-                      <div
-                        className="adm-progress__fill adm-progress__fill--blue"
-                        style={{ width: '67%' }}
-                      />
-                    </div>
-                  </div>
-                  <div className="adm-target">
-                    <div className="adm-target__row">
-                      <span>Mục tiêu tổ chức</span>
-                      <span>54%</span>
-                    </div>
-                    <div className="adm-progress">
-                      <div
-                        className="adm-progress__fill adm-progress__fill--gray"
-                        style={{ width: '54%' }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </section>
           </div>

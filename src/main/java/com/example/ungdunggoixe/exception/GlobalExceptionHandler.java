@@ -5,8 +5,10 @@ import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -18,10 +20,7 @@ public class GlobalExceptionHandler {
 
     private final I18nService i18nService;
 
-    /**
-     * Dùng setter thay vì {@code ApiResponse.builder().code(...)} để tránh {@link NoSuchMethodError}
-     * khi bytecode builder (int vs {@link Integer}) hoặc bản biên dịch cũ/mới lệch nhau.
-     */
+
     private static ApiResponse<Void> errorBody(int code, String message) {
         ApiResponse<Void> r = new ApiResponse<>();
         r.setStatus("error");
@@ -57,6 +56,17 @@ public class GlobalExceptionHandler {
         ApiResponse<Void> response =
                 errorBody(ErrorCode.INTERNAL_ERROR.getCode(), i18nService.getMessage("error.auth.login_system"));
         return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getHttpStatus()).body(response);
+    }
+
+    /**
+     * Lỗi phân quyền (403) từ Spring Security/@PreAuthorize.
+     * Trả response gọn để tránh rơi xuống handler tổng quát và in stacktrace dài.
+     */
+    @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(Exception e) {
+        ApiResponse<Void> response =
+                errorBody(ErrorCode.FORBIDDEN.getCode(), i18nService.getMessage(ErrorCode.FORBIDDEN.getMessageKey()));
+        return ResponseEntity.status(ErrorCode.FORBIDDEN.getHttpStatus()).body(response);
     }
 
     // Bắt tất cả lỗi không mong muốn còn lại
