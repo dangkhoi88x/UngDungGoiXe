@@ -1,0 +1,259 @@
+/**
+ * Blog public — dùng shell `.cr-page` + biến từ CarRentalPage.css
+ * (nền trắng, font system-ui, nav cố định giống /rent).
+ */
+.cr-page.blog-page {
+  color: #1a1a1a;
+}
+
+.blog-main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: calc(var(--cr-nav-h) + 1.25rem) clamp(1rem, 3vw, 2.5rem) 3.5rem;
+  box-sizing: border-box;
+}
+
+.blog-main--article {
+  max-width: 820px;
+}
+
+.blog-hero {
+  margin: 12px 0 32px;
+}
+
+.blog-hero__eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.blog-hero__title {
+  margin: 0 0 10px;
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: #1a1a1a;
+}
+
+.blog-hero__sub {
+  margin: 0;
+  max-width: 52ch;
+  color: #666666;
+  line-height: 1.55;
+  font-size: 1rem;
+}
+
+.blog-muted {
+  color: #64748b;
+}
+
+.blog-banner {
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+.blog-banner--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.blog-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.blog-card {
+  height: 100%;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid var(--cr-line, #e0e0e0);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.blog-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.blog-card__link {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.blog-card__media {
+  aspect-ratio: 16 / 10;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.blog-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.blog-card__placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #cbd5f5 0%, #e0e7ff 45%, #cffafe 100%);
+}
+
+.blog-card__body {
+  padding: 16px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blog-card__date {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.blog-card__title {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.blog-card__excerpt {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #475569;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.blog-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 36px;
+}
+
+.blog-pagination__meta {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.blog-page-btn {
+  border: 1px solid var(--cr-line, #e0e0e0);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #1a1a1a;
+}
+
+.blog-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.blog-back {
+  margin: 8px 0 24px;
+}
+
+.blog-back a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.blog-back a:hover {
+  text-decoration: underline;
+}
+
+.blog-article__head {
+  margin-bottom: 20px;
+}
+
+.blog-article__date {
+  display: block;
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.blog-article__title {
+  margin: 0 0 12px;
+  font-size: clamp(1.85rem, 4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+.blog-article__excerpt {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.blog-article__cover {
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 28px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.blog-article__cover img {
+  width: 100%;
+  display: block;
+  max-height: 420px;
+  object-fit: cover;
+}
+
+.blog-article__content {
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: #1e293b;
+}
+
+.blog-article__content :where(h2, h3) {
+  margin: 1.4em 0 0.5em;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.blog-article__content :where(p) {
+  margin: 0 0 1em;
+}
+
+.blog-article__content :where(ul, ol) {
+  margin: 0 0 1em 1.2em;
+}
+
+.blog-article__content :where(a) {
+  color: #2563eb;
+}
+
+.blog-article__content :where(img) {
+  max-width: 100%;
+  border-radius: 12px;
+}
