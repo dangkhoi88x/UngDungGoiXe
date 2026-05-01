@@ -26,6 +26,7 @@ const AdminBookingsSection = lazy(() => import('./AdminBookingsSection'))
 const AdminOwnerVehicleRequestsSection = lazy(
   () => import('./AdminOwnerVehicleRequestsSection'),
 )
+const AdminBlogPostsSection = lazy(() => import('./AdminBlogPostsSection'))
 
 function AdminSectionFallback() {
   return (
@@ -42,6 +43,7 @@ type NavId =
   | 'stations'
   | 'bookings'
   | 'ownerRequests'
+  | 'blog'
   | 'users'
   | 'stats'
 
@@ -55,6 +57,7 @@ const NAV_ITEMS: {
   { id: 'stations', label: 'Trạm & bãi', icon: '📍' },
   { id: 'bookings', label: 'Đặt xe', icon: '📋' },
   { id: 'ownerRequests', label: 'Yêu cầu owner', icon: '📝' },
+  { id: 'blog', label: 'Blog', icon: '📰' },
   { id: 'users', label: 'Người dùng', icon: '👤' },
   { id: 'stats', label: 'Thống kê', icon: '📊' },
 ]
@@ -83,6 +86,10 @@ const PAGE_COPY: Record<
     title: 'Yêu cầu xe owner',
     subtitle: 'Duyệt xe người dùng gửi lên hệ thống cho thuê.',
   },
+  blog: {
+    title: 'Blog',
+    subtitle: 'Soạn bài, xuất bản và quản lý nội dung hiển thị công khai.',
+  },
   users: {
     title: 'Người dùng',
     subtitle: 'Tài khoản khách hàng và tài xế.',
@@ -99,6 +106,7 @@ const NAV_TO_ROUTE: Record<NavId, string> = {
   stations: '/admin/stations',
   bookings: '/admin/bookings',
   ownerRequests: '/admin/owner-vehicle-requests',
+  blog: '/admin/blog',
   users: '/admin/users',
   stats: '/admin/stats',
 }
@@ -109,6 +117,7 @@ function navFromPath(pathname: string): NavId {
   if (pathname.startsWith('/admin/stations')) return 'stations'
   if (pathname.startsWith('/admin/bookings')) return 'bookings'
   if (pathname.startsWith('/admin/owner-vehicle-requests')) return 'ownerRequests'
+  if (pathname.startsWith('/admin/blog')) return 'blog'
   if (pathname.startsWith('/admin/users')) return 'users'
   if (pathname.startsWith('/admin/stats')) return 'stats'
   if (pathname.startsWith('/admin/overview')) return 'home'
@@ -269,6 +278,7 @@ export default function AdminDashboardPage() {
   const [userRefreshKey, setUserRefreshKey] = useState(0)
   const [bookingRefreshKey, setBookingRefreshKey] = useState(0)
   const [ownerRequestRefreshKey, setOwnerRequestRefreshKey] = useState(0)
+  const [blogRefreshKey, setBlogRefreshKey] = useState(0)
   const [pendingOwnerRequestsCount, setPendingOwnerRequestsCount] = useState(0)
   const [overviewStats, setOverviewStats] = useState<AdminOverviewStatsDto | null>(null)
   const [chartData, setChartData] = useState<AdminDashboardChartsDto | null>(null)
@@ -279,7 +289,8 @@ export default function AdminDashboardPage() {
     activeNav !== 'stations' &&
     activeNav !== 'users' &&
     activeNav !== 'bookings' &&
-    activeNav !== 'ownerRequests'
+    activeNav !== 'ownerRequests' &&
+    activeNav !== 'blog'
 
   const page = useMemo(() => PAGE_COPY[activeNav], [activeNav])
 
@@ -391,6 +402,9 @@ export default function AdminDashboardPage() {
       case 'ownerRequests':
         setOwnerRequestRefreshKey((k) => k + 1)
         void loadPendingOwnerRequestsCount()
+        break
+      case 'blog':
+        setBlogRefreshKey((k) => k + 1)
         break
       default:
         void loadDashboardData()
@@ -528,6 +542,12 @@ export default function AdminDashboardPage() {
           {activeNav === 'ownerRequests' ? (
             <Suspense fallback={<AdminSectionFallback />}>
               <AdminOwnerVehicleRequestsSection refreshKey={ownerRequestRefreshKey} />
+            </Suspense>
+          ) : null}
+
+          {activeNav === 'blog' ? (
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminBlogPostsSection refreshKey={blogRefreshKey} />
             </Suspense>
           ) : null}
 

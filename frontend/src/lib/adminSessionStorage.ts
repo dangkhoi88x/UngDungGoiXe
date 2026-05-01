@@ -6,6 +6,7 @@ export const ADMIN_SESSION_KEYS = {
   stations: 'stations.filters',
   bookings: 'bookings.filters',
   ownerVehicleRequests: 'ownerVehicleRequests.filters',
+  blogPosts: 'blogPosts.filters',
 } as const
 
 export function readAdminSession<T extends Record<string, unknown>>(

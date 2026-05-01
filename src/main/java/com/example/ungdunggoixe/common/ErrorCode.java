@@ -61,6 +61,11 @@ public enum ErrorCode {
     MOMO_REQUEST_TYPE_INVALID(5006, "error.momo.request_type_invalid", "Unsupported MoMo requestType for create payment.", HttpStatus.BAD_REQUEST),
     PAYMENT_MOMO_PREPAY_AMOUNT_RANGE(5007, "error.payment.momo_prepay_amount_range", "MoMo prepay amount outside allowed VND range.", HttpStatus.BAD_REQUEST),
     MOMO_GATEWAY_REJECTED(5008, "error.momo.gateway_rejected", "MoMo payment gateway rejected the create request.", HttpStatus.BAD_REQUEST),
+    // ── Blog errors ───────────────────────────
+    BLOG_POST_NOT_FOUND(6001, "error.blog_post.not_found", "Blog post not found", HttpStatus.NOT_FOUND),
+    BLOG_POST_SLUG_ALREADY_EXISTS(6002, "error.blog_post.slug_already_exists", "Blog slug already exists", HttpStatus.CONFLICT),
+    BLOG_POST_BODY_INVALID(6003, "error.blog_post.body_invalid", "Blog post body is invalid", HttpStatus.BAD_REQUEST),
+    BLOG_POST_PUBLISH_INVALID(6004, "error.blog_post.publish_invalid", "Cannot publish blog post in current state", HttpStatus.BAD_REQUEST),
     // ── Generic errors ────────────────────────
     UNAUTHORIZED(9001, "error.auth.unauthorized", "Unauthorized", HttpStatus.UNAUTHORIZED),
     FORBIDDEN(9002, "error.auth.forbidden", "Forbidden", HttpStatus.FORBIDDEN),

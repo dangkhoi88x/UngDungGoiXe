@@ -2040,6 +2040,19 @@ a.sx-text-link {
   text-align: center;
 }
 
+.sx-blog__status {
+  margin: -1.5rem 0 clamp(2rem, 4vw, 2.75rem);
+  text-align: center;
+  font-family: var(--sx-sans);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #666;
+}
+
+.sx-blog__status--error {
+  color: #b42318;
+}
+
 .sx-blog__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2079,6 +2092,8 @@ a.sx-text-link {
   padding: 1.4rem 1.4rem 1.1rem;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  color: inherit;
 }
 
 .sx-blog-card:hover {
@@ -2165,6 +2180,7 @@ a.sx-text-link {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  text-decoration: none;
   transition:
     background 0.3s ease,
     gap 0.3s ease;

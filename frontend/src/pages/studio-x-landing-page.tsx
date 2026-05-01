@@ -6,9 +6,6 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
 import {
-  BLOG_POSTS,
-} from './studio-x-content'
-import {
   type VehicleDto,
   fetchAvailableVehicles,
   formatDailyPrice,
@@ -17,7 +14,30 @@ import {
   vehicleDisplayName,
 } from '../api/vehicles'
 import TopNav from '../components/TopNav'
+import { Link } from 'react-router-dom'
+import {
+  fetchPublishedBlogPostsPage,
+  type BlogPostPublicDto,
+} from '../api/blogPosts'
 import './studio-x-landing-page.css'
+
+const SX_BLOG_FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=800&q=80'
+
+function formatSxBlogMonthYear(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (!Number.isFinite(d.getTime())) return ''
+  return `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`
+}
+
+function sxBlogCardExcerpt(p: BlogPostPublicDto): string {
+  const raw = p.excerpt?.trim()
+  if (raw) return raw.length > 200 ? `${raw.slice(0, 197)}…` : raw
+  const plain = p.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  if (!plain) return ''
+  return plain.length > 200 ? `${plain.slice(0, 197)}…` : plain
+}
 
 
 
@@ -773,23 +793,87 @@ function ProjectsSection() {
 }
 
 function BlogSection() {
+  const [posts, setPosts] = useState<BlogPostPublicDto[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetchPublishedBlogPostsPage({
+          page: 0,
+          size: 3,
+          sortBy: 'publishedAt',
+          sortDir: 'desc',
+        })
+        if (!cancelled) setPosts(res.content ?? [])
+      } catch (e) {
+        if (!cancelled) {
+          setPosts([])
+          setError(e instanceof Error ? e.message : 'Không tải được bài viết.')
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const preview = posts.slice(0, 3)
+
   return (
     <section id="insights" className="sx-blog">
       <h2 className="sx-blog__title">Bài viết &amp; gợi ý cho đồ án</h2>
-      <div className="sx-blog__grid">
-        {BLOG_POSTS.map((post) => (
-          <article key={post.title} className="sx-blog-card">
-            <time className="sx-blog-card__date">{post.date}</time>
-            <h3 className="sx-blog-card__head">{post.title}</h3>
-            <p className="sx-blog-card__excerpt">{post.excerpt}</p>
-            <div className="sx-blog-card__media">
-              <img src={post.image} alt={post.title} loading="lazy" />
-            </div>
-          </article>
-        ))}
-      </div>
+
+      {loading ? (
+        <p className="sx-blog__status" role="status">
+          Đang tải bài viết…
+        </p>
+      ) : null}
+      {error ? (
+        <p className="sx-blog__status sx-blog__status--error" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {!loading && !error && preview.length === 0 ? (
+        <p className="sx-blog__status" role="status">
+          Chưa có bài xuất bản. Thêm bài trong admin hoặc xem trang blog khi có nội dung.
+        </p>
+      ) : null}
+
+      {!loading && preview.length > 0 ? (
+        <div className="sx-blog__grid">
+          {preview.map((post) => (
+            <Link
+              key={post.id}
+              className="sx-blog-card"
+              to={`/blog/${encodeURIComponent(post.slug)}`}
+            >
+              <time className="sx-blog-card__date" dateTime={post.publishedAt ?? undefined}>
+                {formatSxBlogMonthYear(post.publishedAt) || '—'}
+              </time>
+              <h3 className="sx-blog-card__head">{post.title}</h3>
+              <p className="sx-blog-card__excerpt">{sxBlogCardExcerpt(post)}</p>
+              <div className="sx-blog-card__media">
+                <img
+                  src={(post.coverImageUrl && post.coverImageUrl.trim()) || SX_BLOG_FALLBACK_IMAGE}
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : null}
+
       <div className="sx-blog__cta-wrap">
-        <button type="button" className="sx-blog__cta">
+        <Link to="/blog" className="sx-blog__cta">
           Xem thêm
           <svg
             className="sx-blog__cta-icon"
@@ -807,7 +891,7 @@ function BlogSection() {
               strokeLinejoin="round"
             />
           </svg>
-        </button>
+        </Link>
       </div>
     </section>
   )

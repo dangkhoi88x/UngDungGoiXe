@@ -54,12 +54,6 @@ function cardDayMeta(value?: string | null): { month: string; weekday: string; d
   }
 }
 
-function cardTime(value?: string | null): string {
-  const d = parseIsoDate(value)
-  if (!d) return '--:--'
-  return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
-}
-
 function canEdit(s: OwnerVehicleRequestStatus): boolean {
   return s === 'PENDING' || s === 'NEED_MORE_INFO'
 }
