@@ -4,7 +4,7 @@ import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.service.I18nService;
-import com.example.ungdunggoixe.service.LocalOwnerVehicleFileStorage;
+import com.example.ungdunggoixe.service.OwnerVehicleMediaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UploadController {
 
-    private final LocalOwnerVehicleFileStorage localOwnerVehicleFileStorage;
+    private final OwnerVehicleMediaService ownerVehicleMediaService;
     private final I18nService i18nService;
 
     private Long currentUserId() {
@@ -39,7 +39,7 @@ public class UploadController {
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/owner-vehicle/photo")
-    @Operation(summary = "Upload anh xe", description = "Tai len anh xe cho ho so chu xe.")
+    @Operation(summary = "Upload anh xe", description = "Tai len anh xe len Cloudinary (folder owner-vehicles/{userId}/photos).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload anh xe thanh cong"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File anh khong hop le"),
@@ -48,7 +48,7 @@ public class UploadController {
     public ApiResponse<Map<String, String>> uploadOwnerVehiclePhoto(
             @RequestParam("file") MultipartFile file
     ) {
-        String url = localOwnerVehicleFileStorage.storePhoto(currentUserId(), file);
+        String url = ownerVehicleMediaService.storePhoto(currentUserId(), file);
         return ApiResponse.<Map<String, String>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.upload.owner_vehicle_photo.success"))
@@ -59,7 +59,7 @@ public class UploadController {
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/owner-vehicle/document")
-    @Operation(summary = "Upload tai lieu xe", description = "Tai len tai lieu xe (dang ky, bao hiem...).")
+    @Operation(summary = "Upload tai lieu xe", description = "Tai len tai lieu len Cloudinary (folder owner-vehicles/{userId}/documents; PDF = raw).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload tai lieu thanh cong"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File tai lieu khong hop le"),
@@ -68,7 +68,7 @@ public class UploadController {
     public ApiResponse<Map<String, String>> uploadOwnerVehicleDocument(
             @RequestParam("file") MultipartFile file
     ) {
-        String url = localOwnerVehicleFileStorage.storeDocument(currentUserId(), file);
+        String url = ownerVehicleMediaService.storeDocument(currentUserId(), file);
         return ApiResponse.<Map<String, String>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.upload.owner_vehicle_document.success"))

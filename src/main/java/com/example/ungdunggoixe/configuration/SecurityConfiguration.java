@@ -3,6 +3,7 @@ package com.example.ungdunggoixe.configuration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -34,6 +35,9 @@ public class SecurityConfiguration {
                         .requestMatchers("/files/**").permitAll()
                         .requestMatchers("/momo/**").permitAll()
                         .requestMatchers("/users/my-info", "/users/my-documents", "/users/my-profile").authenticated() // ✅ cụ thể trước
+                        // Quyen cu the (admin vs chu xe so huu xe) xu ly trong VehicleService
+                        .requestMatchers(HttpMethod.POST, "/vehicles/*/photos", "/api/vehicles/*/photos")
+                                .authenticated()
                         .requestMatchers("/users", "/auth/**", "/stations/**", "/vehicles/**").permitAll()
                         .requestMatchers("/users/**").permitAll() // ✅ wildcard sau
 

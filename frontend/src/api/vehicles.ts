@@ -6,6 +6,80 @@ import { authFetch } from './authFetch'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
+/** Khớp mặc định backend: app.owner-vehicle-upload.max-file-size-bytes (6MiB) */
+export const MAX_VEHICLE_PHOTO_UPLOAD_BYTES = Number(
+  import.meta.env.VITE_MAX_VEHICLE_PHOTO_BYTES ?? 6291456,
+)
+
+const VEHICLE_PHOTO_ACCEPT_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+])
+
+export function validateVehiclePhotoFileClient(file: File): string | null {
+  if (!VEHICLE_PHOTO_ACCEPT_TYPES.has(file.type.trim().toLowerCase())) {
+    return 'Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP.'
+  }
+  if (file.size > MAX_VEHICLE_PHOTO_UPLOAD_BYTES) {
+    const mb = MAX_VEHICLE_PHOTO_UPLOAD_BYTES / (1024 * 1024)
+    return `Ảnh quá lớn (tối đa khoảng ${mb.toFixed(1)} MB).`
+  }
+  return null
+}
+
+/** Upload ảnh xe (Cloudinary); yêu cầu JWT — admin hoặc chủ xe đã duyệt. */
+export async function uploadVehiclePhoto(
+  vehicleId: number,
+  file: File,
+): Promise<string> {
+  const clientErr = validateVehiclePhotoFileClient(file)
+  if (clientErr) throw new Error(clientErr)
+
+  const body = new FormData()
+  body.append('file', file)
+
+  const res = await authFetch(`${API_BASE}/vehicles/${vehicleId}/photos`, {
+    method: 'POST',
+    body,
+  })
+
+  if (!res.ok) {
+    throw new Error(await parseVehiclePhotoUploadError(res))
+  }
+
+  const payload = (await res.json()) as unknown
+  const data = unwrapApiData<{ url?: string }>(payload)
+  const url = data?.url
+  if (!url || typeof url !== 'string') {
+    throw new Error('Phản hồi upload không chứa URL.')
+  }
+  return url
+}
+
+async function parseVehiclePhotoUploadError(res: Response): Promise<string> {
+  const base = await parseApiErrorFromResponse(res)
+  if (res.status === 401) {
+    return 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.'
+  }
+  if (res.status === 403) {
+    return base.includes('Forbidden') || base.startsWith('Lỗi')
+      ? 'Bạn không có quyền tải ảnh cho xe này (chỉ admin hoặc chủ xe đã được duyệt).'
+      : base
+  }
+  if (res.status === 404) {
+    return 'Không tìm thấy xe.'
+  }
+  if (res.status === 413) {
+    return `File vượt giới hạn máy chủ (tối đa khoảng ${(
+      MAX_VEHICLE_PHOTO_UPLOAD_BYTES /
+      (1024 * 1024)
+    ).toFixed(1)} MB).`
+  }
+  return base
+}
+
 export type VehicleDto = {
   id: number
   stationId: number
