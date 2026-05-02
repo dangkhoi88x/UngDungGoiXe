@@ -4,6 +4,7 @@ spring:
 
   servlet:
     multipart:
+      # Giữ >= app.owner-vehicle-upload.max-file-size-bytes (mặc định 6MB = 6291456)
       max-file-size: 6MB
       max-request-size: 14MB
 
@@ -53,6 +54,10 @@ jwt:
   secret-key: ${JWT_SECRET}
   audience: ${JWT_AUDIENCE}
 # Thư mục lưu ảnh GPLX (đường dẫn tương đối hoặc tuyệt đối)
+cloudinary:
+  cloud-name: ${CLOUDINARY_NAME}
+  api-key: ${CLOUDINARY_KEY}
+  api-secret: ${CLOUDINARY_SECRET}
 app:
   web-base-url: ${APP_WEB_BASE_URL:http://localhost:5173}
   upload-dir: uploads

@@ -657,3 +657,26 @@
   color: var(--adm-muted, #757575);
   line-height: 1.45;
 }
+
+.adm-veh__photo-upload-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--adm-muted, #757575);
+  line-height: 1.45;
+}
+
+.adm-veh__photo-preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.adm-veh__photo-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--adm-border, #e8e8e8);
+  background: #f5f5f5;
+}
