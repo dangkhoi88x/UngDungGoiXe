@@ -44,7 +44,7 @@ public class OwnerVehicleRequestService {
     private final UserRepository userRepository;
     private final StationRepository stationRepository;
     private final VehicleRepository vehicleRepository;
-    private final LocalOwnerVehicleFileStorage localOwnerVehicleFileStorage;
+    private final OwnerVehicleMediaService ownerVehicleMediaService;
     private final MailService mailService;
     @Value("${app.web-base-url:http://localhost:5173}")
     private String webBaseUrl;
@@ -151,37 +151,37 @@ public class OwnerVehicleRequestService {
 
         if (previousRegistration != null
                 && !previousRegistration.equals(currentRegistration)
-                && localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(previousRegistration)) {
-            localOwnerVehicleFileStorage.deleteStoredFileIfPresent(previousRegistration);
+                && ownerVehicleMediaService.isManagedOwnerVehicleUrl(previousRegistration)) {
+            ownerVehicleMediaService.deleteStoredFileIfPresent(previousRegistration);
         }
         if (previousInsurance != null
                 && !previousInsurance.equals(currentInsurance)
-                && localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(previousInsurance)) {
-            localOwnerVehicleFileStorage.deleteStoredFileIfPresent(previousInsurance);
+                && ownerVehicleMediaService.isManagedOwnerVehicleUrl(previousInsurance)) {
+            ownerVehicleMediaService.deleteStoredFileIfPresent(previousInsurance);
         }
 
         Set<String> currentSet = new HashSet<>(currentPhotos);
         for (String oldPhoto : previousPhotos) {
             if (oldPhoto == null || currentSet.contains(oldPhoto)) continue;
-            if (localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(oldPhoto)) {
-                localOwnerVehicleFileStorage.deleteStoredFileIfPresent(oldPhoto);
+            if (ownerVehicleMediaService.isManagedOwnerVehicleUrl(oldPhoto)) {
+                ownerVehicleMediaService.deleteStoredFileIfPresent(oldPhoto);
             }
         }
     }
 
     private void cleanupAllFilesForRequest(OwnerVehicleRequest req) {
         if (req.getRegistrationDocUrl() != null
-                && localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(req.getRegistrationDocUrl())) {
-            localOwnerVehicleFileStorage.deleteStoredFileIfPresent(req.getRegistrationDocUrl());
+                && ownerVehicleMediaService.isManagedOwnerVehicleUrl(req.getRegistrationDocUrl())) {
+            ownerVehicleMediaService.deleteStoredFileIfPresent(req.getRegistrationDocUrl());
         }
         if (req.getInsuranceDocUrl() != null
-                && localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(req.getInsuranceDocUrl())) {
-            localOwnerVehicleFileStorage.deleteStoredFileIfPresent(req.getInsuranceDocUrl());
+                && ownerVehicleMediaService.isManagedOwnerVehicleUrl(req.getInsuranceDocUrl())) {
+            ownerVehicleMediaService.deleteStoredFileIfPresent(req.getInsuranceDocUrl());
         }
         List<String> photos = req.getPhotos() == null ? List.of() : req.getPhotos();
         for (String photo : photos) {
-            if (localOwnerVehicleFileStorage.isManagedOwnerVehicleUrl(photo)) {
-                localOwnerVehicleFileStorage.deleteStoredFileIfPresent(photo);
+            if (ownerVehicleMediaService.isManagedOwnerVehicleUrl(photo)) {
+                ownerVehicleMediaService.deleteStoredFileIfPresent(photo);
             }
         }
     }

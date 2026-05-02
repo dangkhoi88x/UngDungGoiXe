@@ -7,6 +7,7 @@ import {
   type OwnerVehicleRequestDto,
   type OwnerVehicleRequestStatus,
 } from '../api/ownerVehicleRequests'
+import VehiclePhotoUpload from '../components/VehiclePhotoUpload'
 import { useOwnerRequestStatusWatcher } from '../hooks/useOwnerRequestStatusWatcher'
 import TopNav from '../components/TopNav'
 import './OwnerRegisterVehiclePage.css'
@@ -335,6 +336,20 @@ export default function OwnerMyVehicleRequestsPage() {
                       >
                         {busyId === r.id ? 'Đang hủy…' : 'Hủy yêu cầu'}
                       </button>
+                    ) : null}
+                    {r.status === 'APPROVED' && r.approvedVehicleId != null ? (
+                      <div className="owmr-vehicle-photo-slot">
+                        <VehiclePhotoUpload
+                          key={`veh-up-${r.id}-${r.approvedVehicleId}`}
+                          vehicleId={r.approvedVehicleId}
+                          onUploadedUrl={() =>
+                            setToast({
+                              message:
+                                'Đã tải ảnh lên xe. Mở link “Xem xe” để xem trên trang thuê.',
+                            })
+                          }
+                        />
+                      </div>
                     ) : null}
                   </div>
                 </article>
