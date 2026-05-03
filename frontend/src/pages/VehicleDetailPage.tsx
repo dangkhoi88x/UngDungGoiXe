@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import LicenseRequiredModal from '../components/LicenseRequiredModal'
 import {
-  fetchMyInfo,
   isLicenseApprovedForRent,
   type LicenseVerificationStatus,
 } from '../api/users'
+import { useAuth } from '../contexts/AuthContext'
 import {
   type VehicleDto,
   fetchAvailableVehicles,
@@ -48,15 +48,19 @@ type Props = { vehicleId: number }
 
 export default function VehicleDetailPage({ vehicleId }: Props) {
   const navigate = useNavigate()
+  const { user: ctxUser, isLoggedIn } = useAuth()
+
+  // authUi: dùng context thay vì đọc localStorage mỗi render
+  const authUi = {
+    loggedIn: isLoggedIn,
+    displayName: ctxUser ? `${ctxUser.firstName ?? ''} ${ctxUser.lastName ?? ''}`.trim() || null : null,
+  }
+
   const [vehicle, setVehicle] = useState<VehicleDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [photoIndex, setPhotoIndex] = useState(0)
   const [suggestions, setSuggestions] = useState<VehicleDto[]>([])
-  const [authUi, setAuthUi] = useState<{ loggedIn: boolean; displayName: string | null }>({
-    loggedIn: false,
-    displayName: null,
-  })
   const [licenseModalOpen, setLicenseModalOpen] = useState(false)
   const [licenseModalStatus, setLicenseModalStatus] = useState<LicenseVerificationStatus | null>(null)
   const [licenseCheckLoading, setLicenseCheckLoading] = useState(false)
@@ -64,17 +68,6 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
   const [feedbackData, setFeedbackData] = useState<PagedVehiclePublicFeedbackDto | null>(null)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const sync = () => {
-      const token = localStorage.getItem('accessToken')
-      const displayName = localStorage.getItem('userDisplayName')?.trim() || null
-      setAuthUi({ loggedIn: Boolean(token), displayName })
-    }
-    sync()
-    window.addEventListener('storage', sync)
-    return () => window.removeEventListener('storage', sync)
-  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -240,15 +233,17 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
   async function handleBookClick() {
     setLicenseCheckLoading(true)
     try {
-      const me = await fetchMyInfo()
-      if (!isLicenseApprovedForRent(me.licenseVerificationStatus)) {
-        setLicenseModalStatus(me.licenseVerificationStatus ?? 'NOT_SUBMITTED')
+      // Đọc từ context thay vì gọi API — instant, không cần network
+      if (!ctxUser) {
+        navigate('/auth')
+        return
+      }
+      if (!isLicenseApprovedForRent(ctxUser.licenseVerificationStatus)) {
+        setLicenseModalStatus(ctxUser.licenseVerificationStatus ?? 'NOT_SUBMITTED')
         setLicenseModalOpen(true)
         return
       }
       navigate(`/booking/${vehicleId}`)
-    } catch {
-      // fetchMyInfo: lỗi mạng / 401 (authFetch có thể redirect); không mở modal GPLX
     } finally {
       setLicenseCheckLoading(false)
     }

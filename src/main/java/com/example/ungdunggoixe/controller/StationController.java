@@ -12,6 +12,7 @@ import com.example.ungdunggoixe.service.StationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,7 +32,7 @@ public class StationController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao tram thanh cong"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Ten tram da ton tai")
     })
-    public ApiResponse<CreateStationResponse> create(@RequestBody CreateStationRequest request) {
+    public ApiResponse<CreateStationResponse> create(@Valid @RequestBody CreateStationRequest request) {
             CreateStationResponse result = stationService.createStation(request);
             return ApiResponse.<CreateStationResponse>builder()
                     .status("success")
@@ -101,7 +102,7 @@ public class StationController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Cap nhat tram thanh cong"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay tram")
     })
-    public ApiResponse<StationResponse> update(@PathVariable Long id, @RequestBody UpdateStationRequest request) {
+    public ApiResponse<StationResponse> update(@PathVariable Long id, @Valid @RequestBody UpdateStationRequest request) {
         StationResponse result = stationService.updateStation(id, request);
         return ApiResponse.<StationResponse>builder()
                 .status("success")

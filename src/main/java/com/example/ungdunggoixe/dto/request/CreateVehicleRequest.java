@@ -2,6 +2,8 @@ package com.example.ungdunggoixe.dto.request;
 
 import com.example.ungdunggoixe.common.FuelType;
 import com.example.ungdunggoixe.common.VehicleStatus;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,10 +15,15 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class CreateVehicleRequest {
+    @NotNull(message = "Station ID không được để trống")
     private Long stationId;
 
+    @NotBlank(message = "Biển số xe không được để trống")
     private String licensePlate;
+
+    @NotBlank(message = "Tên xe không được để trống")
     private String name;
+
     private String brand;
 
     private FuelType fuelType;

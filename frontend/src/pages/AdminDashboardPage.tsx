@@ -54,16 +54,16 @@ const NAV_ITEMS: {
   label: string
   icon: string
 }[] = [
-  { id: 'home', label: 'Tổng quan', icon: '🏠' },
-  { id: 'vehicles', label: 'Phương tiện', icon: '🚗' },
-  { id: 'stations', label: 'Trạm & bãi', icon: '📍' },
-  { id: 'bookings', label: 'Đặt xe', icon: '📋' },
-  { id: 'bookingFeedbacks', label: 'Đánh giá booking', icon: '⭐' },
-  { id: 'ownerRequests', label: 'Yêu cầu owner', icon: '📝' },
-  { id: 'blog', label: 'Blog', icon: '📰' },
-  { id: 'users', label: 'Người dùng', icon: '👤' },
-  { id: 'stats', label: 'Thống kê', icon: '📊' },
-]
+    { id: 'home', label: 'Tổng quan', icon: '🏠' },
+    { id: 'vehicles', label: 'Phương tiện', icon: '🚗' },
+    { id: 'stations', label: 'Trạm & bãi', icon: '📍' },
+    { id: 'bookings', label: 'Đặt xe', icon: '📋' },
+    { id: 'bookingFeedbacks', label: 'Đánh giá booking', icon: '⭐' },
+    { id: 'ownerRequests', label: 'Yêu cầu owner', icon: '📝' },
+    { id: 'blog', label: 'Blog', icon: '📰' },
+    { id: 'users', label: 'Người dùng', icon: '👤' },
+    { id: 'stats', label: 'Thống kê', icon: '📊' },
+  ]
 
 const PAGE_COPY: Record<
   NavId,
@@ -573,128 +573,128 @@ export default function AdminDashboardPage() {
 
           {showDashboard ? (
             <>
-          <section aria-label="Chỉ số nhanh" className="adm-metrics">
-            <article className="adm-mcard adm-mcard--lime">
-              <div className="adm-mcard__icon" aria-hidden>
-                📅
-              </div>
-              <div>
-                <p className="adm-mcard__label">Đơn đặt hôm nay</p>
-                <p className="adm-mcard__value">{overviewStats?.bookingsToday ?? 0}</p>
-                <p className="adm-mcard__sub">Tổng booking tạo trong ngày</p>
-              </div>
-            </article>
-            <article className="adm-mcard">
-              <div className="adm-mcard__icon" aria-hidden>
-                🚙
-              </div>
-              <div>
-                <p className="adm-mcard__label">Xe đang cho thuê</p>
-                <p className="adm-mcard__value">{overviewStats?.ongoingBookings ?? 0}</p>
-                <p className="adm-mcard__sub">Số booking ONGOING</p>
-              </div>
-            </article>
-            <article className="adm-mcard">
-              <div className="adm-mcard__icon" aria-hidden>
-                ✅
-              </div>
-              <div>
-                <p className="adm-mcard__label">Xe sẵn sàng</p>
-                <p className="adm-mcard__value">{overviewStats?.availableVehicles ?? 0}</p>
-                <p className="adm-mcard__sub">Số xe AVAILABLE</p>
-              </div>
-            </article>
-            <article className="adm-mcard">
-              <div className="adm-mcard__icon" aria-hidden>
-                💰
-              </div>
-              <div>
-                <p className="adm-mcard__label">Doanh thu tháng này</p>
-                <p className="adm-mcard__value">{fmtMoney(overviewStats?.revenueThisMonth ?? 0)}</p>
-                <p className="adm-mcard__sub">Tổng tiền booking hoàn tất</p>
-              </div>
-            </article>
-            <article className="adm-mcard">
-              <div className="adm-mcard__icon" aria-hidden>
-                👤
-              </div>
-              <div>
-                <p className="adm-mcard__label">Người dùng mới</p>
-                <p className="adm-mcard__value">{overviewStats?.newUsersLast7Days ?? 0}</p>
-                <p className="adm-mcard__sub">Đăng ký trong 7 ngày gần nhất</p>
-              </div>
-            </article>
-          </section>
-
-          <div className="adm-grid2">
-            <section className="adm-panel" aria-label="Booking 7 ngày gần đây">
-              <div className="adm-panel__head">
-                <h2 className="adm-panel__title">Booking 7 ngày gần đây</h2>
-              </div>
-              <DashboardLineChart
-                data={chartData?.bookingsLast7Days ?? []}
-                stroke="#2563eb"
-              />
-            </section>
-
-            <section className="adm-panel" aria-label="Doanh thu 7 ngày">
-              <div className="adm-panel__head">
-                <h2 className="adm-panel__title">Doanh thu 7 ngày</h2>
-              </div>
-              <DashboardBarChart
-                data={chartData?.revenueLast7Days ?? []}
-                color="#16a34a"
-              />
-            </section>
-
-            <DashboardDonut
-              title="Trạng thái booking"
-              metrics={chartData?.bookingStatusBreakdown ?? []}
-              meta={BOOKING_STATUS_META}
-            />
-
-            <DashboardDonut
-              title="Trạng thái xe"
-              metrics={chartData?.vehicleStatusBreakdown ?? []}
-              meta={VEHICLE_STATUS_META}
-            />
-          </div>
-
-          <div className="adm-grid2" style={{ marginTop: 20 }}>
-            <section className="adm-panel" aria-label="Top xe theo lượt thuê">
-              <div className="adm-panel__head">
-                <h2 className="adm-panel__title">Top xe theo lượt thuê</h2>
-              </div>
-              <div className="adm-top-list">
-                {(chartData?.topVehiclesByRentCount ?? []).map((v: TopVehicleMetricDto) => (
-                  <div className="adm-top-item" key={`rent-${v.vehicleId ?? v.licensePlate}`}>
-                    <div>
-                      <strong>{v.vehicleName?.trim() || 'Xe chưa đặt tên'}</strong>
-                      <p>{v.licensePlate || '—'}</p>
-                    </div>
-                    <span>{toNum(v.rentCount)} lượt</span>
+              <section aria-label="Chỉ số nhanh" className="adm-metrics">
+                <article className="adm-mcard adm-mcard--lime">
+                  <div className="adm-mcard__icon" aria-hidden>
+                    📅
                   </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="adm-panel" aria-label="Top xe theo doanh thu">
-              <div className="adm-panel__head">
-                <h2 className="adm-panel__title">Top xe theo doanh thu</h2>
-              </div>
-              <div className="adm-top-list">
-                {(chartData?.topVehiclesByRevenue ?? []).map((v: TopVehicleMetricDto) => (
-                  <div className="adm-top-item" key={`rev-${v.vehicleId ?? v.licensePlate}`}>
-                    <div>
-                      <strong>{v.vehicleName?.trim() || 'Xe chưa đặt tên'}</strong>
-                      <p>{v.licensePlate || '—'}</p>
-                    </div>
-                    <span>{fmtMoney(v.revenue)}</span>
+                  <div>
+                    <p className="adm-mcard__label">Đơn đặt hôm nay</p>
+                    <p className="adm-mcard__value">{overviewStats?.bookingsToday ?? 0}</p>
+                    <p className="adm-mcard__sub">Tổng booking tạo trong ngày</p>
                   </div>
-                ))}
+                </article>
+                <article className="adm-mcard">
+                  <div className="adm-mcard__icon" aria-hidden>
+                    🚙
+                  </div>
+                  <div>
+                    <p className="adm-mcard__label">Xe đang cho thuê</p>
+                    <p className="adm-mcard__value">{overviewStats?.ongoingBookings ?? 0}</p>
+                    <p className="adm-mcard__sub">Số booking ONGOING</p>
+                  </div>
+                </article>
+                <article className="adm-mcard">
+                  <div className="adm-mcard__icon" aria-hidden>
+                    ✅
+                  </div>
+                  <div>
+                    <p className="adm-mcard__label">Xe sẵn sàng</p>
+                    <p className="adm-mcard__value">{overviewStats?.availableVehicles ?? 0}</p>
+                    <p className="adm-mcard__sub">Số xe AVAILABLE</p>
+                  </div>
+                </article>
+                <article className="adm-mcard">
+                  <div className="adm-mcard__icon" aria-hidden>
+                    💰
+                  </div>
+                  <div>
+                    <p className="adm-mcard__label">Doanh thu tháng này</p>
+                    <p className="adm-mcard__value">{fmtMoney(overviewStats?.revenueThisMonth ?? 0)}</p>
+                    <p className="adm-mcard__sub">Tổng tiền booking hoàn tất</p>
+                  </div>
+                </article>
+                <article className="adm-mcard">
+                  <div className="adm-mcard__icon" aria-hidden>
+                    👤
+                  </div>
+                  <div>
+                    <p className="adm-mcard__label">Người dùng mới</p>
+                    <p className="adm-mcard__value">{overviewStats?.newUsersLast7Days ?? 0}</p>
+                    <p className="adm-mcard__sub">Đăng ký trong 7 ngày gần nhất</p>
+                  </div>
+                </article>
+              </section>
+
+              <div className="adm-grid2">
+                <section className="adm-panel" aria-label="Booking 7 ngày gần đây">
+                  <div className="adm-panel__head">
+                    <h2 className="adm-panel__title">Booking 7 ngày gần đây</h2>
+                  </div>
+                  <DashboardLineChart
+                    data={chartData?.bookingsLast7Days ?? []}
+                    stroke="#2563eb"
+                  />
+                </section>
+
+                <section className="adm-panel" aria-label="Doanh thu 7 ngày">
+                  <div className="adm-panel__head">
+                    <h2 className="adm-panel__title">Doanh thu 7 ngày</h2>
+                  </div>
+                  <DashboardBarChart
+                    data={chartData?.revenueLast7Days ?? []}
+                    color="#16a34a"
+                  />
+                </section>
+
+                <DashboardDonut
+                  title="Trạng thái booking"
+                  metrics={chartData?.bookingStatusBreakdown ?? []}
+                  meta={BOOKING_STATUS_META}
+                />
+
+                <DashboardDonut
+                  title="Trạng thái xe"
+                  metrics={chartData?.vehicleStatusBreakdown ?? []}
+                  meta={VEHICLE_STATUS_META}
+                />
               </div>
-            </section>
-          </div>
+
+              <div className="adm-grid2" style={{ marginTop: 20 }}>
+                <section className="adm-panel" aria-label="Top xe theo lượt thuê">
+                  <div className="adm-panel__head">
+                    <h2 className="adm-panel__title">Top xe theo lượt thuê</h2>
+                  </div>
+                  <div className="adm-top-list">
+                    {(chartData?.topVehiclesByRentCount ?? []).map((v: TopVehicleMetricDto) => (
+                      <div className="adm-top-item" key={`rent-${v.vehicleId ?? v.licensePlate}`}>
+                        <div>
+                          <strong>{v.vehicleName?.trim() || 'Xe chưa đặt tên'}</strong>
+                          <p>{v.licensePlate || '—'}</p>
+                        </div>
+                        <span>{toNum(v.rentCount)} lượt</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="adm-panel" aria-label="Top xe theo doanh thu">
+                  <div className="adm-panel__head">
+                    <h2 className="adm-panel__title">Top xe theo doanh thu</h2>
+                  </div>
+                  <div className="adm-top-list">
+                    {(chartData?.topVehiclesByRevenue ?? []).map((v: TopVehicleMetricDto) => (
+                      <div className="adm-top-item" key={`rev-${v.vehicleId ?? v.licensePlate}`}>
+                        <div>
+                          <strong>{v.vehicleName?.trim() || 'Xe chưa đặt tên'}</strong>
+                          <p>{v.licensePlate || '—'}</p>
+                        </div>
+                        <span>{fmtMoney(v.revenue)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
             </>
           ) : null}
         </main>

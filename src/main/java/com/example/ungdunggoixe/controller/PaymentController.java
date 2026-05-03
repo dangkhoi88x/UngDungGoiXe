@@ -8,6 +8,7 @@ import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class PaymentController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Thong tin thanh toan khong hop le"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay booking")
     })
-    public ApiResponse<PaymentResponse> create(@RequestBody CreatePaymentRequest request) {
+    public ApiResponse<PaymentResponse> create(@Valid @RequestBody CreatePaymentRequest request) {
         PaymentResponse result = paymentService.createPayment(request);
         return ApiResponse.<PaymentResponse>builder()
                 .status("success")

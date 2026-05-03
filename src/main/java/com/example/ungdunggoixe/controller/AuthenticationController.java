@@ -38,10 +38,13 @@ public class AuthenticationController {
     @Value("${oauth2.google.client-id:}")
     private String oauth2GoogleClientId;
 
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
+
     private ResponseCookie buildRefreshCookie(String value, long maxAgeSeconds) {
         return ResponseCookie.from("refresh_token", value)
                 .httpOnly(true)
-                .secure(false) // deploy thật thì true
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(maxAgeSeconds)
                 .sameSite("Lax")

@@ -18,25 +18,16 @@ import OwnerVehicleRequestDetailPage from './pages/OwnerVehicleRequestDetailPage
 import OwnerVehicleRequestBookingsPage from './pages/OwnerVehicleRequestBookingsPage'
 import BlogListingPage from './pages/BlogListingPage'
 import BlogPostPage from './pages/BlogPostPage'
-import { logoutRequest, rolesFromJwt } from './api/auth'
+import { logoutRequest } from './api/auth'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { useAuth } from './contexts/AuthContext'
 import './App.css'
 
 function RequireAdmin({ children }: { children: ReactElement }) {
-  const token = localStorage.getItem('accessToken')
-  const roles = rolesFromJwt(token)
-  const normalizedRoles = roles.map((r) => r.trim().toUpperCase())
-  const isAdmin = normalizedRoles.some(
-    (r) =>
-      r === 'ROLE_ADMIN' ||
-      r === 'ADMIN' ||
-      r === 'ROLE_SUPER_ADMIN' ||
-      r === 'SUPER_ADMIN' ||
-      r.startsWith('ROLE_ADMIN'),
-  )
-  if (!isAdmin) {
-    return <Navigate to="/" replace />
-  }
+  const { isAdmin, isLoading } = useAuth()
+  // Đang fetch user info lần đầu → chờ, không redirect ngay
+  if (isLoading) return <div style={{ padding: 24 }}>Đang kiểm tra quyền…</div>
+  if (!isAdmin) return <Navigate to="/" replace />
   return children
 }
 
@@ -67,6 +58,8 @@ function BlogPostRoute() {
 }
 
 function LogoutRoute() {
+  const { logout } = useAuth()
+
   useEffect(() => {
     let ignore = false
 
@@ -80,9 +73,11 @@ function LogoutRoute() {
         // Dù API logout lỗi vẫn xóa local session phía client.
       } finally {
         if (ignore) return
+        // Xóa token trước, sau đó reset context state
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
         localStorage.removeItem('userDisplayName')
+        logout()
         window.location.replace('/auth')
       }
     }
@@ -91,7 +86,7 @@ function LogoutRoute() {
     return () => {
       ignore = true
     }
-  }, [])
+  }, [logout])
 
   return <div style={{ padding: 24 }}>Đang đăng xuất…</div>
 }
