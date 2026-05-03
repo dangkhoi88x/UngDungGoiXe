@@ -47,7 +47,7 @@ public class Vehicle {
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private VehicleStatus status = VehicleStatus.AVAILABLE;
+    private VehicleStatus  status = VehicleStatus.AVAILABLE;
 
     @ElementCollection
     @CollectionTable(name = "vehicle_policies", joinColumns = @JoinColumn(name = "vehicle_id"))

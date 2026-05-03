@@ -770,6 +770,11 @@
   gap: 0.25rem;
 }
 
+.cr-card__rating {
+  font-weight: 700;
+  color: #c2410c;
+}
+
 .cr-card__price {
   padding: 0 1rem 1rem;
 }

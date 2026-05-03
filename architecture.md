@@ -226,7 +226,77 @@ Mục này là bản “đọc nhanh 1 lần là nắm luồng” cho các file 
   3. refresh thành công -> lưu access token mới -> retry request cũ.
   4. refresh fail -> xóa session local + redirect `/auth`.
 
-#### 6) Thứ tự đọc code khuyến nghị
+#### 6) Đăng nhập Google (OAuth 2.0 authorization code + SPA redirect)
+
+Luồng này **không** dùng Google Sign-In JS SDK (`id_token` trực tiếp từ trình duyệt). Thay vào đó: trình duyệt nhận **`code`** qua redirect về SPA, backend đổi `code` → `id_token` Google (có **client secret**), verify token, **tìm hoặc tạo** `User`, rồi phát **cùng cơ chế JWT + cookie refresh** như đăng nhập email/password.
+
+**Cấu hình (env)**
+
+| Biến | Nơi dùng | Ghi chú |
+|------|-----------|---------|
+| `OAUTH_GOOGLE_ID` | Spring `oauth2.google.client-id` | Web Client ID (Google Cloud Console). |
+| `OAUTH_GOOGLE_SECRET` | Spring `oauth2.google.client-secret` | Chỉ backend; không bao giờ đưa vào Vite/SPA. |
+| `VITE_OAUTH_GOOGLE_ID` (tuỳ chọn) | Vite | Nếu có: SPA dùng luôn khi build URL authorize; nếu không: SPA gọi `GET /api/auth/google-oauth-client-id` để lấy client id (tiện chạy IntelliJ chỉ cấu hình Spring). |
+
+**Google Cloud Console**
+
+- **Authorized redirect URIs** phải khớp **byte-for-byte** với URI SPA nhận callback, ví dụ dev: `http://localhost:5173/auth/google` (và nếu dùng `127.0.0.1` thì khai báo thêm URI tương ứng — `sessionStorage` theo origin, không chia sẻ giữa `localhost` và `127.0.0.1`).
+- **Authorized JavaScript origins:** nên có `http://localhost:5173` (hoặc origin thực tế).
+
+**Sequence (end-to-end)**
+
+```mermaid
+sequenceDiagram
+  participant U as User browser
+  participant SPA as React /auth
+  participant G as accounts.google.com
+  participant CB as React /auth/google
+  participant API as Spring /auth
+
+  U->>SPA: bấm Google
+  SPA->>SPA: resolveGoogleOAuthClientId (env hoặc GET /auth/google-oauth-client-id)
+  SPA->>SPA: sessionStorage google_oauth_state = random UUID
+  SPA->>G: redirect OAuth2 authorize (response_type=code, state, redirect_uri=/auth/google)
+  G->>U: màn hình đồng ý Google
+  U->>G: Tiếp tục
+  G->>CB: redirect ?code=...&state=...
+  CB->>CB: so khớp state với sessionStorage (chống CSRF)
+  CB->>API: POST /auth/google JSON code + redirectUri
+  API->>G: POST token (code + client_id + client_secret + redirect_uri)
+  G-->>API: access_token + id_token (JSON)
+  API->>API: GoogleIdTokenVerifier audience=client_id, email_verified
+  API->>API: UserService.ensureUserForGoogleOAuth
+  API-->>CB: accessToken JSON + Set-Cookie refresh_token
+  CB->>U: lưu accessToken, điều hướng / hoặc /admin
+```
+
+**Backend — các bước nghiệp vụ**
+
+1. `GoogleOAuthService`: HTTP POST form tới `https://oauth2.googleapis.com/token` (`grant_type=authorization_code`), đọc `id_token` từ JSON.
+2. Verify `id_token` bằng `GoogleIdTokenVerifier` (thư viện `google-api-client`), audience = client id.
+3. Yêu cầu `email_verified`; lấy email + tên hiển thị từ payload (claim OpenID `given_name` / `family_name`).
+4. `UserService.ensureUserForGoogleOAuth`: nếu email đã có → đăng nhập user đó; nếu chưa → tạo user mới, mật khẩu ngẫu nhiên (BCrypt), role `USER`, **không** gửi email chào mừng như `createUser` thường.
+5. `AuthenticationService.issueSessionForUser` (cùng nhánh logic với login password): access JWT + refresh JWT lưu Redis + cookie HttpOnly.
+
+**Frontend — các bước**
+
+1. `AuthPage`: nút Google gọi `resolveGoogleOAuthClientId()` rồi redirect tới `https://accounts.google.com/o/oauth2/v2/auth` với `scope=openid email profile`, `state` ngẫu nhiên lưu `sessionStorage` key `google_oauth_state`.
+2. `GoogleOAuthCallbackPage` (`/auth/google`): đọc `code`, `state`; so khớp `state`; `POST /api/auth/google` với `{ code, redirectUri }` trong đó `redirectUri === window.location.origin + '/auth/google'` (phải trùng Google Console và body đổi token).
+3. **React 18 Strict Mode (dev):** callback chỉ xóa `sessionStorage` sau khi xác thực `state`; dùng `useRef` để không chạy đổi code hai lần / không xóa state trước khi kiểm tra (tránh lỗi “Phiên đăng nhập không hợp lệ” giả).
+
+**Endpoint liên quan**
+
+| Method | Path (backend) | Ghi chú |
+|--------|----------------|--------|
+| `GET` | `/auth/google-oauth-client-id` | Trả `{ clientId }` (public); `permitAll`. |
+| `POST` | `/auth/google` | Body `GoogleOAuthCodeRequest` (`code`, `redirectUri`); trả JWT + cookie như login. |
+
+**File tham chiếu**
+
+- Backend: `GoogleOAuthService.java`, `AuthenticationService.java` (`authenticateWithGoogle`), `AuthenticationController.java`, `UserService.java` (`ensureUserForGoogleOAuth`), `GoogleOAuthCodeRequest.java`, `application.yaml` (`oauth2.google.*`).
+- Frontend: `frontend/src/pages/AuthPage.tsx`, `GoogleOAuthCallbackPage.tsx`, `frontend/src/api/auth.ts` (`resolveGoogleOAuthClientId`, `googleOAuthLoginRequest`).
+
+#### 7) Thứ tự đọc code khuyến nghị
 
 1. `configuration/SecurityConfiguration.java`
 2. `configuration/JwtConfiguration.java`
@@ -236,8 +306,9 @@ Mục này là bản “đọc nhanh 1 lần là nắm luồng” cho các file 
 6. `service/TokenService.java`
 7. `controller/AuthenticationController.java`
 8. `frontend/src/api/authFetch.ts` và `frontend/src/api/auth.ts`
+9. Luồng Google: các file trong mục **6) Đăng nhập Google** ở trên.
 
-#### 7) Ghi chú debug quan trọng
+#### 8) Ghi chú debug quan trọng
 
 - Redis dùng 2 “kho logic”:
   - `refresh_token`: whitelist refresh token còn hiệu lực.
@@ -283,6 +354,7 @@ flowchart TB
 - **Thanh toán MoMo (return):** **`/payment/momo-return`** — `MomoReturnPage.tsx` (query MoMo, UI kết quả); đồng bộ DB qua **`momoConfirm.ts`** → backend **`POST /momo/confirm-return`** (bổ trợ / thay IPN khi dev).
 - **API thanh toán (FE):** `frontend/src/api/payments.ts` — pending adjustments, xác nhận TOPUP/REFUND (admin).
 - **Admin điều chỉnh tiền:** tab TOPUP / REFUND trong `AdminBookingsSection.tsx` (kèm tìm kiếm cục bộ theo id thanh toán, booking, mã booking, transaction id).
+- **Đánh giá sau thuê (mới):** `Bookings` — modal trên `UserOrderHistoryPage`; `vehicles` — `GET /vehicles/{id}/feedback` công khai trên `VehicleDetailPage`; admin — tab `AdminBookingFeedbacksSection` + `adminBookingFeedback.ts` (chi tiết **mục 16**).
 
 ---
 
@@ -565,9 +637,249 @@ sequenceDiagram
 
 ## 14. Changelog (kiến trúc)
 
+- **2026-05-02:** Thêm **mục 16** — Cloudinary / `MediaService`, feedback booking (ảnh + sao + comment), API public `/vehicles/{id}/feedback`, tab admin đánh giá, modal đánh giá trên `/account/orders`, cập nhật `VehicleDetailPage` hiển thị đánh giá.
 - **2026-04-26:** Mở rộng mục **13** — sequence MoMo (IPN + `confirm-return`), phân biệt `Payment.status` vs `Booking.status`, hướng đọc code từ controller → `handleMomoIpnResult` → `updateBookingPaymentStatus`, ghi chú proxy **`/momo`**, cập nhật bảng FE (`momoConfirm.ts`). Sửa ví dụ **`momo.ipn-url`** trong tài liệu cho khớp code.
 - **2026-04-25:** Thêm **i18n backend** (mục 11), **Swagger/OpenAPI** (mục 12), **thanh toán MoMo prepay tổng + TOPUP/REFUND + IPN/return URL** (mục 13); cập nhật ER rút gọn Payment, bảng `application.yaml`, và bullet FE (return page, `payments.ts`, admin tabs).
 - **2026-04-22:** Thêm mục **Trạm — tọa độ & bản đồ** và mục lớn **Owner Vehicle Request (P2P)** — mô hình dữ liệu, quy tắc BE, bảng API, bảng FE, sequence owner/admin.
 - **2026-04-20:** Thêm mục “Security learning flow” chi tiết (login/validate/refresh/logout/frontend retry).
 - **2026-04-20:** Thêm sequence cực ngắn cho luồng validate access token.
 - **2026-04-20:** Khởi tạo `architecture.md` — sơ đồ context, tầng backend, ER rút gọn, security, FE layers, sequence đặt xe.
+
+---
+
+## 15. Flow cập nhật UI/API gần đây (Owner + Rent + Admin)
+
+Mục này ghi lại luồng của các thay đổi mới để agent/phiên sau đọc nhanh và biết điểm nối backend-frontend.
+
+### 15.1 Owner đăng xe / sửa yêu cầu: chuẩn hóa form
+
+**Frontend liên quan:**
+
+- `frontend/src/pages/OwnerRegisterVehiclePage.tsx`
+- `frontend/src/pages/OwnerEditVehicleRequestPage.tsx`
+- `frontend/src/lib/ownerVehicleRequestForm.ts`
+- `frontend/src/api/ownerVehicleRequests.ts`
+
+**Các điểm chính đã đồng bộ:**
+
+- Nhiên liệu bổ sung `DIESEL` (label hiển thị: **Dầu**).
+- Số chỗ chuẩn hóa theo option: **5 / 7 / 9 / 16**.
+- Bỏ trường `latitude/longitude` khỏi form owner create/edit (payload không gửi 2 trường này từ UI).
+- Section “Điều khoản (tùy chọn)” ở trang edit chuyển từ text enum sang checkbox options giống trang create.
+- Trang edit owner chuyển sang style `owreg--clean` (TopNav, nền sáng, section đồng bộ; các khối giấy tờ/ảnh nằm dọc 1 cột).
+
+### 15.2 Owner request list -> lịch sử booking xe đã duyệt
+
+**Mục tiêu:** Từ trang owner request list, request `APPROVED` có thể mở lịch sử booking của xe đã tạo.
+
+**Frontend:**
+
+- `frontend/src/pages/OwnerMyVehicleRequestsPage.tsx`
+  - Action mới: `Lịch sử booking` (hiện khi request `APPROVED`).
+- `frontend/src/pages/OwnerVehicleRequestBookingsPage.tsx` (mới)
+  - Route: `/owner/vehicle-requests/:id/bookings`.
+  - Hiển thị danh sách booking: mã booking, người thuê, thời gian, trạng thái, tổng tiền, payment status.
+- `frontend/src/App.tsx`
+  - Khai báo route mới.
+- `frontend/src/api/ownerVehicleRequests.ts`
+  - API mới `fetchMyOwnerRequestBookings(id)`.
+
+**Backend:**
+
+- `GET /owner/vehicle-requests/{id}/bookings`
+  - Controller: `OwnerVehicleRequestController`.
+  - Service: `OwnerVehicleRequestService#getMyApprovedVehicleBookings`.
+  - Chỉ owner của request được xem; lấy booking theo `approvedVehicleId`.
+- Repo bổ sung:
+  - `BookingRepository#findByVehicleIdOrderByStartTimeDesc`.
+
+```mermaid
+sequenceDiagram
+  participant O as Owner FE
+  participant OR as GET /owner/vehicle-requests
+  participant BR as GET /owner/vehicle-requests/{id}/bookings
+  participant S as OwnerVehicleRequestService
+  participant B as BookingRepository
+  O->>OR: tải danh sách request
+  OR-->>O: request APPROVED có action "Lịch sử booking"
+  O->>BR: mở lịch sử booking của request
+  BR->>S: verify owner + resolve approvedVehicleId
+  S->>B: findByVehicleIdOrderByStartTimeDesc
+  B-->>O: danh sách booking của xe
+```
+
+### 15.3 Admin owner request: badge và tab lịch sử xử lý
+
+**Sidebar badge (Admin dashboard):**
+
+- File: `frontend/src/pages/AdminDashboardPage.tsx`
+- Badge sidebar bỏ hardcode ở `Phương tiện`/`Đặt xe`.
+- Badge mục `Yêu cầu owner` lấy dữ liệu thật: số request `PENDING`.
+- Có poll định kỳ (30s) để cập nhật badge.
+
+**Trang admin owner requests:**
+
+- File: `frontend/src/pages/AdminOwnerVehicleRequestsSection.tsx`
+- Tab `Chờ xử lý`:
+  - Chỉ hiển thị đúng request `PENDING`.
+- Tab lịch sử đổi thành `Lịch sử xử lý`:
+  - Hiển thị `APPROVED`, `REJECTED`, `CANCELLED` (không chỉ approved).
+
+### 15.4 Trang thuê xe (`/rent`) và chi tiết xe (`/rent/:id`)
+
+**`/rent` phân trang:**
+
+- File: `frontend/src/pages/CarRentalPage.tsx`
+- Phân trang client-side với `PAGE_SIZE = 8`.
+- Có nút `Trước/Sau`, hiển thị số trang; reset về trang 1 khi đổi filter/tìm kiếm.
+- Filter nhiên liệu có đủ fixed options: `GASOLINE`, `ELECTRICITY`, `DIESEL`.
+
+**`/rent/:id` hiển thị owner email:**
+
+- Frontend:
+  - `frontend/src/api/vehicles.ts` thêm field `ownerEmail` trong `VehicleDto`.
+  - `frontend/src/pages/VehicleDetailPage.tsx` hiển thị:
+    - `Người cho thuê: <ownerEmail>`
+- Backend:
+  - `dto/response/CreateVehicleResponse` thêm `ownerEmail`.
+  - `VehicleService#getVehicleById` gán `ownerEmail` từ owner request.
+  - Repo `OwnerVehicleRequestRepository` thêm:
+    - `findFirstByApprovedVehicleIdOrderByCreatedAtDesc(...)`
+    - fallback `findFirstByLicensePlateAndStatusOrderByCreatedAtDesc(..., APPROVED)`
+      để hỗ trợ dữ liệu cũ chưa gắn `approved_vehicle_id`.
+
+---
+
+## 16. Media Cloudinary & đánh giá xe sau booking (Feedback)
+
+Phần này mô tả **luồng mới** sau khi bổ sung: lưu ảnh qua **Cloudinary**, **một feedback / một booking** (sau khi `COMPLETED`), cập nhật **điểm trung bình xe**, và **hai giao diện đọc** feedback (khách xem trên trang xe + admin xem toàn hệ thống).
+
+### 16.1 Ý tưởng nghiệp vụ (đọc 30 giây)
+
+| Khái niệm | Giải thích ngắn |
+|-----------|------------------|
+| **Feedback** | Một bản ghi gắn **1–1** với `Booking`; chỉ tạo khi khách gửi đánh giá sau chuyến **hoàn tất**. |
+| **Điểm xe (`vehicleRating`)** | Thang 1–5 (bước 0.5 phía FE); backend làm tròn và kiểm tra khoảng. |
+| **Ảnh đính kèm** | Upload lên Cloudinary (folder riêng theo booking), submit feedback chỉ nhận **URL** đã upload + validate đúng cloud/path. |
+| **`Vehicle.rating`** | Sau mỗi feedback hợp lệ, service **tính lại AVG** các `vehicleRating` của xe và ghi vào `vehicles.rating`. |
+
+---
+
+### 16.2 Tech stack phía lưu trữ ảnh
+
+| Thành phần | Vai trò |
+|------------|---------|
+| **`CloudinaryConfiguration`** | Tạo bean `Cloudinary` từ biến môi trường (`CLOUDINARY_URL` hoặc cloud name + API key/secret trong `application.yaml`). |
+| **`MediaService`** | `upload(MultipartFile, folder)` → URL HTTPS Cloudinary; dùng chung cho ảnh xe, ảnh feedback booking. |
+| **`VehicleService` + `VehiclePhotoController`** | Upload ảnh mô tả xe → append URL vào `Vehicle.photos` (admin / chủ xe đã duyệt — logic quyền trong service). |
+| **`BookingFeedbackService`** | Upload ảnh feedback vào folder `bookings/{bookingId}/feedback`; validate MIME/size; submit feedback nhận JSON kèm `photoUrls`. |
+| **`OwnerVehicleMediaService`** | Ảnh & giấy tờ **owner request**: Cloudinary + (tuỳ) xóa file local legacy. |
+
+**Ghi nhớ:** Frontend dev gọi API qua **`/api`** — Vite proxy tới backend **không** có tiền tố `/api` (xem mục 1).
+
+---
+
+### 16.3 Mô hình dữ liệu (rút gọn)
+
+- **Entity `Feedback`** (`feedbacks`): FK `booking_id` (unique), `renter_id`, `vehicle_rating`, `comment`, collection **`feedback_photos`** (URL), timestamp.
+- Quan hệ: `Booking` 1 — 1 `Feedback` (optional đến khi khách gửi).
+
+```mermaid
+erDiagram
+  BOOKING ||--o| FEEDBACK : has_at_most_one
+  USER ||--o{ FEEDBACK : wrote_as_renter
+  VEHICLE ||--o{ BOOKING : booked_in
+  FEEDBACK {
+    double vehicle_rating
+    text comment
+  }
+```
+
+---
+
+### 16.4 Luồng người thuê: gửi đánh giá
+
+Điều kiện: booking **`COMPLETED`**, user là **renter**, **chưa** có feedback.
+
+```mermaid
+sequenceDiagram
+  participant U as Khách (FE)
+  participant P as POST .../feedback/photos
+  participant F as POST .../feedback
+  participant S as BookingFeedbackService
+  participant DB as DB + Cloudinary
+
+  U->>P: multipart file JWT
+  P->>S: upload folder bookings/{id}/feedback
+  S->>DB: Cloudinary URL
+  P-->>U: url
+  U->>F: JSON vehicleRating, comment?, photoUrls?
+  F->>S: validate URLs + rating
+  S->>DB: save Feedback, refresh Vehicle.rating AVG
+  F-->>U: 200
+```
+
+**API chính (JWT — renter):**
+
+| Method | Path | Ý nghĩa |
+|--------|------|---------|
+| `POST` | `/bookings/{id}/feedback/photos` | Upload một ảnh; trả `{ url }`. |
+| `POST` | `/bookings/{id}/feedback` | Gửi đánh giá (tối đa 8 ảnh trong `photoUrls`). |
+| `GET` | `/bookings/{id}/feedback/me` | Xem feedback của chính mình cho booking đó (404 nếu chưa gửi). |
+
+**Xử lý lỗi:** `ErrorCode` + i18n (`FEEDBACK_*`, `BOOKING_FEEDBACK_NOT_ALLOWED`, …); ảnh phải là URL Cloudinary và path chứa `/bookings/{id}/feedback`.
+
+---
+
+### 16.5 Luồng public: xem đánh giá trên trang chi tiết xe
+
+**Mục đích:** Người **chưa đăng nhập** vẫn đọc được review để quyết định thuê.
+
+| Method | Path | Bảo vệ |
+|--------|------|--------|
+| `GET` | `/vehicles/{id}/feedback?page=&size=` | **`permitAll`** (cùng nhóm `/vehicles/**`) |
+
+**Backend:** `VehiclePublicFeedbackService` + `FeedbackRepository.findByBooking_Vehicle_IdOrderByCreatedAtDesc` — phân trang, DTO **`VehiclePublicFeedbackRowResponse`** (ẩn email; **`reviewerLabel`** dạng tên rút gọn, ví dụ `Nguyễn A.`).
+
+**Frontend:**
+
+- `frontend/src/api/vehicles.ts` — `fetchVehiclePublicFeedbackPage` (dùng `fetch` giống `fetchVehicleById`, không cần Bearer).
+- `VehicleDetailPage.tsx` — section **«Đánh giá từ khách đã thuê»** + phân trang.
+
+---
+
+### 16.6 Luồng admin: tab «Đánh giá booking»
+
+| Method | Path | Bảo vệ |
+|--------|------|--------|
+| `GET` | `/admin/booking-feedbacks?page=&size=` | Role **admin** (`@PreAuthorize` giống dashboard admin) |
+
+**Backend:** `AdminBookingFeedbackService` — liệt kê mọi feedback, kèm mã đơn, tên xe, khách, email (admin đầy đủ hơn public).
+
+**Frontend:**
+
+- `frontend/src/api/adminBookingFeedback.ts`
+- `AdminBookingFeedbacksSection.tsx` (lazy trong `AdminDashboardPage.tsx`)
+- Route sidebar: **`/admin/booking-feedbacks`**
+
+---
+
+### 16.7 Luồng khách: nút đánh giá trên lịch sử đơn
+
+- **Trang:** `/account/orders` — `UserOrderHistoryPage.tsx`
+- **Điều kiện hiện nút:** `booking.status === 'COMPLETED'`
+- **Modal:** `BookingReviewModal.tsx` — tải `GET .../feedback/me`; nếu chưa có thì form (sao, comment, upload ảnh); nếu có rồi thì chỉ xem.
+- **API dùng chung:** `frontend/src/api/bookings.ts` (`fetchMyBookingVehicleFeedback`, `uploadBookingFeedbackPhoto`, `submitBookingVehicleFeedback`).
+
+---
+
+### 16.8 Thứ tự đọc code gợi ý
+
+1. `entity/Feedback.java` — quan hệ + ảnh.
+2. `service/BookingFeedbackService.java` — upload, submit, cập nhật `Vehicle.rating`.
+3. `controller/BookingController.java` — các endpoint `/bookings/{id}/feedback*`.
+4. `service/VehiclePublicFeedbackService.java` + `VehicleController#getPublicFeedbackForVehicle`.
+5. `AdminBookingFeedbackController` + `AdminBookingFeedbackService`.
+6. FE: `BookingReviewModal.tsx`, `VehicleDetailPage.tsx`, `AdminBookingFeedbacksSection.tsx`.
+
+---

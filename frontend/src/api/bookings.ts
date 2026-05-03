@@ -275,6 +275,80 @@ export async function returnBooking(id: number): Promise<BookingDto> {
   return booking
 }
 
+/** Đánh giá xe sau booking COMPLETED (ảnh optional qua upload riêng). */
+export type BookingVehicleFeedbackDto = {
+  id: number
+  bookingId: number
+  vehicleId: number
+  vehicleRating: number
+  comment: string | null
+  photoUrls: string[] | null
+  createdAt: string | null
+}
+
+export const MAX_BOOKING_FEEDBACK_PHOTOS = 8
+
+/** null = chưa có đánh giá (404). */
+export async function fetchMyBookingVehicleFeedback(
+  bookingId: number,
+): Promise<BookingVehicleFeedbackDto | null> {
+  const res = await authFetch(`${API_BASE}/bookings/${bookingId}/feedback/me`)
+  if (res.status === 404) return null
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const payload = (await res.json()) as unknown
+  const data = unwrapApiData<BookingVehicleFeedbackDto>(payload)
+  if (!data) return null
+  return data
+}
+
+export async function uploadBookingFeedbackPhoto(
+  bookingId: number,
+  file: File,
+): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await authFetch(`${API_BASE}/bookings/${bookingId}/feedback/photos`, {
+    method: 'POST',
+    body: fd,
+  })
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const payload = (await res.json()) as unknown
+  const wrapped = unwrapApiData<{ url?: string }>(payload)
+  const url = wrapped?.url?.trim()
+  if (!url) throw new Error('Phản hồi upload ảnh đánh giá không hợp lệ.')
+  return url
+}
+
+export async function submitBookingVehicleFeedback(
+  bookingId: number,
+  body: {
+    vehicleRating: number
+    comment?: string | null
+    photoUrls?: string[]
+  },
+): Promise<BookingVehicleFeedbackDto> {
+  const res = await authFetch(`${API_BASE}/bookings/${bookingId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      vehicleRating: body.vehicleRating,
+      comment: body.comment ?? null,
+      photoUrls: body.photoUrls?.length ? body.photoUrls : undefined,
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const payload = (await res.json()) as unknown
+  const data = unwrapApiData<BookingVehicleFeedbackDto>(payload)
+  if (!data) throw new Error('Phản hồi gửi đánh giá không hợp lệ.')
+  return data
+}
+
 export async function cancelBooking(id: number): Promise<BookingDto> {
   const res = await authFetch(`${API_BASE}/bookings/${id}/cancel`, {
     method: 'PATCH',

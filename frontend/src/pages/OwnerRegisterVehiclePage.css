@@ -841,6 +841,19 @@
   margin-top: 6px;
 }
 
+/* Edit page: keep all sections in one vertical column */
+.owreg--clean .owreg__form--edit {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.owreg--clean .owreg__form--edit .owreg__section {
+  grid-column: 1 / 2 !important;
+}
+
+.owreg--clean .owreg__form--edit .owreg__section:nth-of-type(5) {
+  position: static;
+}
+
 .owreg--clean .owreg__banner--ok {
   background: #effaf1;
   border-color: #bde3c5;

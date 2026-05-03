@@ -1,6 +1,12 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loginRequest, persistUserDisplayName, registerRequest, rolesFromJwt } from '../api/auth'
+import {
+  getPostLoginPath,
+  loginRequest,
+  persistUserDisplayName,
+  registerRequest,
+  resolveGoogleOAuthClientId,
+} from '../api/auth'
 import './AuthPage.css'
 
 type AuthMode = 'signin' | 'signup'
@@ -9,14 +15,50 @@ function AuthPage() {
   const navigate = useNavigate()
   const [mode, setMode] = useState<AuthMode>('signin')
   const [loading, setLoading] = useState(false)
+  const [googleBusy, setGoogleBusy] = useState(false)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null
   )
+  const statusRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (status && statusRef.current) {
+      statusRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [status])
 
   const title = useMemo(
     () => (mode === 'signin' ? 'Welcome back' : 'Create an account'),
     [mode]
   )
+
+  async function startGoogleOAuth() {
+    setGoogleBusy(true)
+    try {
+      const googleClientId = await resolveGoogleOAuthClientId()
+      if (!googleClientId) {
+        setStatus({
+          type: 'error',
+          text:
+            'Chưa có Google Web Client ID: trong IntelliJ, thêm OAUTH_GOOGLE_ID (và OAUTH_GOOGLE_SECRET) vào Run Configuration của Spring Boot; khởi động backend. Tuỳ chọn: VITE_OAUTH_GOOGLE_ID trong frontend/.env nếu không dùng proxy /api.',
+        })
+        return
+      }
+      const redirectUri = `${window.location.origin}/auth/google`
+      const state = crypto.randomUUID()
+      sessionStorage.setItem('google_oauth_state', state)
+      const params = new URLSearchParams({
+        client_id: googleClientId,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: 'openid email profile',
+        state,
+      })
+      window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`)
+    } finally {
+      setGoogleBusy(false)
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -61,13 +103,7 @@ function AuthPage() {
         }
 
         persistUserDisplayName(result.firstName, result.lastName)
-        const roles = rolesFromJwt(result.accessToken)
-        console.log(rolesFromJwt(result.accessToken))
-        const normalizedRoles = roles.map((r) => r.trim().toUpperCase())
-        const isAdmin = normalizedRoles.some(
-          (r) => r === 'ROLE_ADMIN' || r === 'ADMIN' || r === 'ROLE_SUPER_ADMIN' || r === 'SUPER_ADMIN' || r.startsWith('ROLE_ADMIN')
-        )
-        navigate(isAdmin ? '/admin' : '/', { replace: true })
+        navigate(getPostLoginPath(result.accessToken), { replace: true })
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Có lỗi xảy ra.'
@@ -141,6 +177,7 @@ function AuthPage() {
 
           {status ? (
             <div
+              ref={statusRef}
               className={`auth-status ${status.type === 'error' ? 'auth-status--error' : 'auth-status--success'}`}
               role="status"
             >
@@ -216,11 +253,23 @@ function AuthPage() {
           <div className="auth-divider">or continue with</div>
 
           <div className="auth-social">
-            <button type="button" className="auth-social__btn">
+            <button
+              type="button"
+              className="auth-social__btn"
+              onClick={() =>
+                setStatus({ type: 'error', text: 'Đăng nhập Github chưa được bật trong phiên bản này.' })
+              }
+            >
               Github
             </button>
-            <button type="button" className="auth-social__btn">
-              Google
+            <button
+              type="button"
+              className="auth-social__btn auth-social__btn--google"
+              title="Đăng nhập bằng Google"
+              disabled={googleBusy}
+              onClick={() => void startGoogleOAuth()}
+            >
+              {googleBusy ? 'Đang tải…' : 'Google'}
             </button>
           </div>
         </div>

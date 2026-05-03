@@ -18,6 +18,7 @@ import java.util.List;
 public interface VehicleRepository extends JpaRepository<Vehicle,Long> {
     boolean existsByLicensePlate(String licensePlate);
     boolean existsByLicensePlateAndIdNot(String licensePlate, Long id);
+    long countByStatus(VehicleStatus status);
 
     /**
      * Search xe nâng cao: filter theo stationId, brand, capacity, fuelType, giá.

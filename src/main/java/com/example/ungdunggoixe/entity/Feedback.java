@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -34,6 +36,12 @@ public class Feedback {
 
     @Column(name = "comment", columnDefinition = "TEXT")
     private String comment;
+
+    @ElementCollection
+    @CollectionTable(name = "feedback_photos", joinColumns = @JoinColumn(name = "feedback_id"))
+    @Column(name = "photo_url", length = 2048)
+    @Builder.Default
+    private List<String> photoUrls = new ArrayList<>();
 
     @Column(name = "is_edit")
     @Builder.Default

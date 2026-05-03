@@ -7,6 +7,9 @@ import {
   type OwnerVehicleRequestDto,
   type OwnerVehicleRequestStatus,
 } from '../api/ownerVehicleRequests'
+import { OwnerVehicleRatingSummary } from '../components/OwnerVehicleRatingSummary'
+import VehiclePhotoUpload from '../components/VehiclePhotoUpload'
+import { fetchVehicleById } from '../api/vehicles'
 import { useOwnerRequestStatusWatcher } from '../hooks/useOwnerRequestStatusWatcher'
 import TopNav from '../components/TopNav'
 import './OwnerRegisterVehiclePage.css'
@@ -38,6 +41,22 @@ function toDate(value?: string | null): string {
   return d.toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function parseIsoDate(value?: string | null): Date | null {
+  if (!value) return null
+  const d = new Date(value)
+  return Number.isFinite(d.getTime()) ? d : null
+}
+
+function cardDayMeta(value?: string | null): { month: string; weekday: string; day: string } {
+  const d = parseIsoDate(value)
+  if (!d) return { month: '—', weekday: '—', day: '—' }
+  return {
+    month: d.toLocaleDateString('en-US', { month: 'long' }).toUpperCase(),
+    weekday: d.toLocaleDateString('en-US', { weekday: 'short' }),
+    day: String(d.getDate()),
+  }
+}
+
 function canEdit(s: OwnerVehicleRequestStatus): boolean {
   return s === 'PENDING' || s === 'NEED_MORE_INFO'
 }
@@ -60,6 +79,11 @@ export default function OwnerMyVehicleRequestsPage() {
   const [busyId, setBusyId] = useState<number | null>(null)
   const [statusFilter, setStatusFilter] = useState<OwnerVehicleRequestStatus | 'ALL'>('ALL')
   const [sortOrder, setSortOrder] = useState<'NEWEST' | 'OLDEST'>('NEWEST')
+  /** approvedVehicleId → điểm TB (batch sau khi load items). */
+  const [ratingByVehicleId, setRatingByVehicleId] = useState<
+    Record<number, number | null>
+  >({})
+  const [ratingsLoading, setRatingsLoading] = useState(false)
 
   useEffect(() => {
     if (!localStorage.getItem('accessToken')) {
@@ -89,6 +113,41 @@ export default function OwnerMyVehicleRequestsPage() {
   useEffect(() => {
     void load({ detectStatusChange: false })
   }, [load])
+
+  useEffect(() => {
+    const ids = [
+      ...new Set(
+        items
+          .filter((i) => i.status === 'APPROVED' && i.approvedVehicleId != null)
+          .map((i) => i.approvedVehicleId as number),
+      ),
+    ]
+    if (ids.length === 0) {
+      setRatingByVehicleId({})
+      setRatingsLoading(false)
+      return
+    }
+    let cancelled = false
+    setRatingsLoading(true)
+    void Promise.all(
+      ids.map(async (id) => {
+        try {
+          const v = await fetchVehicleById(id)
+          const r = v.rating != null && v.rating > 0 ? v.rating : null
+          return [id, r] as const
+        } catch {
+          return [id, null] as const
+        }
+      }),
+    ).then((pairs) => {
+      if (cancelled) return
+      setRatingByVehicleId(Object.fromEntries(pairs))
+      setRatingsLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [items])
 
   useOwnerRequestStatusWatcher({
     intervalMs: 45_000,
@@ -236,95 +295,120 @@ export default function OwnerMyVehicleRequestsPage() {
         ) : null}
 
         {filteredAndSortedItems.length > 0 ? (
-          <div className="owmr-scroll">
-            <table className="owmr-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Biển số</th>
-                  <th>Xe</th>
-                  <th>Trạng thái</th>
-                  <th>Ghi chú admin</th>
-                  <th>Tạo lúc</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedItems.map((r) => (
-                  <tr key={r.id}>
-                    <td className="owmr-mono">#{r.id}</td>
-                    <td className="owmr-mono">{r.licensePlate || '—'}</td>
-                    <td>
-                      <div className="owmr-cell-title">{r.name || '—'}</div>
-                      <div className="owmr-cell-sub">{r.brand || '—'}</div>
-                    </td>
-                    <td>
+          <section className="owmr-booking-list" aria-label="Owner vehicle requests">
+            {filteredAndSortedItems.map((r) => {
+              const dayMeta = cardDayMeta(r.createdAt)
+              const actionCount =
+                Number(canEdit(r.status)) +
+                Number(canResubmit(r.status)) +
+                Number(canCancel(r.status)) +
+                Number(r.status === 'APPROVED' && r.approvedVehicleId != null)
+              return (
+                <article key={r.id} className="owmr-booking-card">
+                  <div className="owmr-booking-day">
+                    <span className="owmr-booking-day__month">{dayMeta.month}</span>
+                    <span className="owmr-booking-day__weekday">{dayMeta.weekday}</span>
+                    <strong className="owmr-booking-day__num">{dayMeta.day}</strong>
+                  </div>
+
+                  <div className="owmr-booking-schedule">
+                    <p className="owmr-booking-schedule__time">
+                      🕒 {toDate(r.createdAt)}
+                    </p>
+                    <p className="owmr-booking-schedule__place">📍 Biển số: {r.licensePlate || '—'}</p>
+                    <p className="owmr-booking-schedule__meta">Mã yêu cầu #{r.id}</p>
+                  </div>
+
+                  <div className="owmr-booking-detail">
+                    <div className="owmr-booking-detail__head">
+                      <h3>{r.name || 'Yêu cầu đăng xe'}</h3>
                       <span className={statusClass(r.status)}>{statusLabel(r.status)}</span>
-                    </td>
-                    <td className="owmr-note">
-                      {r.adminNote?.trim() ? (
-                        <span title={r.adminNote}>{r.adminNote}</span>
-                      ) : (
-                        <span className="owmr-muted">—</span>
-                      )}
-                    </td>
-                    <td className="owmr-date">{toDate(r.createdAt)}</td>
-                    <td className="owmr-actions">
-                      <a className="owmr-link" href={`/owner/vehicle-requests/${r.id}`}>
-                        Chi tiết
+                    </div>
+                    <p className="owmr-booking-detail__confirmed">Hãng xe: {r.brand || '—'}</p>
+                    <p className="owmr-booking-detail__money">Tạo: {toDate(r.createdAt)}</p>
+                    <p className="owmr-booking-detail__sub">
+                      {r.adminNote?.trim() ? r.adminNote : '— Không có ghi chú admin'}
+                    </p>
+                  </div>
+
+                  <div className="owmr-booking-extra">+{actionCount}</div>
+
+                  <div className="owmr-booking-actions">
+                    <a className="owmr-action-btn" href={`/owner/vehicle-requests/${r.id}`} title="Chi tiết">
+                      +
+                    </a>
+                    {canEdit(r.status) ? (
+                      <a className="owmr-action-btn" href={`/owner/vehicle-requests/${r.id}/edit`} title="Sửa">
+                        ✎
                       </a>
-                      {r.status === 'APPROVED' && r.approvedVehicleId != null ? (
-                        <a
-                          className="owmr-link"
-                          href={`/rent/${r.approvedVehicleId}`}
-                          title="Xem xe trên cửa hàng cho thuê"
-                        >
+                    ) : (
+                      <span className="owmr-action-btn owmr-action-btn--muted" aria-hidden="true">
+                        ✎
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="owmr-booking-links">
+                    {r.status === 'APPROVED' && r.approvedVehicleId != null ? (
+                      <>
+                        <OwnerVehicleRatingSummary
+                          vehicleId={r.approvedVehicleId}
+                          loading={ratingsLoading}
+                          rating={ratingByVehicleId[r.approvedVehicleId] ?? null}
+                        />
+                        <a className="owmr-link" href={`/owner/vehicle-requests/${r.id}/bookings`}>
+                          Lịch sử booking
+                        </a>
+                        <a className="owmr-link" href={`/rent/${r.approvedVehicleId}`}>
                           Xem xe #{r.approvedVehicleId}
                         </a>
-                      ) : null}
-                      {canEdit(r.status) ? (
-                        <a className="owmr-link" href={`/owner/vehicle-requests/${r.id}/edit`}>
-                          Sửa
-                        </a>
-                      ) : null}
-                      {canResubmit(r.status) ? (
-                        <button
-                          type="button"
-                          className="owmr-link owmr-link--btn"
-                          disabled={busyId === r.id}
-                          onClick={() => void onResubmit(r.id)}
-                        >
-                          {busyId === r.id ? 'Đang gửi…' : 'Gửi lại'}
-                        </button>
-                      ) : null}
-                      {canCancel(r.status) ? (
-                        <button
-                          type="button"
-                          className="owmr-link owmr-link--btn"
-                          disabled={busyId === r.id}
-                          onClick={() => void onCancel(r.id)}
-                        >
-                          {busyId === r.id ? 'Đang hủy…' : 'Hủy yêu cầu'}
-                        </button>
-                      ) : null}
-                      {!canEdit(r.status) &&
-                      !canResubmit(r.status) &&
-                      !canCancel(r.status) &&
-                      !(r.status === 'APPROVED' && r.approvedVehicleId != null) ? (
-                        <span className="owmr-muted">—</span>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </>
+                    ) : null}
+                    {canResubmit(r.status) ? (
+                      <button
+                        type="button"
+                        className="owmr-link owmr-link--btn"
+                        disabled={busyId === r.id}
+                        onClick={() => void onResubmit(r.id)}
+                      >
+                        {busyId === r.id ? 'Đang gửi…' : 'Gửi lại'}
+                      </button>
+                    ) : null}
+                    {canCancel(r.status) ? (
+                      <button
+                        type="button"
+                        className="owmr-link owmr-link--btn"
+                        disabled={busyId === r.id}
+                        onClick={() => void onCancel(r.id)}
+                      >
+                        {busyId === r.id ? 'Đang hủy…' : 'Hủy yêu cầu'}
+                      </button>
+                    ) : null}
+                    {r.status === 'APPROVED' && r.approvedVehicleId != null ? (
+                      <div className="owmr-vehicle-photo-slot">
+                        <VehiclePhotoUpload
+                          key={`veh-up-${r.id}-${r.approvedVehicleId}`}
+                          vehicleId={r.approvedVehicleId}
+                          onUploadedUrl={() =>
+                            setToast({
+                              message:
+                                'Đã tải ảnh lên xe. Mở link “Xem xe” để xem trên trang thuê.',
+                            })
+                          }
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </article>
+              )
+            })}
             <p className="owmr-footnote">
               <strong>Từ chối:</strong> dùng <strong>Gửi lại</strong> để chuyển về chờ duyệt, rồi
               dùng <strong>Sửa</strong> nếu cần đổi thông tin. <strong>Cần bổ sung:</strong> có thể{' '}
-              <strong>Sửa</strong> trước hoặc <strong>Gửi lại</strong> sau khi đã cập nhật đủ theo
-              ghi chú admin.
+              <strong>Sửa</strong> trước hoặc <strong>Gửi lại</strong> sau khi đã cập nhật đủ theo ghi
+              chú admin.
             </p>
-          </div>
+          </section>
         ) : null}
       </main>
     </div>

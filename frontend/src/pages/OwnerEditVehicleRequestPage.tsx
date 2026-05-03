@@ -16,12 +16,12 @@ import {
   intToFormString,
   joinLines,
   moneyToFormString,
-  parseOptionalDouble,
   parseOptionalInt,
   parseRequiredMoney,
   splitLinesUrls,
   validateOwnerVehicleFormStrings,
 } from '../lib/ownerVehicleRequestForm'
+import TopNav from '../components/TopNav'
 import './OwnerRegisterVehiclePage.css'
 
 type PhotoUploadItem = {
@@ -30,6 +30,23 @@ type PhotoUploadItem = {
   progress: number
   status: 'uploading' | 'done' | 'error'
 }
+
+const POLICY_OPTIONS = [
+  { value: 'NO_SMOKING', label: 'Không hút thuốc trong xe' },
+  { value: 'LATE_RETURN_SURCHARGE', label: 'Trả xe trễ sẽ bị tính phụ phí theo giờ/ngày' },
+  {
+    value: 'EXTENSION_REQUIRES_APPROVAL',
+    label: 'Muốn gia hạn phải thông báo trước và được bên cho thuê đồng ý',
+  },
+  { value: 'NO_SUBLEASING', label: 'Không cho người khác thuê lại nếu chưa được phép' },
+  { value: 'PET_POLICY', label: 'Quy định về thú cưng' },
+  { value: 'HOME_DELIVERY_SURCHARGE', label: 'Phụ phí giao xe tận nơi' },
+  { value: 'FREE_CANCELLATION_FEE', label: 'Miễn phí phí hủy đặt xe' },
+  { value: 'DEPOSIT_FORFEIT_CANCELLATION_FEE', label: 'Mất cọc phí hủy đặt xe' },
+  { value: 'ADDITIONAL_DRIVER_FEE', label: 'Tính phí người lái phụ' },
+] as const
+
+type PolicyValue = (typeof POLICY_OPTIONS)[number]['value']
 
 function fuelFromDto(raw: string | null | undefined): OwnerVehicleFuelType {
   if (raw === 'ELECTRICITY') return 'ELECTRICITY'
@@ -72,12 +89,10 @@ export default function OwnerEditVehicleRequestPage() {
   const [depositAmount, setDepositAmount] = useState('')
   const [description, setDescription] = useState('')
   const [address, setAddress] = useState('')
-  const [latitude, setLatitude] = useState('')
-  const [longitude, setLongitude] = useState('')
   const [registrationDocUrl, setRegistrationDocUrl] = useState('')
   const [insuranceDocUrl, setInsuranceDocUrl] = useState('')
   const [photoUrlsState, setPhotoUrlsState] = useState<string[]>([])
-  const [policiesBlock, setPoliciesBlock] = useState('')
+  const [selectedPolicies, setSelectedPolicies] = useState<PolicyValue[]>([])
 
   const [submitErr, setSubmitErr] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -89,7 +104,6 @@ export default function OwnerEditVehicleRequestPage() {
   const [insurancePreviewUrl, setInsurancePreviewUrl] = useState<string | null>(null)
 
   const photoUrls = useMemo(() => photoUrlsState.filter(Boolean), [photoUrlsState])
-  const policyLines = useMemo(() => splitLinesUrls(policiesBlock), [policiesBlock])
   const stationAddressOptions = useMemo(
     () =>
       stations
@@ -149,14 +163,16 @@ export default function OwnerEditVehicleRequestPage() {
       setDepositAmount(moneyToFormString(dto.depositAmount))
       setDescription(dto.description?.trim() ?? '')
       setAddress(dto.address?.trim() ?? '')
-      setLatitude(dto.latitude != null ? String(dto.latitude) : '')
-      setLongitude(dto.longitude != null ? String(dto.longitude) : '')
       setRegistrationDocUrl(dto.registrationDocUrl?.trim() ?? '')
       setInsuranceDocUrl(dto.insuranceDocUrl?.trim() ?? '')
       setRegistrationPreviewUrl(dto.registrationDocUrl?.trim() || null)
       setInsurancePreviewUrl(dto.insuranceDocUrl?.trim() || null)
       setPhotoUrlsState(splitLinesUrls(joinLines(dto.photos)))
-      setPoliciesBlock(joinLines(dto.policies))
+      const allowedPolicyValues = new Set<string>(POLICY_OPTIONS.map((p) => p.value))
+      const normalizedPolicies = (dto.policies ?? [])
+        .map((p) => p?.trim().toUpperCase())
+        .filter((p): p is PolicyValue => Boolean(p) && allowedPolicyValues.has(p))
+      setSelectedPolicies(Array.from(new Set(normalizedPolicies)))
     } catch (e) {
       setLoadErr(e instanceof Error ? e.message : 'Không tải được yêu cầu.')
     } finally {
@@ -183,8 +199,8 @@ export default function OwnerEditVehicleRequestPage() {
         hourlyRate,
         dailyRate,
         depositAmount,
-        latitude,
-        longitude,
+        latitude: '',
+        longitude: '',
         registrationDocUrl,
         insuranceDocUrl,
       },
@@ -202,8 +218,6 @@ export default function OwnerEditVehicleRequestPage() {
     }
     const sid = Number(stationId)
     const cap = parseOptionalInt(capacity)
-    const lat = parseOptionalDouble(latitude)
-    const lng = parseOptionalDouble(longitude)
     const h = parseRequiredMoney(hourlyRate, 'Giá theo giờ')
     const d = parseRequiredMoney(dailyRate, 'Giá theo ngày')
     const dep = parseRequiredMoney(depositAmount, 'Tiền cọc')
@@ -221,12 +235,10 @@ export default function OwnerEditVehicleRequestPage() {
       depositAmount: dep.value,
       description: description.trim() || undefined,
       address: address.trim() || undefined,
-      latitude: lat ?? undefined,
-      longitude: lng ?? undefined,
       registrationDocUrl: registrationDocUrl.trim(),
       insuranceDocUrl: insuranceDocUrl.trim(),
       photos: photoUrls,
-      policies: policyLines.length ? policyLines : undefined,
+      policies: selectedPolicies.length ? selectedPolicies : undefined,
     }
 
     setSubmitting(true)
@@ -327,12 +339,26 @@ export default function OwnerEditVehicleRequestPage() {
     })
   }
 
+  function togglePolicy(policy: PolicyValue, checked: boolean) {
+    setSelectedPolicies((prev) => {
+      if (checked) return prev.includes(policy) ? prev : [...prev, policy]
+      return prev.filter((item) => item !== policy)
+    })
+  }
+
   const badId = !Number.isInteger(requestId) || requestId <= 0
 
   return (
-    <div className="owreg">
-      <header className="owreg__toolbar">
-        <nav className="owreg__crumb" aria-label="Breadcrumb">
+    <div className="owreg owreg--clean">
+      <TopNav solid showSearch={false} />
+      <main className="owreg__main owreg__main--clean">
+        <h1 className="owreg__title">Sửa yêu cầu #{requestId}</h1>
+        <p className="owreg__lead">
+          Chỉnh thông tin khi yêu cầu đang <strong>chờ duyệt</strong> hoặc{' '}
+          <strong>cần bổ sung</strong>. Sau khi lưu, bạn có thể quay lại danh sách để gửi lại nếu
+          cần.
+        </p>
+        <nav className="owreg__crumb" aria-label="Breadcrumb" style={{ margin: '0 0 18px' }}>
           <a className="owreg__crumb-link" href="/">
             Trang chủ
           </a>
@@ -343,15 +369,6 @@ export default function OwnerEditVehicleRequestPage() {
           <span className="owreg__crumb-sep">/</span>
           <span className="owreg__crumb-current">Sửa #{requestId}</span>
         </nav>
-      </header>
-
-      <main className="owreg__main">
-        <h1 className="owreg__title">Sửa yêu cầu #{requestId}</h1>
-        <p className="owreg__lead">
-          Chỉnh thông tin khi yêu cầu đang <strong>chờ duyệt</strong> hoặc{' '}
-          <strong>cần bổ sung</strong>. Sau khi lưu, bạn có thể quay lại danh sách để gửi lại nếu
-          cần.
-        </p>
 
         {badId ? null : loadingRequest ? (
           <p className="owreg__lead">Đang tải yêu cầu…</p>
@@ -365,7 +382,7 @@ export default function OwnerEditVehicleRequestPage() {
           </p>
         ) : null}
         {readOnlyReason ? (
-          <div className="owreg__banner" style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
+          <div className="owreg__banner owreg__banner--ok">
             <p className="owreg__banner-text">{readOnlyReason}</p>
             <div className="owreg__banner-actions">
               <a className="owreg__btn owreg__btn--primary" href="/owner/vehicle-requests">
@@ -393,7 +410,7 @@ export default function OwnerEditVehicleRequestPage() {
               </p>
             ) : null}
 
-            <form className="owreg__form" onSubmit={onSubmit}>
+            <form className="owreg__form owreg__form--clean owreg__form--edit" onSubmit={onSubmit}>
               <section className="owreg__section">
                 <h2 className="owreg__section-title">Trạm &amp; biển số</h2>
                 <label className="owreg__field">
@@ -470,9 +487,9 @@ export default function OwnerEditVehicleRequestPage() {
                       onChange={(e) => setCapacity(e.target.value)}
                     >
                       <option value="">— Chọn số chỗ —</option>
-                      <option value="2">2</option>
-                      <option value="4">4</option>
-                      <option value="8">8</option>
+                      <option value="5">5</option>
+                      <option value="7">7</option>
+                      <option value="9">9</option>
                       <option value="16">16</option>
                     </select>
                   </label>
@@ -541,24 +558,6 @@ export default function OwnerEditVehicleRequestPage() {
                     ))}
                   </select>
                 </label>
-                <div className="owreg__grid2">
-                  <label className="owreg__field">
-                    <span className="owreg__label">Vĩ độ (tùy chọn)</span>
-                    <input
-                      className="owreg__input"
-                      value={latitude}
-                      onChange={(e) => setLatitude(e.target.value)}
-                    />
-                  </label>
-                  <label className="owreg__field">
-                    <span className="owreg__label">Kinh độ (tùy chọn)</span>
-                    <input
-                      className="owreg__input"
-                      value={longitude}
-                      onChange={(e) => setLongitude(e.target.value)}
-                    />
-                  </label>
-                </div>
               </section>
 
               <section className="owreg__section">
@@ -740,15 +739,18 @@ export default function OwnerEditVehicleRequestPage() {
 
               <section className="owreg__section">
                 <h2 className="owreg__section-title">Điều khoản (tùy chọn)</h2>
-                <label className="owreg__field">
-                  <span className="owreg__label">Mỗi dòng một điều khoản</span>
-                  <textarea
-                    className="owreg__textarea"
-                    rows={3}
-                    value={policiesBlock}
-                    onChange={(e) => setPoliciesBlock(e.target.value)}
-                  />
-                </label>
+                <div className="owreg__policy-list" role="group" aria-label="Danh sách điều khoản">
+                  {POLICY_OPTIONS.map((option) => (
+                    <label key={option.value} className="owreg__policy-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedPolicies.includes(option.value)}
+                        onChange={(e) => togglePolicy(option.value, e.target.checked)}
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  ))}
+                </div>
               </section>
 
               <div className="owreg__actions">

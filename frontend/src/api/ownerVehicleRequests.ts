@@ -1,5 +1,6 @@
 import { parseApiErrorFromResponse, unwrapApiData } from './apiResponse'
 import { authFetch } from './authFetch'
+import type { BookingDto } from './bookings'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
@@ -232,4 +233,13 @@ export async function cancelOwnerVehicleRequest(id: number): Promise<OwnerVehicl
   })
   if (!res.ok) throw new Error(await parseApiError(res))
   return parseOwnerVehicleRequestItem(await res.json())
+}
+
+export async function fetchMyOwnerRequestBookings(id: number): Promise<BookingDto[]> {
+  const res = await authFetch(`${OWNER_VEHICLE_REQUESTS}/${id}/bookings`)
+  if (!res.ok) throw new Error(await parseApiError(res))
+  const payload = (await res.json()) as unknown
+  const list = unwrapApiData<unknown>(payload)
+  if (!Array.isArray(list)) return []
+  return list as BookingDto[]
 }

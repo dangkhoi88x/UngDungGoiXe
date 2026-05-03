@@ -21,6 +21,7 @@ public class CreateVehicleResponse {
     private String licensePlate;
     private String name;
     private String brand;
+    private String ownerEmail;
 
     private FuelType fuelType;
     private Double rating;

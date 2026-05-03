@@ -5,10 +5,13 @@ import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.momo.CreatePaymentResponse;
 import com.example.ungdunggoixe.dto.request.CreateBookingRequest;
 import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
+import com.example.ungdunggoixe.dto.request.SubmitBookingVehicleFeedbackRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
+import com.example.ungdunggoixe.dto.response.BookingVehicleFeedbackResponse;
 import com.example.ungdunggoixe.dto.response.PagedBookingResponse;
 import com.example.ungdunggoixe.exception.AppException;
+import com.example.ungdunggoixe.service.BookingFeedbackService;
 import com.example.ungdunggoixe.service.BookingService;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.PaymentService;
@@ -17,10 +20,11 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -32,8 +36,20 @@ import java.util.Map;
 @RequestMapping("/bookings")
 public class BookingController {
     private final BookingService bookingService;
+    private final BookingFeedbackService bookingFeedbackService;
     private final I18nService i18nService;
     private final PaymentService paymentService;
+
+    private static Long jwtUserId(Jwt jwt) {
+        if (jwt == null || jwt.getSubject() == null || jwt.getSubject().isBlank()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        try {
+            return Long.parseLong(jwt.getSubject());
+        } catch (NumberFormatException ex) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+    }
 
     @PostMapping
     @Operation(summary = "Tao booking", description = "Tao don dat xe moi va tinh tong tien du kien.")
@@ -79,7 +95,7 @@ public class BookingController {
         if (jwt == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
-        Long userId = Long.parseLong(jwt.getSubject());
+        Long userId = jwtUserId(jwt);
         List<BookingResponse> result = bookingService.getMyBookings(userId);
         return ApiResponse.<List<BookingResponse>>builder()
                 .status("success")
@@ -102,6 +118,75 @@ public class BookingController {
         return ApiResponse.<PagedBookingResponse>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.booking.page.success"))
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    @PostMapping(value = "/{id}/feedback/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "Upload anh kem danh gia (Cloudinary)",
+            description = "Truoc khi POST /bookings/{id}/feedback: tai anh len Cloudinary (folder bookings/{id}/feedback). Chi booking COMPLETED, chua co feedback.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload thanh cong, tra ve url"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File khong hop le"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Khong phai nguoi thue"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Da gui feedback")
+    })
+    public ApiResponse<Map<String, String>> uploadBookingFeedbackPhoto(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam("file") MultipartFile file
+    ) {
+        Long userId = jwtUserId(jwt);
+        String url = bookingFeedbackService.uploadFeedbackPhoto(id, userId, file);
+        return ApiResponse.<Map<String, String>>builder()
+                .status("success")
+                .message(i18nService.getMessage("response.booking.feedback.photo.upload.success"))
+                .data(Map.of("url", url))
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    @PostMapping("/{id}/feedback")
+    @Operation(
+            summary = "Danh gia xe sau khi hoan thanh thue",
+            description = "Diem sao (1-5), comment; photoUrls tuy chon (URL tu POST .../feedback/photos). Toi da 8 anh. Mot booking mot lan.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Gui danh gia thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Booking chua hoac khong du dieu kien / diem khong hop le"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Khong phai nguoi thue"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay booking"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Da danh gia booking nay")
+    })
+    public ApiResponse<BookingVehicleFeedbackResponse> submitVehicleFeedback(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody SubmitBookingVehicleFeedbackRequest body
+    ) {
+        Long userId = jwtUserId(jwt);
+        BookingVehicleFeedbackResponse result =
+                bookingFeedbackService.submitVehicleFeedback(id, userId, body);
+        return ApiResponse.<BookingVehicleFeedbackResponse>builder()
+                .status("success")
+                .message(i18nService.getMessage("response.booking.feedback.submit.success"))
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    @GetMapping("/{id}/feedback/me")
+    @Operation(summary = "Lay danh gia xe cua toi cho booking", description = "Chi nguoi thue xem duoc feedback da gui.")
+    public ApiResponse<BookingVehicleFeedbackResponse> getMyVehicleFeedback(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        Long userId = jwtUserId(jwt);
+        BookingVehicleFeedbackResponse result =
+                bookingFeedbackService.getMyFeedbackForBooking(id, userId);
+        return ApiResponse.<BookingVehicleFeedbackResponse>builder()
+                .status("success")
+                .message(i18nService.getMessage("response.booking.feedback.get.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();

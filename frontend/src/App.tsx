@@ -1,6 +1,7 @@
 import StudioXLandingPage from './pages/studio-x-landing-page'
 import { useEffect, type ReactElement } from 'react'
 import AuthPage from './pages/AuthPage'
+import GoogleOAuthCallbackPage from './pages/GoogleOAuthCallbackPage'
 import CarRentalPage from './pages/CarRentalPage'
 import VehicleDetailPage from './pages/VehicleDetailPage'
 import VehicleBookingPage from './pages/VehicleBookingPage'
@@ -14,6 +15,9 @@ import OwnerRegisterVehiclePage from './pages/OwnerRegisterVehiclePage'
 import OwnerMyVehicleRequestsPage from './pages/OwnerMyVehicleRequestsPage'
 import OwnerEditVehicleRequestPage from './pages/OwnerEditVehicleRequestPage'
 import OwnerVehicleRequestDetailPage from './pages/OwnerVehicleRequestDetailPage'
+import OwnerVehicleRequestBookingsPage from './pages/OwnerVehicleRequestBookingsPage'
+import BlogListingPage from './pages/BlogListingPage'
+import BlogPostPage from './pages/BlogPostPage'
 import { logoutRequest, rolesFromJwt } from './api/auth'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import './App.css'
@@ -54,6 +58,14 @@ function VehicleBookingRoute() {
   return <VehicleBookingPage vehicleId={id} />
 }
 
+function BlogPostRoute() {
+  const { slug } = useParams<{ slug: string }>()
+  if (!slug || !slug.trim()) {
+    return <Navigate to="/blog" replace />
+  }
+  return <BlogPostPage />
+}
+
 function LogoutRoute() {
   useEffect(() => {
     let ignore = false
@@ -89,6 +101,7 @@ function App() {
     <Routes>
       <Route path="/" element={<StudioXLandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/google" element={<GoogleOAuthCallbackPage />} />
       <Route path="/logout" element={<LogoutRoute />} />
       <Route path="/account" element={<UserAccountPage />} />
       <Route path="/account/update" element={<UserAccountUpdatePage />} />
@@ -105,11 +118,14 @@ function App() {
       <Route path="/rent/:id" element={<VehicleDetailRoute />} />
       <Route path="/booking/:vehicleId" element={<VehicleBookingRoute />} />
       <Route path="/payment/momo-return" element={<MomoReturnPage />} />
+      <Route path="/blog" element={<BlogListingPage />} />
+      <Route path="/blog/:slug" element={<BlogPostRoute />} />
       <Route path="/mapstation" element={<MapStationPage />} />
       <Route path="/owner/register-vehicle" element={<OwnerRegisterVehiclePage />} />
       <Route path="/owner/vehicle-requests" element={<OwnerMyVehicleRequestsPage />} />
       <Route path="/owner/vehicle-requests/:id" element={<OwnerVehicleRequestDetailPage />} />
       <Route path="/owner/vehicle-requests/:id/edit" element={<OwnerEditVehicleRequestPage />} />
+      <Route path="/owner/vehicle-requests/:id/bookings" element={<OwnerVehicleRequestBookingsPage />} />
       <Route path="*" element={<StudioXLandingPage />} />
     </Routes>
   )

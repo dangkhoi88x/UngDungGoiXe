@@ -34,7 +34,7 @@ build/
 .vscode/
 
 ### Secrets (Vite / local env) ###
-.env
+.envgit reset --soft HEAD~1
 .env.local
 .env.*.local
 .env.*
@@ -44,3 +44,4 @@ frontend/.env.local
 frontend/.env.*.local
 frontend/.env.*
 !frontend/.env.example
+.env

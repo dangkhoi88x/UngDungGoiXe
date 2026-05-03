@@ -94,37 +94,3 @@ export const PROCESS_STEPS: ProcessStep[] = [
       'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80',
   },
 ]
-
-export type BlogPost = {
-  title: string
-  excerpt: string
-  image: string
-  date: string
-}
-
-export const BLOG_POSTS: BlogPost[] = [
-  {
-    title: 'Vì sao nhận xe tại bãi lại quan trọng?',
-    excerpt:
-      'Điểm giao cố định giúp minh bạch, dễ kiểm soát an toàn và giảm tranh chấp giữa chủ xe và người thuê.',
-    image:
-      'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=800&q=80',
-    date: 'Tháng 4, 2026',
-  },
-  {
-    title: 'Peer-to-peer: chủ xe và người thuê cùng có lợi',
-    excerpt:
-      'Chủ xe tận dụng tài sản; người thuê có thêm lựa chọn giá và loại xe. Nền tảng thu phí để vận hành và hỗ trợ.',
-    image:
-      'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=800&q=80',
-    date: 'Tháng 3, 2026',
-  },
-  {
-    title: 'Thiết kế phí nền tảng trong đồ án web thuê xe',
-    excerpt:
-      'Cách tách phí sàn, thời điểm khấu trừ và hiển thị cho người dùng — gợi ý triển khai trong backend của bạn.',
-    image:
-      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=800&q=80',
-    date: 'Tháng 2, 2026',
-  },
-]

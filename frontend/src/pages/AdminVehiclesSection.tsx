@@ -6,6 +6,7 @@ import {
   readAdminSession,
   writeAdminSession,
 } from '../lib/adminSessionStorage'
+import VehiclePhotoUpload from '../components/VehiclePhotoUpload'
 import {
   createVehicle,
   deleteVehicle,
@@ -941,6 +942,36 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
                     setForm((s) => ({ ...s, photosText: e.target.value }))
                   }
                 />
+                {modal === 'edit' && editingId != null ? (
+                  <VehiclePhotoUpload
+                    variant="admin"
+                    vehicleId={editingId}
+                    onVehicleRefreshed={(v) => {
+                      setForm(vehicleToForm(v))
+                      void reload()
+                    }}
+                  />
+                ) : (
+                  <p className="adm-veh__photo-upload-hint">
+                    Lưu xe trước, sau đó mở <strong>Sửa</strong> để tải ảnh lên Cloudinary.
+                  </p>
+                )}
+                {linesToList(form.photosText).length > 0 ? (
+                  <div
+                    className="adm-veh__photo-preview-grid"
+                    aria-label="Xem trước ảnh"
+                  >
+                    {linesToList(form.photosText).map((url) => (
+                      <img
+                        key={url}
+                        src={url}
+                        alt=""
+                        className="adm-veh__photo-thumb"
+                        loading="lazy"
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div className="adm-veh__field">

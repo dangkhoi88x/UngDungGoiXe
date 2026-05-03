@@ -10,6 +10,8 @@ import {
   type VehicleDto,
   fetchAvailableVehicles,
   fetchVehicleById,
+  fetchVehiclePublicFeedbackPage,
+  type PagedVehiclePublicFeedbackDto,
   formatDailyPrice,
   formatDeposit,
   formatHourlyPrice,
@@ -58,6 +60,10 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
   const [licenseModalOpen, setLicenseModalOpen] = useState(false)
   const [licenseModalStatus, setLicenseModalStatus] = useState<LicenseVerificationStatus | null>(null)
   const [licenseCheckLoading, setLicenseCheckLoading] = useState(false)
+  const [feedbackPage, setFeedbackPage] = useState(0)
+  const [feedbackData, setFeedbackData] = useState<PagedVehiclePublicFeedbackDto | null>(null)
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [feedbackError, setFeedbackError] = useState<string | null>(null)
 
   useEffect(() => {
     const sync = () => {
@@ -88,6 +94,40 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    setFeedbackPage(0)
+  }, [vehicleId])
+
+  useEffect(() => {
+    if (!vehicle) {
+      setFeedbackData(null)
+      setFeedbackError(null)
+      return
+    }
+    let cancelled = false
+    setFeedbackLoading(true)
+    setFeedbackError(null)
+    void (async () => {
+      try {
+        const data = await fetchVehiclePublicFeedbackPage(vehicleId, {
+          page: feedbackPage,
+          size: 8,
+        })
+        if (!cancelled) setFeedbackData(data)
+      } catch (e) {
+        if (!cancelled) {
+          setFeedbackError(e instanceof Error ? e.message : 'Không tải được đánh giá.')
+          setFeedbackData(null)
+        }
+      } finally {
+        if (!cancelled) setFeedbackLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [vehicle, vehicleId, feedbackPage])
 
   useEffect(() => {
     if (!vehicle) {
@@ -298,7 +338,8 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
             <h1 className="vd-title">{title}</h1>
             <p className="vd-sub">
               Biển số <strong>{vehicle.licensePlate}</strong> · Bãi (station) #{vehicle.stationId} · Trạng
-              thái: <strong>{vehicle.status}</strong>
+              thái: <strong>{vehicle.status}</strong> · Người cho thuê:{' '}
+              <strong>{vehicle.ownerEmail?.trim() || '—'}</strong>
             </p>
 
             {!isAvailable ? (
@@ -381,6 +422,90 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
             </dl>
           </div>
         </div>
+
+        <section className="vd-section vd-feedback" aria-labelledby="vd-feedback-title">
+          <h2 id="vd-feedback-title">Đánh giá từ khách đã thuê</h2>
+          <p className="vd-feedback__intro">
+            Nhận xét và ảnh thực tế sau các chuyến hoàn tất. Tên hiển thị được rút gọn để bảo vệ quyền riêng
+            tư.
+          </p>
+          {feedbackLoading ? (
+            <p className="vd-feedback__muted">Đang tải đánh giá…</p>
+          ) : feedbackError ? (
+            <p className="vd-feedback__err" role="alert">
+              {feedbackError}
+            </p>
+          ) : !feedbackData?.content?.length ? (
+            <p className="vd-feedback__muted">Chưa có đánh giá nào cho xe này.</p>
+          ) : (
+            <>
+              <ul className="vd-feedback__list">
+                {feedbackData.content.map((row) => (
+                  <li key={row.id} className="vd-feedback-card">
+                    <div className="vd-feedback-card__head">
+                      <span className="vd-feedback-card__who">{row.reviewerLabel ?? 'Khách'}</span>
+                      <span className="vd-feedback-card__stars">
+                        ⭐{' '}
+                        <strong>
+                          {row.vehicleRating != null ? row.vehicleRating.toFixed(1) : '—'}
+                        </strong>
+                        /5
+                      </span>
+                      <time className="vd-feedback-card__time" dateTime={row.createdAt ?? undefined}>
+                        {row.createdAt
+                          ? new Date(row.createdAt).toLocaleString('vi-VN', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })
+                          : ''}
+                      </time>
+                    </div>
+                    {row.comment?.trim() ? (
+                      <p className="vd-feedback-card__comment">{row.comment.trim()}</p>
+                    ) : (
+                      <p className="vd-feedback-card__muted">Không có nhận xét chữ.</p>
+                    )}
+                    {row.photoUrls && row.photoUrls.length > 0 ? (
+                      <div className="vd-feedback-card__photos">
+                        {row.photoUrls.map((url) => (
+                          <a key={url} href={url} target="_blank" rel="noreferrer" className="vd-feedback-card__photo-link">
+                            <img src={url} alt="" loading="lazy" />
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              {feedbackData.totalPages > 1 ? (
+                <div className="vd-feedback__pager">
+                  <button
+                    type="button"
+                    className="vd-feedback__pager-btn"
+                    disabled={feedbackPage <= 0}
+                    onClick={() => setFeedbackPage((p) => Math.max(0, p - 1))}
+                  >
+                    ← Trước
+                  </button>
+                  <span className="vd-feedback__pager-meta">
+                    Trang {feedbackPage + 1} / {feedbackData.totalPages} · {feedbackData.totalElements}{' '}
+                    đánh giá
+                  </span>
+                  <button
+                    type="button"
+                    className="vd-feedback__pager-btn"
+                    disabled={feedbackPage >= feedbackData.totalPages - 1}
+                    onClick={() => setFeedbackPage((p) => p + 1)}
+                  >
+                    Sau →
+                  </button>
+                </div>
+              ) : (
+                <p className="vd-feedback__count">{feedbackData.totalElements} đánh giá</p>
+              )}
+            </>
+          )}
+        </section>
 
         {vehicle.policies && vehicle.policies.length > 0 ? (
           <section className="vd-section" aria-labelledby="vd-policies-title">

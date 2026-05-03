@@ -16,6 +16,10 @@ public enum ErrorCode {
     BOOTSTRAP_ADMIN_ROLE_INVALID(1007, "error.user.bootstrap_admin_role_invalid", "Role must be ADMIN or SUPER_ADMIN.", HttpStatus.BAD_REQUEST),
     BOOTSTRAP_ADMIN_BODY_INVALID(1008, "error.user.bootstrap_admin_body_invalid", "Please provide email, password, first name and last name.", HttpStatus.BAD_REQUEST),
     AUTHENTICATION_MISSING(1009, "error.auth.authentication_missing", "Authentication is missing.", HttpStatus.UNAUTHORIZED),
+    GOOGLE_OAUTH_NOT_CONFIGURED(1010, "error.auth.google_not_configured", "Google sign-in is not configured on the server.", HttpStatus.SERVICE_UNAVAILABLE),
+    GOOGLE_TOKEN_EXCHANGE_FAILED(1011, "error.auth.google_token_exchange_failed", "Could not complete Google sign-in.", HttpStatus.BAD_GATEWAY),
+    GOOGLE_ID_TOKEN_INVALID(1012, "error.auth.google_id_token_invalid", "Google sign-in token is invalid.", HttpStatus.UNAUTHORIZED),
+    GOOGLE_EMAIL_NOT_VERIFIED(1013, "error.auth.google_email_not_verified", "Google account email is not verified.", HttpStatus.FORBIDDEN),
     // ── Station errors ────────────────────────
     STATION_NOT_FOUND(2001, "error.station.not_found", "Station not found", HttpStatus.NOT_FOUND),
     STATION_NAME_ALREADY_EXISTS(2002, "error.station.name_already_exists", "Station name already exists", HttpStatus.CONFLICT),
@@ -52,6 +56,12 @@ public enum ErrorCode {
     BOOKING_STATUS_TRANSITION_INVALID(4005, "error.booking.status_transition_invalid", "Invalid booking status transition", HttpStatus.BAD_REQUEST),
     VEHICLE_NOT_IN_CORRECT_STATUS(4006, "error.vehicle.status_incorrect", "Vehicle is not in the correct status for this operation", HttpStatus.CONFLICT),
     BOOKING_DEPOSIT_REQUIRED(4007, "error.booking.deposit_required", "A station cash deposit is required before confirming booking.", HttpStatus.BAD_REQUEST),
+    BOOKING_FEEDBACK_NOT_ALLOWED(4008, "error.booking.feedback_not_allowed", "Feedback is only allowed for your completed bookings.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_VEHICLE_RATING_INVALID(4009, "error.feedback.vehicle_rating_invalid", "Vehicle rating must be between 1 and 5.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_ALREADY_EXISTS(4010, "error.feedback.already_exists", "Feedback for this booking already exists.", HttpStatus.CONFLICT),
+    FEEDBACK_NOT_FOUND(4011, "error.feedback.not_found", "No feedback found for this booking.", HttpStatus.NOT_FOUND),
+    FEEDBACK_PHOTOS_TOO_MANY(4012, "error.feedback.photos_too_many", "Too many feedback photos.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_PHOTO_URL_INVALID(4013, "error.feedback.photo_url_invalid", "Invalid feedback photo URL.", HttpStatus.BAD_REQUEST),
     // ── Payment errors ────────────────────────
     PAYMENT_NOT_FOUND(5001, "error.payment.not_found", "Payment not found", HttpStatus.NOT_FOUND),
     PAYMENT_METHOD_NOT_ALLOWED(5002, "error.payment.method_not_allowed", "Station payment only supports CASH method.", HttpStatus.BAD_REQUEST),
@@ -61,6 +71,11 @@ public enum ErrorCode {
     MOMO_REQUEST_TYPE_INVALID(5006, "error.momo.request_type_invalid", "Unsupported MoMo requestType for create payment.", HttpStatus.BAD_REQUEST),
     PAYMENT_MOMO_PREPAY_AMOUNT_RANGE(5007, "error.payment.momo_prepay_amount_range", "MoMo prepay amount outside allowed VND range.", HttpStatus.BAD_REQUEST),
     MOMO_GATEWAY_REJECTED(5008, "error.momo.gateway_rejected", "MoMo payment gateway rejected the create request.", HttpStatus.BAD_REQUEST),
+    // ── Blog errors ───────────────────────────
+    BLOG_POST_NOT_FOUND(6001, "error.blog_post.not_found", "Blog post not found", HttpStatus.NOT_FOUND),
+    BLOG_POST_SLUG_ALREADY_EXISTS(6002, "error.blog_post.slug_already_exists", "Blog slug already exists", HttpStatus.CONFLICT),
+    BLOG_POST_BODY_INVALID(6003, "error.blog_post.body_invalid", "Blog post body is invalid", HttpStatus.BAD_REQUEST),
+    BLOG_POST_PUBLISH_INVALID(6004, "error.blog_post.publish_invalid", "Cannot publish blog post in current state", HttpStatus.BAD_REQUEST),
     // ── Generic errors ────────────────────────
     UNAUTHORIZED(9001, "error.auth.unauthorized", "Unauthorized", HttpStatus.UNAUTHORIZED),
     FORBIDDEN(9002, "error.auth.forbidden", "Forbidden", HttpStatus.FORBIDDEN),

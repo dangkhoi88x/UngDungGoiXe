@@ -141,6 +141,8 @@ public class BookingService {
 
         validateStatusTransition(booking.getStatus(), BookingStatus.ONGOING);
 
+        settleOutstandingCashAtPickup(booking);
+
         // Chuyển trạng thái booking → ONGOING
         booking.setStatus(BookingStatus.ONGOING);
         resolveCurrentUser().ifPresent(booking::setCheckedOutBy);
@@ -387,6 +389,13 @@ public class BookingService {
      * Đã thu đủ cọc tại trạm: {@code partiallyPaid} (tổng PAID) ≥ 10% {@code totalAmount}.
      */
     private void assertDepositCollected(Booking booking) {
+        // Với luồng trả tại trạm (cash), booking có thể chưa có payment record nào.
+        // Trong trường hợp này không chặn confirm; staff thu tiền tại quầy rồi giao xe.
+        List<Payment> payments = paymentRepository.findByBookingId(booking.getId());
+        if (payments.isEmpty()) {
+            return;
+        }
+
         BigDecimal total = booking.getTotalAmount() == null ? BigDecimal.ZERO : booking.getTotalAmount();
         if (total.compareTo(BigDecimal.ZERO) <= 0) {
             return;
@@ -470,5 +479,33 @@ public class BookingService {
                     .transactionId("REFUND_AUTO_BOOKING_" + booking.getId() + "_" + System.currentTimeMillis())
                     .build());
         }
+    }
+
+    /**
+     * Khi staff giao xe tại trạm, coi như đã thu phần còn thiếu bằng tiền mặt.
+     * Điều này giúp lần "trả xe" không sinh thêm TOPUP treo do chênh lệch chưa thu.
+     */
+    private void settleOutstandingCashAtPickup(Booking booking) {
+        BigDecimal total = booking.getTotalAmount() == null ? BigDecimal.ZERO : booking.getTotalAmount();
+        BigDecimal paid = booking.getPartiallyPaid() == null ? BigDecimal.ZERO : booking.getPartiallyPaid();
+        BigDecimal remaining = total.subtract(paid).setScale(2, RoundingMode.HALF_UP);
+        if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        Payment cashCollectedAtPickup = Payment.builder()
+                .booking(booking)
+                .amount(remaining)
+                .paymentMethod(Payment.PaymentMethod.CASH)
+                .paymentPurpose(Payment.PaymentPurpose.TOPUP)
+                .status(Payment.PaymentStatus.PAID)
+                .paidAt(LocalDateTime.now())
+                .transactionId("PICKUP_CASH_BOOKING_" + booking.getId() + "_" + System.currentTimeMillis())
+                .build();
+        resolveCurrentUser().ifPresent(cashCollectedAtPickup::setProcessedBy);
+        paymentRepository.save(cashCollectedAtPickup);
+
+        booking.setPartiallyPaid(total);
+        booking.setPaymentStatus(PaymentStatus.PAID);
     }
 }

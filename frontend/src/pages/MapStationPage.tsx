@@ -4,6 +4,7 @@ import {
   ensureGoogleMapsConfigured,
   loadGoogleMapsLibrary,
 } from '../lib/googleMapsLoader'
+import TopNav from '../components/TopNav'
 import './MapStationPage.css'
 
 const DEFAULT_CENTER = { lat: 10.7769, lng: 106.7009 }
@@ -292,15 +293,13 @@ export default function MapStationPage() {
 
   return (
     <div className="map-station-page">
-      <header className="map-station-header">
-        <h1>Bản đồ trạm</h1>
-        <nav className="map-station-nav" aria-label="Điều hướng">
-          <a href="/">Trang chủ</a>
-          <a href="/rent">Thuê xe</a>
-        </nav>
-      </header>
+      <TopNav solid />
 
       <main className="map-station-layout">
+        <header className="map-station-head">
+          <h1>Bản đồ trạm</h1>
+          <p>Xem vị trí trạm theo bản đồ và lọc nhanh theo trạng thái.</p>
+        </header>
         <section className="map-wrap" aria-label="Google Maps">
           {origin ? (
             <p className="map-banner map-banner--info" role="status">
