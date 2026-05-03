@@ -28,10 +28,10 @@ function cardImage(v: VehicleDto): string {
   return p
 }
 
-function ratingDisplay(v: VehicleDto): string {
+/** Chỉ true khi đã có điểm trung bình từ feedback khách (backend cập nhật `vehicle.rating`). */
+function hasCustomerRating(v: VehicleDto): boolean {
   const r = v.rating
-  if (r == null || r <= 0) return '—'
-  return r.toFixed(1)
+  return r != null && Number.isFinite(r) && r > 0
 }
 
 function doorsGuess(cap: number | null | undefined): number {
@@ -640,7 +640,14 @@ export default function CarRentalPage() {
                       <span title="Nhiên liệu / hộp số (demo)">⚙ {fuelLabel(v.fuelType)}</span>
                       <span title="Số chỗ">👥 {v.capacity ?? '—'}</span>
                       <span title="Cửa (ước lượng)">🚪 {doorsGuess(v.capacity)}</span>
-                      <span title="Đánh giá">⭐ {ratingDisplay(v)}</span>
+                      {hasCustomerRating(v) ? (
+                        <span
+                          className="cr-card__rating"
+                          title="Điểm trung bình từ đánh giá của khách sau chuyến thuê"
+                        >
+                          ⭐ {Number(v.rating).toFixed(1)}
+                        </span>
+                      ) : null}
                       {v.rentCount != null && v.rentCount > 0 ? (
                         <span title="Số lượt thuê">📋 {v.rentCount}</span>
                       ) : null}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { formatBookingMoney, type BookingDto } from '../api/bookings'
 import { fetchMyOwnerRequestBookings } from '../api/ownerVehicleRequests'
+import { OwnerVehicleRatingLive } from '../components/OwnerVehicleRatingSummary'
 import TopNav from '../components/TopNav'
 import './OwnerRegisterVehiclePage.css'
 import './OwnerMyVehicleRequestsPage.css'
@@ -97,6 +98,22 @@ export default function OwnerVehicleRequestBookingsPage() {
             Danh sách yêu cầu
           </a>
         </div>
+
+        {!loading && items.length > 0 && items[0]?.vehicleId ? (
+          <section
+            className="owreg__section"
+            style={{ marginBottom: 20, maxWidth: 560 }}
+            aria-labelledby="owvh-rating-title"
+          >
+            <h2 id="owvh-rating-title" className="owreg__section-title" style={{ fontSize: '1rem' }}>
+              Đánh giá xe (khách thuê)
+            </h2>
+            <OwnerVehicleRatingLive vehicleId={items[0].vehicleId} />
+            <p className="owmr-muted" style={{ marginTop: 8, fontSize: 12 }}>
+              Link mở trang xe công khai tại mục đánh giá — chỉ đọc.
+            </p>
+          </section>
+        ) : null}
 
         {error ? (
           <p className="owreg__err" role="alert">

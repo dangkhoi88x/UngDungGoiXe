@@ -2,7 +2,7 @@
 
 **Read this file at the start of a new session** when working on this repository. It summarizes stack, layout, APIs, and product rules so you do not need the user to re-explain the project.
 
-**Related:** [`architecture.md`](./architecture.md) — diagrams and technical architecture (layers, security, domain, sequences).
+**Related:** [`architecture.md`](./architecture.md) — diagrams and technical architecture (layers, security, domain, sequences). · [`plan2.md`](./plan2.md) — **việc làm tiếp theo** (ưu tiên, roadmap) — gồm **hướng dẫn đăng nhập Google (OAuth)** sau khi đã tạo Client ID trên Google Cloud.
 
 ---
 
@@ -133,5 +133,7 @@ When you add major features (new modules, deployment, env vars), append a short 
 
 ### Changelog
 
+- **2026-05-02:** `plan2.md` — thêm hướng dẫn tích hợp **Google Sign-In** (OAuth Client đã tạo → bước Console, phương án `id_token` + `POST /auth/google` vs Spring OAuth2 Login).
+- **2026-05-02:** Link to `plan2.md` (next steps / roadmap).
 - **2026-04-20:** Link to `architecture.md` (diagrams, layers, sequences).
 - **2026-04-20:** Initial `plan.md` — stack, routes, security, booking/payment/GPTX gate, run instructions.

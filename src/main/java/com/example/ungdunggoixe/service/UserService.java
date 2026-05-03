@@ -32,7 +32,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -244,5 +246,29 @@ public class UserService {
 
         userRepository.save(user);
         return UserMapper.INSTANCE.ToUserResponse(user);
+    }
+
+    /**
+     * Tim user theo email hoac tao moi (ROLE_USER) khi dang nhap Google; khong gui email chao mung.
+     */
+    @Transactional
+    public User ensureUserForGoogleOAuth(String email, String givenName, String familyName) {
+        String normalized = email.trim().toLowerCase();
+        Optional<User> existing = userRepository.findByEmail(normalized);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        String fn = (givenName != null && !givenName.isBlank()) ? givenName.trim() : "Google";
+        String ln = (familyName != null && !familyName.isBlank()) ? familyName.trim() : "User";
+        User user = new User();
+        user.setEmail(normalized);
+        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setFirstName(fn);
+        user.setLastName(ln);
+        user.setLicenseVerificationStatus(LicenseVerificationStatus.NOT_SUBMITTED);
+        user.addRole(roleService.createRole(RoleName.USER));
+        userRepository.save(user);
+        return userRepository.findByIdWithUserRoles(user.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_ERROR));
     }
 }

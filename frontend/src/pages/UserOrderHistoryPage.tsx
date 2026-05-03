@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { fetchMyBookings, formatBookingMoney, type BookingDto } from '../api/bookings'
+import {
+  fetchMyBookings,
+  fetchMyBookingVehicleFeedback,
+  formatBookingMoney,
+  type BookingDto,
+} from '../api/bookings'
 import { fetchPaymentsByBookingId, type PaymentDto } from '../api/payments'
+import { BookingReviewModal } from '../components/BookingReviewModal'
 import TopNav from '../components/TopNav'
 import './studio-x-landing-page.css'
 import './UserOrderHistoryPage.css'
@@ -115,6 +121,9 @@ export default function UserOrderHistoryPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<HistoryTab>('ALL')
+  const [reviewBooking, setReviewBooking] = useState<BookingDto | null>(null)
+  /** Booking đã có feedback (prefetch / sau khi gửi đánh giá). */
+  const [reviewedBookingIds, setReviewedBookingIds] = useState<Set<number>>(() => new Set())
 
   useEffect(() => {
     let cancelled = false
@@ -133,9 +142,31 @@ export default function UserOrderHistoryPage() {
             }
           }),
         )
-        if (!cancelled) {
-          setRows(bookings.map((booking, i) => ({ booking, payments: paymentsList[i] || [] })))
+        if (cancelled) return
+
+        const completed = bookings.filter(
+          (b) => String(b.status || '').toUpperCase() === 'COMPLETED',
+        )
+        const reviewed = new Set<number>()
+        if (completed.length > 0) {
+          const checks = await Promise.all(
+            completed.map(async (b) => {
+              try {
+                const fb = await fetchMyBookingVehicleFeedback(b.id)
+                return { id: b.id, hasFeedback: fb != null }
+              } catch {
+                return { id: b.id, hasFeedback: false }
+              }
+            }),
+          )
+          for (const c of checks) {
+            if (c.hasFeedback) reviewed.add(c.id)
+          }
         }
+        if (cancelled) return
+
+        setRows(bookings.map((booking, i) => ({ booking, payments: paymentsList[i] || [] })))
+        setReviewedBookingIds(reviewed)
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Không tải được lịch sử đơn.')
       } finally {
@@ -263,6 +294,15 @@ export default function UserOrderHistoryPage() {
                     <p className="uoh-booking-detail__sub">
                       {paymentMethodVi(payments)} · {adjustmentStatus(payments)}
                     </p>
+                    {String(booking.status || '').toUpperCase() === 'COMPLETED' ? (
+                      <button
+                        type="button"
+                        className={`uoh-review-btn${reviewedBookingIds.has(booking.id) ? ' uoh-review-btn--done' : ''}`}
+                        onClick={() => setReviewBooking(booking)}
+                      >
+                        {reviewedBookingIds.has(booking.id) ? 'Đã đánh giá' : 'Đánh giá xe'}
+                      </button>
+                    ) : null}
                   </div>
 
                   <div className="uoh-booking-extra">+{extraCount}</div>
@@ -281,6 +321,15 @@ export default function UserOrderHistoryPage() {
           </section>
         ) : null}
       </main>
+
+      <BookingReviewModal
+        open={reviewBooking != null}
+        booking={reviewBooking}
+        onClose={() => setReviewBooking(null)}
+        onSubmitted={(id) => {
+          setReviewedBookingIds((prev) => new Set(prev).add(id))
+        }}
+      />
     </div>
   )
 }

@@ -1,17 +1,22 @@
 package com.example.ungdunggoixe.controller;
 
 import com.example.ungdunggoixe.dto.request.AuthenticationRequest;
+import com.example.ungdunggoixe.dto.request.GoogleOAuthCodeRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.AuthenticationResponse;
+import com.example.ungdunggoixe.dto.response.GoogleOAuthPublicClientResponse;
 import com.example.ungdunggoixe.service.AuthenticationService;
 import com.example.ungdunggoixe.service.I18nService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -29,6 +34,9 @@ public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
     private final I18nService i18nService;
+
+    @Value("${oauth2.google.client-id:}")
+    private String oauth2GoogleClientId;
 
     private ResponseCookie buildRefreshCookie(String value, long maxAgeSeconds) {
         return ResponseCookie.from("refresh_token", value)
@@ -51,13 +59,40 @@ public class AuthenticationController {
             HttpServletResponse response) {
 
         var result = authenticationService.authenticate(request);
+        return buildLoginApiResponse(result, response, "response.auth.login.success");
+    }
+
+    @GetMapping("/google-oauth-client-id")
+    @Operation(
+            summary = "Lay Google OAuth Web Client ID (public)",
+            description = "Chi client ID (khong co secret). SPA dung khi khong cau hinh VITE_OAUTH_GOOGLE_ID; nguon la OAUTH_GOOGLE_ID / oauth2.google.client-id tren server.")
+    public ApiResponse<GoogleOAuthPublicClientResponse> googleOauthPublicClient() {
+        String id = oauth2GoogleClientId == null ? "" : oauth2GoogleClientId.trim();
+        return ApiResponse.<GoogleOAuthPublicClientResponse>builder()
+                .status("success")
+                .data(new GoogleOAuthPublicClientResponse(id))
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    @PostMapping("/google")
+    @Operation(summary = "Dang nhap Google", description = "Doi authorization code (redirect SPA) lay id_token Google, tim/tao user, cap JWT + refresh cookie.")
+    public ApiResponse<AuthenticationResponse> google(
+            @Valid @RequestBody GoogleOAuthCodeRequest body, HttpServletResponse response) {
+
+        var result = authenticationService.authenticateWithGoogle(body.code(), body.redirectUri());
+        return buildLoginApiResponse(result, response, "response.auth.google.success");
+    }
+
+    private ApiResponse<AuthenticationResponse> buildLoginApiResponse(
+            AuthenticationResponse result, HttpServletResponse response, String messageKey) {
         response.addHeader(
                 HttpHeaders.SET_COOKIE,
                 buildRefreshCookie(result.refreshToken(), REFRESH_MAX_AGE_SECONDS).toString());
 
         return ApiResponse.<AuthenticationResponse>builder()
                 .status("success")
-                .message(i18nService.getMessage("response.auth.login.success"))
+                .message(i18nService.getMessage(messageKey))
                 .data(AuthenticationResponse.builder()
                         .userId(result.userId())
                         .firstName(result.firstName())

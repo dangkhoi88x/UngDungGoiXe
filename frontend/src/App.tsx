@@ -1,6 +1,7 @@
 import StudioXLandingPage from './pages/studio-x-landing-page'
 import { useEffect, type ReactElement } from 'react'
 import AuthPage from './pages/AuthPage'
+import GoogleOAuthCallbackPage from './pages/GoogleOAuthCallbackPage'
 import CarRentalPage from './pages/CarRentalPage'
 import VehicleDetailPage from './pages/VehicleDetailPage'
 import VehicleBookingPage from './pages/VehicleBookingPage'
@@ -100,6 +101,7 @@ function App() {
     <Routes>
       <Route path="/" element={<StudioXLandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/google" element={<GoogleOAuthCallbackPage />} />
       <Route path="/logout" element={<LogoutRoute />} />
       <Route path="/account" element={<UserAccountPage />} />
       <Route path="/account/update" element={<UserAccountUpdatePage />} />

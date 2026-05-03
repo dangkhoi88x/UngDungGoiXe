@@ -6,6 +6,7 @@ import {
   type OwnerVehicleRequestHistoryItemDto,
   type OwnerVehicleRequestStatus,
 } from '../api/ownerVehicleRequests'
+import { OwnerVehicleRatingLive } from '../components/OwnerVehicleRatingSummary'
 import TopNav from '../components/TopNav'
 import './OwnerRegisterVehiclePage.css'
 import './OwnerVehicleRequestDetailPage.css'
@@ -183,6 +184,19 @@ export default function OwnerVehicleRequestDetailPage() {
                 </div>
               </div>
             </section>
+
+            {item.status === 'APPROVED' && item.approvedVehicleId != null ? (
+              <section className="owreg__section" aria-labelledby="owrd-rating-title">
+                <h2 id="owrd-rating-title" className="owreg__section-title">
+                  Đánh giá từ khách thuê
+                </h2>
+                <OwnerVehicleRatingLive vehicleId={item.approvedVehicleId} />
+                <p className="owrd-muted" style={{ marginTop: 8, fontSize: 13 }}>
+                  Điểm trung bình lấy từ các đánh giá sau chuyến hoàn tất. Bạn chỉ xem được trên trang thuê
+                  xe công khai — không chỉnh sửa nội dung của khách.
+                </p>
+              </section>
+            ) : null}
 
             <section className="owreg__section">
               <h2 className="owreg__section-title">Timeline xử lý</h2>

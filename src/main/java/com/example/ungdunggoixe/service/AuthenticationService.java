@@ -5,6 +5,7 @@ import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.TokenPayload;
 import com.example.ungdunggoixe.dto.request.AuthenticationRequest;
 import com.example.ungdunggoixe.dto.response.AuthenticationResponse;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.example.ungdunggoixe.entity.RefreshToken;
 import com.example.ungdunggoixe.entity.User;
 import com.example.ungdunggoixe.exception.AppException;
@@ -36,12 +37,33 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final TokenService tokenService;
+    private final GoogleOAuthService googleOAuthService;
+    private final UserService userService;
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         var authToken = new UsernamePasswordAuthenticationToken(request.email(), request.password());
         Authentication authentication = authenticationManager.authenticate(authToken);
         var user = (User) authentication.getPrincipal();
+        return issueSessionForUser(user);
+    }
 
+    public AuthenticationResponse authenticateWithGoogle(String code, String redirectUri) {
+        GoogleIdToken.Payload payload = googleOAuthService.verifyAuthorizationCode(code, redirectUri);
+        Boolean emailVerified = payload.getEmailVerified();
+        if (emailVerified == null || !emailVerified) {
+            throw new AppException(ErrorCode.GOOGLE_EMAIL_NOT_VERIFIED);
+        }
+        String email = payload.getEmail();
+        if (email == null || email.isBlank()) {
+            throw new AppException(ErrorCode.GOOGLE_ID_TOKEN_INVALID);
+        }
+        String given = (String) payload.get("given_name");
+        String family = (String) payload.get("family_name");
+        User user = userService.ensureUserForGoogleOAuth(email, given, family);
+        return issueSessionForUser(user);
+    }
+
+    private AuthenticationResponse issueSessionForUser(User user) {
         List<String> roles = user.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();

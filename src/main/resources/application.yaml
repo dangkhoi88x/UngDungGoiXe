@@ -53,6 +53,10 @@ momo:
 jwt:
   secret-key: ${JWT_SECRET}
   audience: ${JWT_AUDIENCE}
+oauth2:
+  google:
+    client-id: ${OAUTH_GOOGLE_ID:}
+    client-secret: ${OAUTH_GOOGLE_SECRET:}
 # Thư mục lưu ảnh GPLX (đường dẫn tương đối hoặc tuyệt đối)
 cloudinary:
   cloud-name: ${CLOUDINARY_NAME}

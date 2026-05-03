@@ -7,7 +7,9 @@ import {
   type OwnerVehicleRequestDto,
   type OwnerVehicleRequestStatus,
 } from '../api/ownerVehicleRequests'
+import { OwnerVehicleRatingSummary } from '../components/OwnerVehicleRatingSummary'
 import VehiclePhotoUpload from '../components/VehiclePhotoUpload'
+import { fetchVehicleById } from '../api/vehicles'
 import { useOwnerRequestStatusWatcher } from '../hooks/useOwnerRequestStatusWatcher'
 import TopNav from '../components/TopNav'
 import './OwnerRegisterVehiclePage.css'
@@ -77,6 +79,11 @@ export default function OwnerMyVehicleRequestsPage() {
   const [busyId, setBusyId] = useState<number | null>(null)
   const [statusFilter, setStatusFilter] = useState<OwnerVehicleRequestStatus | 'ALL'>('ALL')
   const [sortOrder, setSortOrder] = useState<'NEWEST' | 'OLDEST'>('NEWEST')
+  /** approvedVehicleId → điểm TB (batch sau khi load items). */
+  const [ratingByVehicleId, setRatingByVehicleId] = useState<
+    Record<number, number | null>
+  >({})
+  const [ratingsLoading, setRatingsLoading] = useState(false)
 
   useEffect(() => {
     if (!localStorage.getItem('accessToken')) {
@@ -106,6 +113,41 @@ export default function OwnerMyVehicleRequestsPage() {
   useEffect(() => {
     void load({ detectStatusChange: false })
   }, [load])
+
+  useEffect(() => {
+    const ids = [
+      ...new Set(
+        items
+          .filter((i) => i.status === 'APPROVED' && i.approvedVehicleId != null)
+          .map((i) => i.approvedVehicleId as number),
+      ),
+    ]
+    if (ids.length === 0) {
+      setRatingByVehicleId({})
+      setRatingsLoading(false)
+      return
+    }
+    let cancelled = false
+    setRatingsLoading(true)
+    void Promise.all(
+      ids.map(async (id) => {
+        try {
+          const v = await fetchVehicleById(id)
+          const r = v.rating != null && v.rating > 0 ? v.rating : null
+          return [id, r] as const
+        } catch {
+          return [id, null] as const
+        }
+      }),
+    ).then((pairs) => {
+      if (cancelled) return
+      setRatingByVehicleId(Object.fromEntries(pairs))
+      setRatingsLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [items])
 
   useOwnerRequestStatusWatcher({
     intervalMs: 45_000,
@@ -309,6 +351,11 @@ export default function OwnerMyVehicleRequestsPage() {
                   <div className="owmr-booking-links">
                     {r.status === 'APPROVED' && r.approvedVehicleId != null ? (
                       <>
+                        <OwnerVehicleRatingSummary
+                          vehicleId={r.approvedVehicleId}
+                          loading={ratingsLoading}
+                          rating={ratingByVehicleId[r.approvedVehicleId] ?? null}
+                        />
                         <a className="owmr-link" href={`/owner/vehicle-requests/${r.id}/bookings`}>
                           Lịch sử booking
                         </a>

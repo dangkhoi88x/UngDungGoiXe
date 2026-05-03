@@ -243,6 +243,41 @@ export async function fetchVehicleById(id: number): Promise<VehicleDto> {
   return vehicle
 }
 
+/** Đánh giá công khai trên trang chi tiết xe (không cần đăng nhập). */
+export type VehiclePublicFeedbackRowDto = {
+  id: number
+  vehicleRating: number | null
+  comment: string | null
+  photoUrls: string[] | null
+  createdAt: string | null
+  reviewerLabel: string | null
+}
+
+export type PagedVehiclePublicFeedbackDto = {
+  content: VehiclePublicFeedbackRowDto[]
+  totalElements: number
+  totalPages: number
+  page: number
+  size: number
+}
+
+export async function fetchVehiclePublicFeedbackPage(
+  vehicleId: number,
+  params: { page?: number; size?: number },
+): Promise<PagedVehiclePublicFeedbackDto> {
+  const q = new URLSearchParams()
+  q.set('page', String(params.page ?? 0))
+  q.set('size', String(params.size ?? 10))
+  const res = await fetch(`${API_BASE}/vehicles/${vehicleId}/feedback?${q}`)
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const body = (await res.json()) as unknown
+  const paged = unwrapApiData<PagedVehiclePublicFeedbackDto>(body)
+  if (!paged) throw new Error('Phản hồi danh sách đánh giá không hợp lệ.')
+  return paged
+}
+
 export function formatDailyPrice(v: VehicleDto): string {
   const d = parseNum(v.dailyRate)
   if (d == null || d <= 0) return 'Liên hệ'

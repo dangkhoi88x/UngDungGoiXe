@@ -6,12 +6,16 @@ import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.CreateVehicleResponse;
+import com.example.ungdunggoixe.dto.response.PagedVehiclePublicFeedbackResponse;
 import com.example.ungdunggoixe.dto.response.PagedVehicleResponse;
 import com.example.ungdunggoixe.service.I18nService;
+import com.example.ungdunggoixe.service.VehiclePublicFeedbackService;
 import com.example.ungdunggoixe.service.VehicleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,8 +27,11 @@ import java.util.List;
 @AllArgsConstructor
 @RequestMapping("/vehicles")
 public class VehicleController {
+    private static final int MAX_PUBLIC_FEEDBACK_PAGE_SIZE = 50;
+
     private final VehicleService vehicleService;
     private final I18nService i18nService;
+    private final VehiclePublicFeedbackService vehiclePublicFeedbackService;
 
     @PostMapping
     @Operation(summary = "Tao xe", description = "Tao moi thong tin xe trong he thong.")
@@ -94,6 +101,33 @@ public class VehicleController {
         return ApiResponse.<List<CreateVehicleResponse>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.vehicle.search.success"))
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    /**
+     * Đánh giá xe công khai (khách đã hoàn tất booking + gửi feedback). Không cần đăng nhập.
+     */
+    @GetMapping("/{id}/feedback")
+    @Operation(summary = "Danh gia cong khai theo xe", description = "Phan trang danh gia sau chuyen hoan tat — hien thi tren trang chi tiet xe.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lay danh gia thanh cong"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay xe")
+    })
+    public ApiResponse<PagedVehiclePublicFeedbackResponse> getPublicFeedbackForVehicle(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), MAX_PUBLIC_FEEDBACK_PAGE_SIZE);
+        var pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+        PagedVehiclePublicFeedbackResponse result =
+                vehiclePublicFeedbackService.listForVehicle(id, pageable);
+        return ApiResponse.<PagedVehiclePublicFeedbackResponse>builder()
+                .status("success")
+                .message(i18nService.getMessage("response.vehicle.public_feedback.success"))
                 .data(result)
                 .timestamp(Instant.now())
                 .build();

@@ -27,6 +27,7 @@ const AdminOwnerVehicleRequestsSection = lazy(
   () => import('./AdminOwnerVehicleRequestsSection'),
 )
 const AdminBlogPostsSection = lazy(() => import('./AdminBlogPostsSection'))
+const AdminBookingFeedbacksSection = lazy(() => import('./AdminBookingFeedbacksSection'))
 
 function AdminSectionFallback() {
   return (
@@ -42,6 +43,7 @@ type NavId =
   | 'vehicles'
   | 'stations'
   | 'bookings'
+  | 'bookingFeedbacks'
   | 'ownerRequests'
   | 'blog'
   | 'users'
@@ -56,6 +58,7 @@ const NAV_ITEMS: {
   { id: 'vehicles', label: 'Phương tiện', icon: '🚗' },
   { id: 'stations', label: 'Trạm & bãi', icon: '📍' },
   { id: 'bookings', label: 'Đặt xe', icon: '📋' },
+  { id: 'bookingFeedbacks', label: 'Đánh giá booking', icon: '⭐' },
   { id: 'ownerRequests', label: 'Yêu cầu owner', icon: '📝' },
   { id: 'blog', label: 'Blog', icon: '📰' },
   { id: 'users', label: 'Người dùng', icon: '👤' },
@@ -82,6 +85,10 @@ const PAGE_COPY: Record<
     title: 'Đặt xe',
     subtitle: 'Đơn đặt chờ xác nhận và lịch sử giao nhận.',
   },
+  bookingFeedbacks: {
+    title: 'Đánh giá booking',
+    subtitle: 'Phản hồi của khách sau các chuyến hoàn tất — sao, nhận xét và ảnh.',
+  },
   ownerRequests: {
     title: 'Yêu cầu xe owner',
     subtitle: 'Duyệt xe người dùng gửi lên hệ thống cho thuê.',
@@ -105,6 +112,7 @@ const NAV_TO_ROUTE: Record<NavId, string> = {
   vehicles: '/admin/vehicles',
   stations: '/admin/stations',
   bookings: '/admin/bookings',
+  bookingFeedbacks: '/admin/booking-feedbacks',
   ownerRequests: '/admin/owner-vehicle-requests',
   blog: '/admin/blog',
   users: '/admin/users',
@@ -115,6 +123,7 @@ function navFromPath(pathname: string): NavId {
   if (pathname === '/admin' || pathname === '/admin/') return 'home'
   if (pathname.startsWith('/admin/vehicles')) return 'vehicles'
   if (pathname.startsWith('/admin/stations')) return 'stations'
+  if (pathname.startsWith('/admin/booking-feedbacks')) return 'bookingFeedbacks'
   if (pathname.startsWith('/admin/bookings')) return 'bookings'
   if (pathname.startsWith('/admin/owner-vehicle-requests')) return 'ownerRequests'
   if (pathname.startsWith('/admin/blog')) return 'blog'
@@ -279,6 +288,7 @@ export default function AdminDashboardPage() {
   const [bookingRefreshKey, setBookingRefreshKey] = useState(0)
   const [ownerRequestRefreshKey, setOwnerRequestRefreshKey] = useState(0)
   const [blogRefreshKey, setBlogRefreshKey] = useState(0)
+  const [bookingFeedbackRefreshKey, setBookingFeedbackRefreshKey] = useState(0)
   const [pendingOwnerRequestsCount, setPendingOwnerRequestsCount] = useState(0)
   const [overviewStats, setOverviewStats] = useState<AdminOverviewStatsDto | null>(null)
   const [chartData, setChartData] = useState<AdminDashboardChartsDto | null>(null)
@@ -289,6 +299,7 @@ export default function AdminDashboardPage() {
     activeNav !== 'stations' &&
     activeNav !== 'users' &&
     activeNav !== 'bookings' &&
+    activeNav !== 'bookingFeedbacks' &&
     activeNav !== 'ownerRequests' &&
     activeNav !== 'blog'
 
@@ -398,6 +409,9 @@ export default function AdminDashboardPage() {
         break
       case 'bookings':
         setBookingRefreshKey((k) => k + 1)
+        break
+      case 'bookingFeedbacks':
+        setBookingFeedbackRefreshKey((k) => k + 1)
         break
       case 'ownerRequests':
         setOwnerRequestRefreshKey((k) => k + 1)
@@ -512,7 +526,7 @@ export default function AdminDashboardPage() {
         </header>
 
         <main
-          className={`adm-content${activeNav === 'users' ? ' adm-content--users' : ''}${activeNav === 'bookings' ? ' adm-content--bookings' : ''}`}
+          className={`adm-content${activeNav === 'users' ? ' adm-content--users' : ''}${activeNav === 'bookings' || activeNav === 'bookingFeedbacks' ? ' adm-content--bookings' : ''}`}
           id="admin-main"
         >
           {activeNav === 'vehicles' ? (
@@ -536,6 +550,12 @@ export default function AdminDashboardPage() {
           {activeNav === 'bookings' ? (
             <Suspense fallback={<AdminSectionFallback />}>
               <AdminBookingsSection refreshKey={bookingRefreshKey} />
+            </Suspense>
+          ) : null}
+
+          {activeNav === 'bookingFeedbacks' ? (
+            <Suspense fallback={<AdminSectionFallback />}>
+              <AdminBookingFeedbacksSection refreshKey={bookingFeedbackRefreshKey} />
             </Suspense>
           ) : null}
 
