@@ -188,8 +188,9 @@ sequenceDiagram
 
 | File | Nội dung |
 |------|-----------|
+| [`introduce-dev.md`](./introduce-dev.md) | **Onboarding developer:** luồng code, class chính, env, lệnh chạy — giới thiệu với dev khác. |
 | [`plan.md`](./plan.md) | Stack, route FE, quy tắc API ngắn. |
-| [`architecture.md`](./architecture.md) | Sơ đồ C4, JWT, Google OAuth, Cloudinary, MoMo, feedback — **cho đội kỹ thuật**. |
+| [`architecture.md`](./architecture.md) | Sơ đồ C4, JWT, Google OAuth, Cloudinary, MoMo, feedback — **chi tiết kiến trúc**. |
 | [`plan2.md`](./plan2.md) | Roadmap / việc tiếp theo. |
 
 *Bản `introduce.md` này có thể chỉnh sửa trực tiếp cho slide hoặc kịch bản nói — giữ link tới tài liệu sâu khi khách hàng cần due diligence kỹ thuật.*
