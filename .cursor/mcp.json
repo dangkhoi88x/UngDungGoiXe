@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "findskills": {
-      "command": "npx",
-      "args": ["-y", "findskills-mcp"]
-    }
-  }
-}
