@@ -449,7 +449,7 @@ export default function AdminDashboardPage() {
           <span className="adm-sidebar__logo" aria-hidden>
             GX
           </span>
-          <span className="adm-sidebar__name">GỌI XE ADMIN</span>
+          <span className="adm-sidebar__name">Thuê xe - Admin Dashboard</span>
         </a>
 
         <nav aria-label="Điều hướng chính">

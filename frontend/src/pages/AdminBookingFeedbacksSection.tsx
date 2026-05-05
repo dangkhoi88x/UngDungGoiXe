@@ -24,7 +24,12 @@ function truncate(s: string | null | undefined, max: number): string {
 
 export default function AdminBookingFeedbacksSection({ refreshKey = 0 }: Props) {
   const [page, setPage] = useState(0)
-  const [size] = useState(15)
+  const [size, setSize] = useState(15)
+  const [keyword, setKeyword] = useState('')
+  const [minRating, setMinRating] = useState<number | ''>('')
+  const [hasPhotos, setHasPhotos] = useState<boolean | ''>('')
+  const [sortBy, setSortBy] = useState<'createdAt' | 'vehicleRating' | 'id'>('createdAt')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [data, setData] = useState<PagedAdminBookingFeedbackDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +41,15 @@ export default function AdminBookingFeedbacksSection({ refreshKey = 0 }: Props) 
     setError(null)
     setLoading(true)
     try {
-      const res = await fetchAdminBookingFeedbacksPage({ page, size })
+      const res = await fetchAdminBookingFeedbacksPage({
+        page,
+        size,
+        sortBy,
+        sortDir,
+        keyword,
+        minRating: typeof minRating === 'number' ? minRating : undefined,
+        hasPhotos,
+      })
       setData(res)
       if (res.totalPages > 0 && page >= res.totalPages) {
         setPage(Math.max(0, res.totalPages - 1))
@@ -47,7 +60,11 @@ export default function AdminBookingFeedbacksSection({ refreshKey = 0 }: Props) 
     } finally {
       setLoading(false)
     }
-  }, [page, size])
+  }, [page, size, sortBy, sortDir, keyword, minRating, hasPhotos])
+
+  useEffect(() => {
+    setPage(0)
+  }, [size, sortBy, sortDir, keyword, minRating, hasPhotos])
 
   useEffect(() => {
     void load()
@@ -66,6 +83,94 @@ export default function AdminBookingFeedbacksSection({ refreshKey = 0 }: Props) 
             Phản hồi của khách sau booking hoàn tất — điểm sao, nhận xét và ảnh đính kèm.
           </p>
         </div>
+      </div>
+      <div className="adm-users__filters" aria-label="Bộ lọc đánh giá">
+        <div className="adm-users__search-field">
+          <label className="adm-users__filter-label" htmlFor="abf-keyword">
+            Từ khóa
+          </label>
+          <input
+            id="abf-keyword"
+            type="search"
+            className="adm-users__search-input"
+            placeholder="Mã đơn, email, tên khách, tên xe, nhận xét…"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="adm-users__filter-label" htmlFor="abf-min-rating">
+            Điểm tối thiểu
+          </label>
+          <select
+            id="abf-min-rating"
+            value={minRating === '' ? '' : String(minRating)}
+            onChange={(e) => {
+              const v = e.target.value
+              setMinRating(v === '' ? '' : Number(v))
+            }}
+          >
+            <option value="">Tất cả</option>
+            <option value="1">Từ 1 sao</option>
+            <option value="2">Từ 2 sao</option>
+            <option value="3">Từ 3 sao</option>
+            <option value="4">Từ 4 sao</option>
+            <option value="5">5 sao</option>
+          </select>
+        </div>
+        <div>
+          <label className="adm-users__filter-label" htmlFor="abf-has-photos">
+            Ảnh đính kèm
+          </label>
+          <select
+            id="abf-has-photos"
+            value={hasPhotos === '' ? '' : hasPhotos ? 'yes' : 'no'}
+            onChange={(e) => {
+              const v = e.target.value
+              setHasPhotos(v === '' ? '' : v === 'yes')
+            }}
+          >
+            <option value="">Tất cả</option>
+            <option value="yes">Có ảnh</option>
+            <option value="no">Không ảnh</option>
+          </select>
+        </div>
+        <div>
+          <label className="adm-users__filter-label" htmlFor="abf-sort-by">
+            Sắp xếp theo
+          </label>
+          <select
+            id="abf-sort-by"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'createdAt' | 'vehicleRating' | 'id')}
+          >
+            <option value="createdAt">Thời gian</option>
+            <option value="vehicleRating">Điểm sao</option>
+            <option value="id">ID feedback</option>
+          </select>
+        </div>
+        <div>
+          <label className="adm-users__filter-label" htmlFor="abf-sort-dir">
+            Thứ tự
+          </label>
+          <select
+            id="abf-sort-dir"
+            value={sortDir}
+            onChange={(e) => setSortDir(e.target.value as 'asc' | 'desc')}
+          >
+            <option value="desc">Giảm dần</option>
+            <option value="asc">Tăng dần</option>
+          </select>
+        </div>
+        <label>
+          <span className="adm-users__filter-label">/ trang</span>
+          <select value={size} onChange={(e) => setSize(Number(e.target.value))}>
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </label>
       </div>
 
       {error ? (

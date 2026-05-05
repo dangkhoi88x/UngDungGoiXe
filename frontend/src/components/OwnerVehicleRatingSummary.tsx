@@ -11,20 +11,13 @@ type Props = {
 /** Owner xem điểm TB và link sang trang xe — chỉ đọc đánh giá khách (anchor `#vd-feedback-title`). */
 export function OwnerVehicleRatingSummary({ vehicleId, loading = false, rating }: Props) {
   const href = `/rent/${vehicleId}#vd-feedback-title`
-
-  if (loading) {
-    return (
-      <div className="owmr-rating-summary">
-        <p className="owmr-muted">Đang tải điểm đánh giá…</p>
-      </div>
-    )
-  }
-
   const hasRating = rating != null && rating > 0
 
   return (
     <div className="owmr-rating-summary">
-      {hasRating ? (
+      {loading ? (
+        <p className="owmr-muted">Đang tải điểm đánh giá…</p>
+      ) : hasRating ? (
         <p className="owmr-rating-summary__score">
           ⭐ Trung bình: <strong>{rating.toFixed(1)}</strong> / 5{' '}
           <span className="owmr-muted">(từ khách sau chuyến)</span>

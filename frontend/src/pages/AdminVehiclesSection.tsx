@@ -21,6 +21,7 @@ import {
   vehicleDisplayName,
 } from '../api/vehicles'
 import { fetchStations, stationLabel, type StationDto } from '../api/stations'
+import { uploadOwnerVehiclePhotoWithProgress } from '../api/uploads'
 import './AdminVehiclesSection.css'
 
 const STATUSES = [
@@ -32,6 +33,20 @@ const STATUSES = [
 ] as const
 
 const FUELS = ['GASOLINE', 'ELECTRICITY', 'DIESEL'] as const
+const POLICY_OPTIONS = [
+  { value: 'NO_SMOKING', label: 'Không hút thuốc trong xe' },
+  { value: 'LATE_RETURN_SURCHARGE', label: 'Trả xe trễ sẽ bị tính phụ phí theo giờ/ngày' },
+  {
+    value: 'EXTENSION_REQUIRES_APPROVAL',
+    label: 'Muốn gia hạn phải thông báo trước và được bên cho thuê đồng ý',
+  },
+  { value: 'NO_SUBLEASING', label: 'Không cho người khác thuê lại nếu chưa được phép' },
+  { value: 'PET_POLICY', label: 'Quy định về thú cưng' },
+  { value: 'HOME_DELIVERY_SURCHARGE', label: 'Phụ phí giao xe tận nơi' },
+  { value: 'FREE_CANCELLATION_FEE', label: 'Miễn phí phí hủy đặt xe' },
+  { value: 'DEPOSIT_FORFEIT_CANCELLATION_FEE', label: 'Mất cọc phí hủy đặt xe' },
+  { value: 'ADDITIONAL_DRIVER_FEE', label: 'Tính phí người lái phụ' },
+] as const
 
 const VEHICLE_SORT_OPTIONS = [
   { value: 'id', label: 'ID' },
@@ -58,11 +73,18 @@ type FormState = {
   capacity: string
   rentCount: string
   photosText: string
-  policiesText: string
+  policies: string[]
   status: string
   hourlyRate: string
   dailyRate: string
   depositAmount: string
+}
+
+type PhotoUploadItem = {
+  id: string
+  name: string
+  progress: number
+  status: 'uploading' | 'done' | 'error'
 }
 
 function emptyForm(stationIdDefault: string): FormState {
@@ -76,7 +98,7 @@ function emptyForm(stationIdDefault: string): FormState {
     capacity: '5',
     rentCount: '0',
     photosText: '',
-    policiesText: '',
+    policies: [],
     status: 'AVAILABLE',
     hourlyRate: '',
     dailyRate: '',
@@ -95,7 +117,7 @@ function vehicleToForm(v: VehicleDto): FormState {
     capacity: v.capacity != null ? String(v.capacity) : '',
     rentCount: v.rentCount != null ? String(v.rentCount) : '0',
     photosText: (v.photos ?? []).join('\n'),
-    policiesText: (v.policies ?? []).join('\n'),
+    policies: [...(v.policies ?? [])],
     status: v.status || 'AVAILABLE',
     hourlyRate:
       v.hourlyRate != null && v.hourlyRate !== ''
@@ -128,7 +150,7 @@ function formToPayload(f: FormState): VehicleWritePayload {
   const stationId = Number(f.stationId)
   const licensePlate = f.licensePlate.trim()
   const photos = linesToList(f.photosText)
-  const policies = linesToList(f.policiesText)
+  const policies = f.policies.map((s) => s.trim()).filter(Boolean)
   const rating = parseNumInput(f.rating)
   const capacity = parseNumInput(f.capacity)
   const rentCount = parseNumInput(f.rentCount)
@@ -253,6 +275,9 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState<FormState>(() => emptyForm(''))
   const [saving, setSaving] = useState(false)
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+  const [uploadErr, setUploadErr] = useState<string | null>(null)
+  const [photoUploads, setPhotoUploads] = useState<PhotoUploadItem[]>([])
 
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -366,6 +391,8 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
 
   const openCreate = () => {
     setToast(null)
+    setUploadErr(null)
+    setPhotoUploads([])
     setForm(emptyForm(firstStationId))
     setEditingId(null)
     setModal('create')
@@ -373,16 +400,63 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
 
   const openEdit = (v: VehicleDto) => {
     setToast(null)
+    setUploadErr(null)
+    setPhotoUploads([])
     setForm(vehicleToForm(v))
     setEditingId(v.id)
     setModal('edit')
   }
 
   const closeModal = () => {
-    if (saving) return
+    if (saving || uploadingPhotos) return
     setModal(null)
     setEditingId(null)
   }
+
+  const photoUrls = useMemo(() => linesToList(form.photosText), [form.photosText])
+  const selectedPolicySet = useMemo(() => new Set(form.policies), [form.policies])
+
+  const onUploadPhotos = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    setUploadErr(null)
+    setPhotoUploads([])
+    setUploadingPhotos(true)
+    try {
+      for (const file of Array.from(files)) {
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        setPhotoUploads((prev) => [
+          ...prev,
+          { id, name: file.name, progress: 0, status: 'uploading' },
+        ])
+        try {
+          const url = await uploadOwnerVehiclePhotoWithProgress(file, (percent) => {
+            setPhotoUploads((prev) =>
+              prev.map((it) => (it.id === id ? { ...it, progress: percent } : it)),
+            )
+          })
+          setPhotoUploads((prev) =>
+            prev.map((it) =>
+              it.id === id ? { ...it, progress: 100, status: 'done' } : it,
+            ),
+          )
+          setForm((prev) => {
+            const current = linesToList(prev.photosText)
+            if (current.includes(url)) return prev
+            return { ...prev, photosText: [...current, url].join('\n') }
+          })
+        } catch (e) {
+          setPhotoUploads((prev) =>
+            prev.map((it) => (it.id === id ? { ...it, status: 'error' } : it)),
+          )
+          throw e
+        }
+      }
+    } catch (e) {
+      setUploadErr(e instanceof Error ? e.message : 'Upload ảnh xe thất bại.')
+    } finally {
+      setUploadingPhotos(false)
+    }
+  }, [])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -734,7 +808,7 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
           onClick={(ev) => ev.target === ev.currentTarget && closeModal()}
         >
           <div
-            className="adm-veh__modal"
+            className="adm-veh__modal adm-veh__modal--vehicle-form"
             role="dialog"
             aria-modal="true"
             aria-labelledby="adm-veh-modal-title"
@@ -752,189 +826,245 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
                 ×
               </button>
             </div>
-            <form className="adm-veh__form" onSubmit={onSubmit}>
+            <form className="adm-veh__form adm-veh__form--vehicle" onSubmit={onSubmit}>
               {toast ? (
                 <p className="adm-veh__msg adm-veh__msg--err" role="alert">
                   {toast}
                 </p>
               ) : null}
+              <div className="adm-veh__form-columns">
+                <div className="adm-veh__form-col">
+                  <div className="adm-veh__field">
+                    <label htmlFor="veh-station">Trạm / bãi *</label>
+                    <select
+                      id="veh-station"
+                      value={form.stationId}
+                      onChange={(e) =>
+                        setForm((s) => ({ ...s, stationId: e.target.value }))
+                      }
+                      required
+                    >
+                      {stations.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {stationLabel(s)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="adm-veh__field">
-                <label htmlFor="veh-station">Trạm / bãi *</label>
-                <select
-                  id="veh-station"
-                  value={form.stationId}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, stationId: e.target.value }))
-                  }
-                  required
-                >
-                  {stations.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {stationLabel(s)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div className="adm-veh__form-row2">
+                    <div className="adm-veh__field">
+                      <label htmlFor="veh-plate">Biển số *</label>
+                      <input
+                        id="veh-plate"
+                        value={form.licensePlate}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, licensePlate: e.target.value }))
+                        }
+                        required
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="adm-veh__field">
+                      <label htmlFor="veh-status">Trạng thái</label>
+                      <select
+                        id="veh-status"
+                        value={form.status}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, status: e.target.value }))
+                        }
+                      >
+                        {STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {statusLabel(s)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-              <div className="adm-veh__form-row2">
-                <div className="adm-veh__field">
-                  <label htmlFor="veh-plate">Biển số *</label>
-                  <input
-                    id="veh-plate"
-                    value={form.licensePlate}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, licensePlate: e.target.value }))
-                    }
-                    required
-                    autoComplete="off"
-                  />
-                </div>
-                <div className="adm-veh__field">
-                  <label htmlFor="veh-status">Trạng thái</label>
-                  <select
-                    id="veh-status"
-                    value={form.status}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, status: e.target.value }))
-                    }
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {statusLabel(s)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                  <div className="adm-veh__form-row2">
+                    <div className="adm-veh__field">
+                      <label htmlFor="veh-brand">Hãng</label>
+                      <input
+                        id="veh-brand"
+                        value={form.brand}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, brand: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="adm-veh__field">
+                      <label htmlFor="veh-name">Tên / dòng xe</label>
+                      <input
+                        id="veh-name"
+                        value={form.name}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, name: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
 
-              <div className="adm-veh__form-row2">
-                <div className="adm-veh__field">
-                  <label htmlFor="veh-brand">Hãng</label>
-                  <input
-                    id="veh-brand"
-                    value={form.brand}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, brand: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="adm-veh__field">
-                  <label htmlFor="veh-name">Tên / dòng xe</label>
-                  <input
-                    id="veh-name"
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, name: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
+                  <div className="adm-veh__form-row2">
+                    <div className="adm-veh__field">
+                      <label htmlFor="veh-fuel">Nhiên liệu</label>
+                      <select
+                        id="veh-fuel"
+                        value={form.fuelType}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, fuelType: e.target.value }))
+                        }
+                      >
+                        {FUELS.map((f) => (
+                          <option key={f} value={f}>
+                            {fuelLabel(f)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="adm-veh__field">
+                      <label htmlFor="veh-cap">Số chỗ</label>
+                      <input
+                        id="veh-cap"
+                        type="number"
+                        min={1}
+                        value={form.capacity}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, capacity: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
 
-              <div className="adm-veh__form-row2">
-                <div className="adm-veh__field">
-                  <label htmlFor="veh-fuel">Nhiên liệu</label>
-                  <select
-                    id="veh-fuel"
-                    value={form.fuelType}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, fuelType: e.target.value }))
-                    }
-                  >
-                    {FUELS.map((f) => (
-                      <option key={f} value={f}>
-                        {fuelLabel(f)}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="adm-veh__form-row2">
+                    <div className="adm-veh__field">
+                      <label htmlFor="veh-rate">Đánh giá (0–5)</label>
+                      <input
+                        id="veh-rate"
+                        type="number"
+                        step="0.1"
+                        min={0}
+                        value={form.rating}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, rating: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="adm-veh__field">
+                      <label htmlFor="veh-rent-count">Lượt thuê</label>
+                      <input
+                        id="veh-rent-count"
+                        type="number"
+                        min={0}
+                        value={form.rentCount}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, rentCount: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="adm-veh__field">
-                  <label htmlFor="veh-cap">Số chỗ</label>
-                  <input
-                    id="veh-cap"
-                    type="number"
-                    min={1}
-                    value={form.capacity}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, capacity: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
 
-              <div className="adm-veh__form-row2">
-                <div className="adm-veh__field">
-                  <label htmlFor="veh-rate">Đánh giá (0–5)</label>
-                  <input
-                    id="veh-rate"
-                    type="number"
-                    step="0.1"
-                    min={0}
-                    value={form.rating}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, rating: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="adm-veh__field">
-                  <label htmlFor="veh-rent-count">Lượt thuê</label>
-                  <input
-                    id="veh-rent-count"
-                    type="number"
-                    min={0}
-                    value={form.rentCount}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, rentCount: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
+                <div className="adm-veh__form-col">
+                  <div className="adm-veh__form-row2">
+                    <div className="adm-veh__field">
+                      <label htmlFor="veh-hourly">Giá theo giờ (₫)</label>
+                      <input
+                        id="veh-hourly"
+                        type="number"
+                        min={0}
+                        step="1000"
+                        value={form.hourlyRate}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, hourlyRate: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="adm-veh__field">
+                      <label htmlFor="veh-daily">Giá theo ngày (₫)</label>
+                      <input
+                        id="veh-daily"
+                        type="number"
+                        min={0}
+                        step="1000"
+                        value={form.dailyRate}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, dailyRate: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
 
-              <div className="adm-veh__form-row2">
-                <div className="adm-veh__field">
-                  <label htmlFor="veh-hourly">Giá theo giờ (₫)</label>
-                  <input
-                    id="veh-hourly"
-                    type="number"
-                    min={0}
-                    step="1000"
-                    value={form.hourlyRate}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, hourlyRate: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="adm-veh__field">
-                  <label htmlFor="veh-daily">Giá theo ngày (₫)</label>
-                  <input
-                    id="veh-daily"
-                    type="number"
-                    min={0}
-                    step="1000"
-                    value={form.dailyRate}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, dailyRate: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
+                  <div className="adm-veh__field">
+                    <label htmlFor="veh-deposit">Tiền cọc (₫)</label>
+                    <input
+                      id="veh-deposit"
+                      type="number"
+                      min={0}
+                      step="1000"
+                      value={form.depositAmount}
+                      onChange={(e) =>
+                        setForm((s) => ({ ...s, depositAmount: e.target.value }))
+                      }
+                    />
+                  </div>
 
-              <div className="adm-veh__field">
-                <label htmlFor="veh-deposit">Tiền cọc (₫)</label>
+                  <div className="adm-veh__field">
+                <label htmlFor="veh-photo-file">Ảnh xe</label>
+                <p className="adm-veh__photo-upload-hint">
+                  Dán tối thiểu <strong>3 URL ảnh</strong>, mỗi dòng một URL. Ảnh nên là JPG/PNG công
+                  khai (CDN, cloud…).
+                </p>
+                <p className="adm-veh__photo-upload-hint">
+                  Hiện có: <strong>{photoUrls.length}</strong> URL
+                  {photoUrls.length < 3
+                    ? ` — cần thêm ít nhất ${3 - photoUrls.length} URL nữa.`
+                    : ' — đủ điều kiện.'}
+                </p>
                 <input
-                  id="veh-deposit"
-                  type="number"
-                  min={0}
-                  step="1000"
-                  value={form.depositAmount}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, depositAmount: e.target.value }))
-                  }
+                  id="veh-photo-file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={(e) => void onUploadPhotos(e.currentTarget.files)}
+                  disabled={uploadingPhotos || saving}
                 />
-              </div>
+                <p className="adm-veh__photo-upload-hint">
+                  {uploadingPhotos
+                    ? 'Đang upload ảnh xe...'
+                    : 'Chọn nhiều ảnh để upload, URL sẽ tự thêm vào danh sách bên dưới.'}
+                </p>
+                {photoUploads.length > 0 ? (
+                  <div className="adm-veh__upload-list" role="status" aria-live="polite">
+                    {photoUploads.map((it) => (
+                      <div key={it.id} className="adm-veh__upload-item">
+                        <div className="adm-veh__upload-head">
+                          <span className="adm-veh__upload-name">{it.name}</span>
+                          <span className="adm-veh__upload-meta">
+                            {it.status === 'error'
+                              ? 'Lỗi'
+                              : it.status === 'done'
+                                ? 'Hoàn tất'
+                                : `${it.progress}%`}
+                          </span>
+                        </div>
+                        <div className="adm-veh__upload-bar">
+                          <span style={{ width: `${it.progress}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {uploadErr ? (
+                  <p className="adm-veh__msg adm-veh__msg--err" role="alert">
+                    {uploadErr}
+                  </p>
+                ) : null}
 
-              <div className="adm-veh__field">
-                <label htmlFor="veh-photos">Ảnh (URL, mỗi dòng một link)</label>
+                <label htmlFor="veh-photos" style={{ marginTop: 10, display: 'block' }}>
+                  Danh sách URL ảnh
+                </label>
                 <textarea
                   id="veh-photos"
                   value={form.photosText}
@@ -942,26 +1072,27 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
                     setForm((s) => ({ ...s, photosText: e.target.value }))
                   }
                 />
+                <p className="adm-veh__photo-upload-hint">
+                  URL ảnh được hệ thống lưu tự động sau khi upload; không cần nhập tay.
+                </p>
                 {modal === 'edit' && editingId != null ? (
-                  <VehiclePhotoUpload
-                    variant="admin"
-                    vehicleId={editingId}
-                    onVehicleRefreshed={(v) => {
-                      setForm(vehicleToForm(v))
-                      void reload()
-                    }}
-                  />
-                ) : (
-                  <p className="adm-veh__photo-upload-hint">
-                    Lưu xe trước, sau đó mở <strong>Sửa</strong> để tải ảnh lên Cloudinary.
-                  </p>
-                )}
-                {linesToList(form.photosText).length > 0 ? (
+                  <div style={{ marginTop: 10 }}>
+                    <VehiclePhotoUpload
+                      variant="admin"
+                      vehicleId={editingId}
+                      onVehicleRefreshed={(v) => {
+                        setForm(vehicleToForm(v))
+                        void reload()
+                      }}
+                    />
+                  </div>
+                ) : null}
+                {photoUrls.length > 0 ? (
                   <div
                     className="adm-veh__photo-preview-grid"
                     aria-label="Xem trước ảnh"
                   >
-                    {linesToList(form.photosText).map((url) => (
+                    {photoUrls.map((url) => (
                       <img
                         key={url}
                         src={url}
@@ -974,15 +1105,31 @@ export default function AdminVehiclesSection({ refreshKey = 0 }: Props) {
                 ) : null}
               </div>
 
-              <div className="adm-veh__field">
-                <label htmlFor="veh-policies">Chính sách (mỗi dòng một mục)</label>
-                <textarea
-                  id="veh-policies"
-                  value={form.policiesText}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, policiesText: e.target.value }))
-                  }
-                />
+                  <div className="adm-veh__field">
+                    <label>Chính sách</label>
+                    <div className="adm-veh__policy-list" role="group" aria-label="Danh sách điều khoản">
+                      {POLICY_OPTIONS.map((option) => (
+                        <label key={option.value} className="adm-veh__policy-item">
+                          <input
+                            type="checkbox"
+                            checked={selectedPolicySet.has(option.value)}
+                            onChange={(e) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                policies: e.target.checked
+                                  ? prev.policies.includes(option.value)
+                                    ? prev.policies
+                                    : [...prev.policies, option.value]
+                                  : prev.policies.filter((p) => p !== option.value),
+                              }))
+                            }
+                          />
+                          <span>{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="adm-veh__form-actions">
