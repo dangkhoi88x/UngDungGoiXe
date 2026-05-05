@@ -970,51 +970,51 @@ function FooterSection() {
         <div className="sx-footer__brand">
           <span className="sx-footer__logo">GX</span>
           <p>
-            Ứng dụng gọi / cho thuê xe — kết nối chủ xe và người thuê, nhận trả xe
+            Trung tâm cho thuê xe — kết nối chủ xe và người thuê, nhận trả xe
             tại bãi, nền tảng thu phí dịch vụ.
           </p>
-          <a className="sx-footer__primary-cta sx-footer__primary-cta--link" href="/auth">
-            Đăng ký / Đăng nhập
+          <a className="sx-footer__primary-cta sx-footer__primary-cta--link" href="/rent">
+            Khám phá xe
           </a>
         </div>
         <div className="sx-footer__cols">
-          <div>
-            <h3 className="sx-footer__col-title">Trang</h3>
-            <ul>
-              <li>
-                <a href="#solutions">Vai trò</a>
-              </li>
-              <li>
-                <a href="#projects">Tính năng</a>
-              </li>
-              <li>
-                <a href="/rent">Xe sẵn sàng cho thuê</a>
-              </li>
-              <li>
-                <a href="/admin">Quản trị (demo UI)</a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="sx-footer__col-title">Thêm</h3>
-            <ul>
-              <li>
-                <a href="#insights">Bài viết</a>
-              </li>
-            </ul>
-          </div>
+          {/*<div>*/}
+          {/*  <h3 className="sx-footer__col-title">Trang</h3>*/}
+          {/*  <ul>*/}
+          {/*    <li>*/}
+          {/*      <a href="#solutions">Vai trò</a>*/}
+          {/*    </li>*/}
+          {/*    <li>*/}
+          {/*      <a href="#projects">Tính năng</a>*/}
+          {/*    </li>*/}
+          {/*    <li>*/}
+          {/*      <a href="/rent">Xe sẵn sàng cho thuê</a>*/}
+          {/*    </li>*/}
+          {/*    <li>*/}
+          {/*      <a href="/admin">Quản trị (demo UI)</a>*/}
+          {/*    </li>*/}
+          {/*  </ul>*/}
+          {/*</div>*/}
+          {/*<div>*/}
+          {/*  <h3 className="sx-footer__col-title">Thêm</h3>*/}
+          {/*  <ul>*/}
+          {/*    <li>*/}
+          {/*      <a href="#insights">Bài viết</a>*/}
+          {/*    </li>*/}
+          {/*  </ul>*/}
+          {/*</div>*/}
           <div>
             <h3 className="sx-footer__col-title">Liên hệ (demo)</h3>
             <ul>
-              <li>support@ungdunggoixe.local</li>
-              <li>+84 (demo)</li>
+              <li>dangkhoi88x@gmail.com</li>
+              <li>+84 939093231</li>
               <li>Việt Nam</li>
             </ul>
           </div>
         </div>
       </div>
       <div className="sx-footer__bottom">
-        <span>© {new Date().getFullYear()} Đồ án — Ứng dụng gọi xe / cho thuê xe</span>
+        <span>© {new Date().getFullYear()}  Ứng dụng  cho thuê xe</span>
         <span>Chính sách · Điều khoản</span>
       </div>
     </footer>
