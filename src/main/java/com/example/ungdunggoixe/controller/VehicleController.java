@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,7 +41,7 @@ public class VehicleController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Du lieu xe khong hop le"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Bien so xe da ton tai")
     })
-    public ApiResponse<CreateVehicleResponse> create(@RequestBody CreateVehicleRequest request) {
+    public ApiResponse<CreateVehicleResponse> create(@Valid @RequestBody CreateVehicleRequest request) {
         CreateVehicleResponse result = vehicleService.create(request);
 
         return ApiResponse.<CreateVehicleResponse>builder()
@@ -156,7 +157,7 @@ public class VehicleController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay xe"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Bien so xe bi trung")
     })
-    public ApiResponse<CreateVehicleResponse> update(@PathVariable Long id, @RequestBody UpdateVehicleRequest request) {
+    public ApiResponse<CreateVehicleResponse> update(@PathVariable Long id, @Valid @RequestBody UpdateVehicleRequest request) {
         CreateVehicleResponse result = vehicleService.updateVehicle(id, request);
         return ApiResponse.<CreateVehicleResponse>builder()
                 .status("success")

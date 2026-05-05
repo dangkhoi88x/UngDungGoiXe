@@ -9,7 +9,8 @@ import {
   fromDateTimeLocalValue,
 } from '../api/bookings'
 import LicenseRequiredModal from '../components/LicenseRequiredModal'
-import { fetchMyInfo, isLicenseApprovedForRent, type UserProfileDto } from '../api/users'
+import { isLicenseApprovedForRent, type UserProfileDto } from '../api/users'
+import { useAuth } from '../contexts/AuthContext'
 import { fetchStationById, stationLabel, type StationDto } from '../api/stations'
 import {
   fetchVehicleById,
@@ -55,11 +56,13 @@ type Props = { vehicleId: number }
 
 export default function VehicleBookingPage({ vehicleId }: Props) {
   const navigate = useNavigate()
-  const authed = Boolean(localStorage.getItem('accessToken'))
+  const { user: ctxUser, isLoggedIn } = useAuth()
+  const authed = isLoggedIn || Boolean(localStorage.getItem('accessToken'))
 
   const [vehicle, setVehicle] = useState<VehicleDto | null>(null)
   const [station, setStation] = useState<StationDto | null>(null)
-  const [profile, setProfile] = useState<UserProfileDto | null>(null)
+  // profile: lấy từ context, không cần fetch riêng
+  const profile = ctxUser as UserProfileDto | null
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -90,9 +93,9 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
     try {
       const v = await fetchVehicleById(vehicleId)
       setVehicle(v)
-      const [st, me] = await Promise.all([fetchStationById(v.stationId), fetchMyInfo()])
+      // Chỉ fetch station — user profile lấy từ context, không cần API call thêm
+      const st = await fetchStationById(v.stationId)
       setStation(st)
-      setProfile(me)
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : 'Không tải được dữ liệu.')
       setVehicle(null)

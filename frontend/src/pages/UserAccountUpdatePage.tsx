@@ -1,16 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
-  fetchMyInfo,
   licenseVerificationLabel,
   submitMyDocuments,
-  type ApiErrorWithStatus,
   type UserProfileDto,
 } from '../api/users'
+import { useAuth } from '../contexts/AuthContext'
 import './UserAccountPage.css'
-
-function goLogoutRoute() {
-  window.location.replace('/logout')
-}
 
 function licenseStatusLabel(p: UserProfileDto | null): string {
   if (!p) return '—'
@@ -18,9 +13,10 @@ function licenseStatusLabel(p: UserProfileDto | null): string {
 }
 
 export default function UserAccountUpdatePage() {
+  const { user: ctxUser, isLoading: ctxLoading, refreshUser } = useAuth()
+  // Derive local profile from context; allow override after submit
   const [profile, setProfile] = useState<UserProfileDto | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [statusMsg, setStatusMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
@@ -29,33 +25,19 @@ export default function UserAccountUpdatePage() {
   const [frontFile, setFrontFile] = useState<File | null>(null)
   const [backFile, setBackFile] = useState<File | null>(null)
 
-  const load = useCallback(async () => {
-    if (!localStorage.getItem('accessToken')) {
-      window.location.replace('/auth')
-      return
-    }
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await fetchMyInfo()
-      setProfile(data)
-      setIdentityNumber(data.identityNumber?.trim() ?? '')
-      setLicenseNumber(data.licenseNumber?.trim() ?? '')
-    } catch (e) {
-      const status = typeof e === 'object' && e && 'status' in e ? (e as ApiErrorWithStatus).status : undefined
-      if (status === 401) {
-        goLogoutRoute()
+  // Sync from context when it loads
+  useEffect(() => {
+    if (!ctxLoading) {
+      if (!ctxUser) {
+        window.location.replace('/auth')
         return
       }
-      setError(e instanceof Error ? e.message : 'Không tải được hồ sơ.')
-    } finally {
+      setProfile(ctxUser)
+      setIdentityNumber(ctxUser.identityNumber?.trim() ?? '')
+      setLicenseNumber(ctxUser.licenseNumber?.trim() ?? '')
       setLoading(false)
     }
-  }, [])
-
-  useEffect(() => {
-    void load()
-  }, [load])
+  }, [ctxUser, ctxLoading])
 
   const locked = profile?.licenseVerificationStatus === 'APPROVED'
 
@@ -90,6 +72,8 @@ export default function UserAccountUpdatePage() {
       setFrontFile(null)
       setBackFile(null)
       ;(e.target as HTMLFormElement).reset()
+      // Sync toàn bộ app — context cập nhật, các trang khác đọc user mới ngay
+      await refreshUser()
       setStatusMsg({
         type: 'ok',
         text: 'Đã gửi hồ sơ. Admin sẽ xem xét và cập nhật trạng thái GPLX trên hệ thống.',
@@ -131,7 +115,7 @@ export default function UserAccountUpdatePage() {
 
       <div className="uacc__shell uacc__shell--form">
         {loading ? <p className="uacc__muted-inline">Đang tải…</p> : null}
-        {error && !loading ? <p className="uacc__error-banner">{error}</p> : null}
+
 
         {!loading && profile ? (
           <article className="uacc__card uacc__card--form">

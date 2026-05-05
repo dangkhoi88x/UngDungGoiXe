@@ -767,6 +767,8 @@ Phần này mô tả **luồng mới** sau khi bổ sung: lưu ảnh qua **Cloud
 
 ### 16.2 Tech stack phía lưu trữ ảnh
 
+Phần **Mermaid** phía dưới cùng tinh thần với **§4 → mục 6) Đăng nhập Google**: một **sequenceDiagram** mô tả luồng chính (client → Spring → Cloudinary), và một sơ đồ phụ cho nhánh **xóa asset an toàn**.
+
 | Thành phần | Vai trò |
 |------------|---------|
 | **`CloudinaryConfiguration`** | Tạo bean `Cloudinary` từ biến môi trường (`CLOUDINARY_URL` hoặc cloud name + API key/secret trong `application.yaml`). |
@@ -774,6 +776,61 @@ Phần này mô tả **luồng mới** sau khi bổ sung: lưu ảnh qua **Cloud
 | **`VehicleService` + `VehiclePhotoController`** | Upload ảnh mô tả xe → append URL vào `Vehicle.photos` (admin / chủ xe đã duyệt — logic quyền trong service). |
 | **`BookingFeedbackService`** | Upload ảnh feedback vào folder `bookings/{bookingId}/feedback`; validate MIME/size; submit feedback nhận JSON kèm `photoUrls`. |
 | **`OwnerVehicleMediaService`** | Ảnh & giấy tờ **owner request**: Cloudinary + (tuỳ) xóa file local legacy. |
+
+#### Luồng upload Cloudinary (Mermaid — tổng quát)
+
+Một lần **multipart** lên Spring; service chọn **folder** Cloudinary; phản hồi là **`secure_url`** để client/DB lưu — không lưu file nhị phân trong MySQL cho các endpoint này.
+
+```mermaid
+sequenceDiagram
+  participant C as Client (FE / API tool)
+  participant CTL as REST Controller
+  participant SVC as VehicleService / OwnerVehicleMediaService / BookingFeedbackService
+  participant MS as MediaService
+  participant CL as Cloudinary API
+
+  C->>CTL: POST multipart + JWT (theo endpoint)
+  CTL->>SVC: validate quyền, MIME, kích thước
+  SVC->>MS: upload(...) hoặc uploadOwnerAsset(..., rawPdf?)
+  MS->>CL: uploader.upload(bytes, folder, options)
+  CL-->>MS: JSON secure_url
+  MS-->>SVC: URL HTTPS res.cloudinary.com
+  Note over SVC: Ghi URL: Vehicle.photos, owner request DTO, hoặc trả url cho bước feedback
+  CTL-->>C: ApiResponse data.url
+```
+
+**Folder theo nghiệp vụ (rút gọn):**
+
+| Luồng | Folder ví dụ | Ghi chú |
+|--------|----------------|--------|
+| Ảnh mô tả xe | `vehicles/{vehicleId}` | `MediaService.upload` |
+| Ảnh / PDF hồ sơ chủ xe | `owner-vehicles/{userId}/photos`, `.../documents` | `uploadOwnerAsset`; PDF → `resource_type=raw` |
+| Ảnh feedback booking | `bookings/{bookingId}/feedback` | `MediaService.upload` |
+
+#### Luồng xóa asset trên Cloudinary (Mermaid — best-effort)
+
+Khi thay URL cũ (owner request) hoặc dọn dẹp: chỉ gọi **`destroy`** nếu URL là **`res.cloudinary.com`** và path bắt đầu bằng **`/{cloud_name}/`** đã cấu hình — tránh xóa nhầm URL ngoài hệ thống.
+
+```mermaid
+flowchart TB
+  subgraph in [Đầu vào]
+    U[secure_url từ DB hoặc request]
+  end
+  subgraph gate [MediaService.tryDestroyBySecureUrl]
+    H{Host là res.cloudinary.com?}
+    P{Path bắt đầu /cloudName/?}
+    R{Có image/upload hoặc raw/upload?}
+    X[Parse public_id + resource_type]
+    D[uploader.destroy public_id]
+  end
+  U --> H
+  H -->|không| Z[Dừng — không gọi API]
+  H -->|có| P
+  P -->|không| Z
+  P -->|có| R
+  R -->|hợp lệ| X --> D
+  R -->|không| Z
+```
 
 **Ghi nhớ:** Frontend dev gọi API qua **`/api`** — Vite proxy tới backend **không** có tiền tố `/api` (xem mục 1).
 

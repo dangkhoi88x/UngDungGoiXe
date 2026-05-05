@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { persistUserDisplayName } from '../api/auth'
 import {
-  fetchMyInfo,
   licenseVerificationLabel,
   updateMyProfile,
   userDisplayName,
   type ApiErrorWithStatus,
   type UserProfileDto,
 } from '../api/users'
+import { useAuth } from '../contexts/AuthContext'
 import TopNav from '../components/TopNav'
 import './UserAccountPage.css'
 
@@ -122,8 +121,8 @@ function roleLabelVi(role: string): string {
 }
 
 export default function UserAccountPage() {
+  const { user: ctxUser, isLoading: ctxLoading, refreshUser } = useAuth()
   const [profile, setProfile] = useState<UserProfileDto | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [discardBusy, setDiscardBusy] = useState(false)
@@ -133,38 +132,36 @@ export default function UserAccountPage() {
   const [lastNameDraft, setLastNameDraft] = useState('')
   const [phoneDraft, setPhoneDraft] = useState('')
 
-  const loadProfile = useCallback(async () => {
-    if (!localStorage.getItem('accessToken')) {
-      window.location.replace('/auth')
-      return
-    }
-    setLoading(true)
-    setError(null)
-    setFormError(null)
-    try {
-      const data = await fetchMyInfo()
-      setProfile(data)
-      setFirstNameDraft(data.firstName?.trim() ?? '')
-      setLastNameDraft(data.lastName?.trim() ?? '')
-      setPhoneDraft(data.phone?.trim() ?? '')
-      persistUserDisplayName(data.firstName ?? '', data.lastName ?? '')
-    } catch (e) {
-      const status = typeof e === 'object' && e && 'status' in e ? (e as ApiErrorWithStatus).status : undefined
-      if (status === 401) {
-        goLogoutRoute()
+  // Seed state from context — no API call needed
+  useEffect(() => {
+    if (!ctxLoading) {
+      if (!ctxUser) {
+        window.location.replace('/auth')
         return
       }
-      const msg = e instanceof Error ? e.message : 'Không tải được hồ sơ.'
-      setError(msg)
-    } finally {
+      setProfile(ctxUser)
+      setFirstNameDraft(ctxUser.firstName?.trim() ?? '')
+      setLastNameDraft(ctxUser.lastName?.trim() ?? '')
+      setPhoneDraft(ctxUser.phone?.trim() ?? '')
       setLoading(false)
-      setDiscardBusy(false)
     }
-  }, [])
+  }, [ctxUser, ctxLoading])
+
+  // Refresh local profile from context if it changes (e.g. after refreshUser() elsewhere)
+  const loadProfile = useCallback(async () => {
+    setDiscardBusy(true)
+    await refreshUser()
+    setDiscardBusy(false)
+  }, [refreshUser])
 
   useEffect(() => {
-    void loadProfile()
-  }, [loadProfile])
+    if (ctxUser) {
+      setFirstNameDraft(ctxUser.firstName?.trim() ?? '')
+      setLastNameDraft(ctxUser.lastName?.trim() ?? '')
+      setPhoneDraft(ctxUser.phone?.trim() ?? '')
+      setProfile(ctxUser)
+    }
+  }, [ctxUser])
 
   useEffect(() => {
     setFormError(null)
@@ -228,7 +225,8 @@ export default function UserAccountPage() {
       setFirstNameDraft(updated.firstName?.trim() ?? '')
       setLastNameDraft(updated.lastName?.trim() ?? '')
       setPhoneDraft(updated.phone?.trim() ?? '')
-      persistUserDisplayName(updated.firstName ?? '', updated.lastName ?? '')
+      // Sync toàn bộ app qua context
+      await refreshUser()
     } catch (e) {
       const status = typeof e === 'object' && e && 'status' in e ? (e as ApiErrorWithStatus).status : undefined
       if (status === 401) {
@@ -300,7 +298,7 @@ export default function UserAccountPage() {
           </div>
         ) : null}
 
-        {error && !profile && !loading ? <p className="uacc__error-banner">{error}</p> : null}
+
         {formError && profile ? <p className="uacc__error-banner">{formError}</p> : null}
 
         {profile ? (

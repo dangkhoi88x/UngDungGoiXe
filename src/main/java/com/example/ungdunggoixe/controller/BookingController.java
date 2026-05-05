@@ -23,6 +23,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -58,7 +59,7 @@ public class BookingController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Du lieu booking khong hop le"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Xe khong san sang trong khoang thoi gian yeu cau")
     })
-    public ApiResponse<BookingResponse> create(@RequestBody CreateBookingRequest request) {
+    public ApiResponse<BookingResponse> create(@Valid @RequestBody CreateBookingRequest request) {
         BookingResponse result = bookingService.createBooking(request);
         return ApiResponse.<BookingResponse>builder()
                 .status("success")
@@ -218,7 +219,7 @@ public class BookingController {
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<BookingResponse> update(@PathVariable Long id, @RequestBody UpdateBookingRequest request) {
+    public ApiResponse<BookingResponse> update(@PathVariable Long id, @Valid @RequestBody UpdateBookingRequest request) {
         BookingResponse result = bookingService.updateBooking(id, request);
         return ApiResponse.<BookingResponse>builder()
                 .status("success")

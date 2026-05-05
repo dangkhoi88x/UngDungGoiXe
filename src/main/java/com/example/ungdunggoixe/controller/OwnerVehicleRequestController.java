@@ -10,6 +10,7 @@ import com.example.ungdunggoixe.service.OwnerVehicleRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,7 +32,7 @@ public class OwnerVehicleRequestController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Du lieu yeu cau khong hop le"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap")
     })
-    public ApiResponse<OwnerVehicleRequestResponse> create(@RequestBody CreateOwnerVehicleRequest request) {
+    public ApiResponse<OwnerVehicleRequestResponse> create(@Valid @RequestBody CreateOwnerVehicleRequest request) {
         OwnerVehicleRequestResponse result = ownerVehicleRequestService.create(request);
         return ApiResponse.<OwnerVehicleRequestResponse>builder()
                 .status("success")
@@ -98,7 +99,7 @@ public class OwnerVehicleRequestController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay yeu cau")
     })
     public ApiResponse<OwnerVehicleRequestResponse> update(@PathVariable Long id,
-                                                           @RequestBody UpdateOwnerVehicleRequest request) {
+                                                           @Valid @RequestBody UpdateOwnerVehicleRequest request) {
         OwnerVehicleRequestResponse result = ownerVehicleRequestService.updateMyRequest(id, request);
         return ApiResponse.<OwnerVehicleRequestResponse>builder()
                 .status("success")

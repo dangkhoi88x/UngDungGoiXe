@@ -339,6 +339,11 @@ public class BookingService {
     @Transactional
     public String deleteBooking(Long id) {
         Booking booking = findBookingById(id);
+        // Chỉ cho phép xóa booking ở trạng thái PENDING hoặc CANCELLED
+        if (booking.getStatus() != BookingStatus.PENDING
+                && booking.getStatus() != BookingStatus.CANCELLED) {
+            throw new AppException(ErrorCode.BOOKING_STATUS_TRANSITION_INVALID);
+        }
         bookingRepository.delete(booking);
         return i18nService.getMessage("response.booking.delete.success");
     }

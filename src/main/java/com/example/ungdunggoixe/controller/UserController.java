@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,7 +44,7 @@ public class UserController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao user thanh cong"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Email da ton tai")
     })
-    public ApiResponse<CreateUserResponse> createUser(@RequestBody CreateUserRequest createUserRequest) {
+    public ApiResponse<CreateUserResponse> createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
         CreateUserResponse result = userService.createUser(createUserRequest);
         return ApiResponse.<CreateUserResponse>builder()
                 .status("success")
@@ -153,7 +154,7 @@ public class UserController {
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @PutMapping("/{id}")
-    public ApiResponse<UserResponse> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
+    public ApiResponse<UserResponse> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         UserResponse result = userService.updateUser(id, request);
         return ApiResponse.<UserResponse>builder()
                 .status("success")

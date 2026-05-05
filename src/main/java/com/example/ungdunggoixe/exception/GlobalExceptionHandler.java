@@ -4,18 +4,23 @@ import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 @RequiredArgsConstructor
+@Slf4j
 public class GlobalExceptionHandler {
 
     private final I18nService i18nService;
@@ -38,6 +43,19 @@ public class GlobalExceptionHandler {
         ApiResponse<Void> response = errorBody(errorCode.getCode(),
                 i18nService.getMessage(errorCode.getMessageKey()));
         return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
+    }
+
+    /**
+     * Bean Validation: bắt lỗi từ {@code @Valid @RequestBody} khi DTO có {@code @NotNull}, {@code @NotBlank}, v.v.
+     * Gom tất cả field-level errors thành một message dễ đọc.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+        ApiResponse<Void> response = errorBody(400, message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     /** Sai mật khẩu hoặc không có user (Spring ẩn "user not found" thành bad credentials). */
@@ -72,8 +90,7 @@ public class GlobalExceptionHandler {
     // Bắt tất cả lỗi không mong muốn còn lại
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
-        // In lỗi thật ra console để debug
-        e.printStackTrace();
+        log.error("Unhandled exception caught by GlobalExceptionHandler", e);
         ApiResponse<Void> response =
                 errorBody(
                         ErrorCode.INTERNAL_ERROR.getCode(),
