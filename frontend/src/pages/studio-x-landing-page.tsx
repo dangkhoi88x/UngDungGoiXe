@@ -435,7 +435,7 @@ const SOLUTIONS_DATA: Record<
   }
 > = {
   vehicle: {
-    image: '/studio-x/image-70b64552-357c-4099-b9d0-0e9e60fac1bb.png',
+    image: '/src/assets/owner-car.jpg',
     useCases: [
       {
         id: 'v1',
@@ -472,7 +472,7 @@ const SOLUTIONS_DATA: Record<
     ],
   },
   renter: {
-    image: '/studio-x/image-36fd5371-0f7b-4722-85c1-5909858347b5.png',
+    image: '/src/assets/renter.jpg',
     useCases: [
       {
         id: 'r1',
@@ -948,7 +948,7 @@ function ValueShowcaseSection() {
           </article>
           <article className="sx-value-card sx-value-card--image">
             <img
-              src="/studio-x/image-c6cdb887-89e5-4f60-912f-416dffc9349d.png"
+              src="/src/assets/station.jpg"
               alt="Bãi giao nhận xe"
               loading="lazy"
             />
