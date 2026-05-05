@@ -30,10 +30,26 @@ export type PagedAdminBookingFeedbackDto = {
 export async function fetchAdminBookingFeedbacksPage(params: {
   page?: number
   size?: number
+  sortBy?: 'createdAt' | 'vehicleRating' | 'id'
+  sortDir?: 'asc' | 'desc'
+  keyword?: string
+  minRating?: number
+  hasPhotos?: boolean | ''
 }): Promise<PagedAdminBookingFeedbackDto> {
   const q = new URLSearchParams()
   q.set('page', String(params.page ?? 0))
   q.set('size', String(params.size ?? 20))
+  q.set('sortBy', params.sortBy ?? 'createdAt')
+  q.set('sortDir', params.sortDir ?? 'desc')
+  if (params.keyword != null && params.keyword.trim() !== '') {
+    q.set('keyword', params.keyword.trim())
+  }
+  if (typeof params.minRating === 'number' && Number.isFinite(params.minRating)) {
+    q.set('minRating', String(params.minRating))
+  }
+  if (typeof params.hasPhotos === 'boolean') {
+    q.set('hasPhotos', params.hasPhotos ? 'true' : 'false')
+  }
   const res = await authFetch(`${API_BASE}/admin/booking-feedbacks?${q}`)
   if (!res.ok) {
     throw new Error(await parseApiError(res))

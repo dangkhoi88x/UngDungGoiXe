@@ -186,6 +186,10 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 
+.adm-veh__modal--vehicle-form {
+  max-width: min(1120px, calc(100vw - 40px));
+}
+
 .adm-veh__modal-head {
   display: flex;
   align-items: center;
@@ -217,6 +221,26 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.adm-veh__form--vehicle .adm-veh__msg {
+  margin-bottom: 0;
+}
+
+.adm-veh__form-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.adm-veh__form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--adm-border, #e8e8e8);
+  border-radius: 10px;
+  background: #fafcff;
 }
 
 .adm-veh__field label {
@@ -258,6 +282,16 @@
 
 @media (max-width: 520px) {
   .adm-veh__form-row2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 940px) {
+  .adm-veh__modal--vehicle-form {
+    max-width: 100%;
+  }
+
+  .adm-veh__form-columns {
     grid-template-columns: 1fr;
   }
 }
@@ -665,6 +699,51 @@
   line-height: 1.45;
 }
 
+.adm-veh__upload-list {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.adm-veh__upload-item {
+  border: 1px solid var(--adm-border, #e8e8e8);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.adm-veh__upload-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.adm-veh__upload-name {
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-veh__upload-meta {
+  color: var(--adm-muted, #757575);
+}
+
+.adm-veh__upload-bar {
+  margin-top: 6px;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.adm-veh__upload-bar > span {
+  display: block;
+  height: 100%;
+  background: #0ea5e9;
+}
+
 .adm-veh__photo-preview-grid {
   display: flex;
   flex-wrap: wrap;
@@ -679,4 +758,22 @@
   border-radius: 8px;
   border: 1px solid var(--adm-border, #e8e8e8);
   background: #f5f5f5;
+}
+
+.adm-veh__policy-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.adm-veh__policy-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.adm-veh__policy-item input {
+  margin-top: 2px;
 }

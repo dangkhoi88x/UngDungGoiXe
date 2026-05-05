@@ -4,8 +4,6 @@ import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.PagedAdminBookingFeedbackResponse;
 import com.example.ungdunggoixe.service.AdminBookingFeedbackService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,12 +25,24 @@ public class AdminBookingFeedbackController {
     @GetMapping
     public ApiResponse<PagedAdminBookingFeedbackResponse> list(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer minRating,
+            @RequestParam(required = false) Boolean hasPhotos
     ) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
-        var pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
-        PagedAdminBookingFeedbackResponse data = adminBookingFeedbackService.list(pageable);
+        PagedAdminBookingFeedbackResponse data = adminBookingFeedbackService.list(
+                safePage,
+                safeSize,
+                sortBy,
+                sortDir,
+                keyword,
+                minRating,
+                hasPhotos
+        );
         return ApiResponse.<PagedAdminBookingFeedbackResponse>builder()
                 .status("success")
                 .message("Lay danh sach danh gia booking thanh cong")
