@@ -483,4 +483,10 @@
   display: inline-block;
   font-size: 12px;
   font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.owmr-rating-summary__link:hover {
+  text-decoration: underline;
 }

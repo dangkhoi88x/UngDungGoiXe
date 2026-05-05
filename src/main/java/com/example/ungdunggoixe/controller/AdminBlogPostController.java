@@ -9,13 +9,17 @@ import com.example.ungdunggoixe.dto.response.PagedBlogPostAdminResponse;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.service.BlogPostService;
 import com.example.ungdunggoixe.service.I18nService;
+import com.example.ungdunggoixe.service.MediaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Instant;
+import java.util.Map;
 
 @RestController
 @RequestMapping({"/admin/blog/posts", "/api/admin/blog/posts"})
@@ -24,6 +28,7 @@ public class AdminBlogPostController {
 
     private final BlogPostService blogPostService;
     private final I18nService i18nService;
+    private final MediaService mediaService;
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @GetMapping
@@ -96,6 +101,34 @@ public class AdminBlogPostController {
                 .status("success")
                 .message(i18nService.getMessage("response.blog_post.admin.publish.success"))
                 .data(data)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PostMapping("/cover-image")
+    public ApiResponse<Map<String, String>> uploadCoverImage(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        if (file == null || file.isEmpty()) {
+            throw new AppException(ErrorCode.FILE_UPLOAD_INVALID);
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
+            throw new AppException(ErrorCode.FILE_UPLOAD_INVALID);
+        }
+        Long adminId = parseUserId(jwt);
+        String url;
+        try {
+            url = mediaService.upload(file, "blog-posts/" + adminId + "/covers");
+        } catch (IOException e) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
+        }
+        return ApiResponse.<Map<String, String>>builder()
+                .status("success")
+                .message(i18nService.getMessage("response.blog_post.admin.upload_cover.success"))
+                .data(Map.of("url", url))
                 .timestamp(Instant.now())
                 .build();
     }

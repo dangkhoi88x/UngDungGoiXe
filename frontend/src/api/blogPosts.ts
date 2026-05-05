@@ -194,3 +194,20 @@ export async function deleteAdminBlogPost(id: number): Promise<void> {
     throw new Error(await parseApiError(res))
   }
 }
+
+export async function uploadAdminBlogCover(file: File): Promise<string> {
+  const fd = new FormData()
+  fd.set('file', file)
+  const res = await authFetch(`${API_BASE}/admin/blog/posts/cover-image`, {
+    method: 'POST',
+    body: fd,
+  })
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const payload = (await res.json()) as unknown
+  const data = unwrapApiData<{ url?: string }>(payload)
+  const url = data?.url?.trim()
+  if (!url) throw new Error('Phản hồi upload ảnh bìa không hợp lệ.')
+  return url
+}

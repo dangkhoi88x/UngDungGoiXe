@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useEscapeToClose } from '../hooks/useEscapeToClose'
 import {
   ADMIN_SESSION_KEYS,
@@ -12,6 +12,7 @@ import {
   fetchAdminBlogPostById,
   fetchAdminBlogPostsPage,
   publishAdminBlogPost,
+  uploadAdminBlogCover,
   updateAdminBlogPost,
   type BlogPostAdminDto,
   type BlogPostStatus,
@@ -137,6 +138,7 @@ export default function AdminBlogPostsSection({ refreshKey }: Props) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
 
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -204,7 +206,7 @@ export default function AdminBlogPostsSection({ refreshKey }: Props) {
   }
 
   function closeModal() {
-    if (saving) return
+    if (saving || coverUploading) return
     setModal(null)
     setEditingId(null)
   }
@@ -247,6 +249,22 @@ export default function AdminBlogPostsSection({ refreshKey }: Props) {
       void load()
     } catch (e) {
       setToast(e instanceof Error ? e.message : 'Xuất bản thất bại.')
+    }
+  }
+
+  async function onCoverFileSelected(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setCoverUploading(true)
+    try {
+      const uploadedUrl = await uploadAdminBlogCover(file)
+      setForm((f) => ({ ...f, coverImageUrl: uploadedUrl }))
+      setToast('Đã upload ảnh bìa lên Cloudinary.')
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : 'Upload ảnh bìa thất bại.')
+    } finally {
+      setCoverUploading(false)
     }
   }
 
@@ -524,6 +542,17 @@ export default function AdminBlogPostsSection({ refreshKey }: Props) {
                       disabled={saving}
                     />
                   </label>
+                  <div className="adm-blog-studio__cover-upload-row">
+                    <label className="adm-blog-studio__cover-upload-btn">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={onCoverFileSelected}
+                        disabled={saving || coverUploading}
+                      />
+                      {coverUploading ? 'Đang upload…' : 'Chọn ảnh và upload Cloudinary'}
+                    </label>
+                  </div>
                   {looksLikeImageUrl(form.coverImageUrl) ? (
                     <div className="adm-blog-studio__cover-preview">
                       <img src={form.coverImageUrl.trim()} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />

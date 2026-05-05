@@ -353,7 +353,9 @@ export default function OwnerMyVehicleRequestsPage() {
                       <>
                         <OwnerVehicleRatingSummary
                           vehicleId={r.approvedVehicleId}
-                          loading={ratingsLoading}
+                          loading={
+                            ratingsLoading && ratingByVehicleId[r.approvedVehicleId] === undefined
+                          }
                           rating={ratingByVehicleId[r.approvedVehicleId] ?? null}
                         />
                         <a className="owmr-link" href={`/owner/vehicle-requests/${r.id}/bookings`}>
