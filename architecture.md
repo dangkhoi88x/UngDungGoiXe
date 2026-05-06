@@ -230,7 +230,7 @@ Mục này là bản “đọc nhanh 1 lần là nắm luồng” cho các file 
 
 Luồng này **không** dùng Google Sign-In JS SDK (`id_token` trực tiếp từ trình duyệt). Thay vào đó: trình duyệt nhận **`code`** qua redirect về SPA, backend đổi `code` → `id_token` Google (có **client secret**), verify token, **tìm hoặc tạo** `User`, rồi phát **cùng cơ chế JWT + cookie refresh** như đăng nhập email/password.
 
-**Cấu hình (env)**
+**Cấu hình2 (env)**
 
 | Biến | Nơi dùng | Ghi chú |
 |------|-----------|---------|
