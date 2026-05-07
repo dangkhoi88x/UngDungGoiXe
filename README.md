@@ -1,4 +1,4 @@
-# 🚗 Rent-car-platform (UngDungGoiXe)
+# 🚗 Rent-car-platform 
 
 Nền tảng đặt xe tự lái với hệ thống quản trị, quy trình duyệt xe cho chủ xe (owner), thanh toán MoMo, đánh giá sau chuyến đi và lưu trữ media trên AWS S3.
 
