@@ -23,7 +23,7 @@ flowchart LR
   subgraph data [Data]
     MySQL[(MySQL)]
     Redis[(Redis)]
-    FS[Local files uploads]
+    S3[(AWS S3 media bucket)]
   end
   SPA --> Vite
   Vite -->|"/api proxy"| API
@@ -32,7 +32,7 @@ flowchart LR
   SVC --> JPA
   JPA --> MySQL
   SVC --> Redis
-  SVC --> FS
+  SVC --> S3
 ```
 
 - **Production / build:** SPA build ra static files có thể phục vụ qua Spring hoặc CDN; dev dùng proxy như trong `frontend/vite.config.ts`.
@@ -385,9 +385,9 @@ sequenceDiagram
 
 | Thành phần | Ghi chú |
 |------------|---------|
-| `application.yaml` | Datasource, Redis, JWT env, multipart, `app.upload-dir`, **`momo.*`** (return-url trỏ SPA sau thanh toán, ipn-url), **`springdoc.swagger-ui.path`** |
+| `application.yaml` | Datasource, Redis, JWT env, multipart, AWS S3 (`aws.credentials.*`, `aws.region.static`, `aws.s3.bucket`), **`momo.*`** (return-url trỏ SPA sau thanh toán, ipn-url), **`springdoc.swagger-ui.path`** |
 | `schema-mysql.sql` | Bổ sung cột / an toàn với `continue-on-error` |
-| Env | `JWT_SECRET`, `JWT_AUDIENCE` bắt buộc cho JWT |
+| Env | `JWT_SECRET`, `JWT_AUDIENCE`, `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `REGION`, `BUCKET_NAME` |
 
 ---
 
@@ -637,7 +637,8 @@ sequenceDiagram
 
 ## 14. Changelog (kiến trúc)
 
-- **2026-05-02:** Thêm **mục 16** — Cloudinary / `MediaService`, feedback booking (ảnh + sao + comment), API public `/vehicles/{id}/feedback`, tab admin đánh giá, modal đánh giá trên `/account/orders`, cập nhật `VehicleDetailPage` hiển thị đánh giá.
+- **2026-05-07:** Chuyển toàn bộ media sang AWS S3 (vehicle photos, owner vehicle photo/document, booking feedback photo, blog cover, user documents), đồng thời dọn Cloudinary legacy.
+- **2026-05-02:** Thêm **mục 16** — media service + feedback booking (ảnh + sao + comment), API public `/vehicles/{id}/feedback`, tab admin đánh giá, modal đánh giá trên `/account/orders`, cập nhật `VehicleDetailPage` hiển thị đánh giá.
 - **2026-04-26:** Mở rộng mục **13** — sequence MoMo (IPN + `confirm-return`), phân biệt `Payment.status` vs `Booking.status`, hướng đọc code từ controller → `handleMomoIpnResult` → `updateBookingPaymentStatus`, ghi chú proxy **`/momo`**, cập nhật bảng FE (`momoConfirm.ts`). Sửa ví dụ **`momo.ipn-url`** trong tài liệu cho khớp code.
 - **2026-04-25:** Thêm **i18n backend** (mục 11), **Swagger/OpenAPI** (mục 12), **thanh toán MoMo prepay tổng + TOPUP/REFUND + IPN/return URL** (mục 13); cập nhật ER rút gọn Payment, bảng `application.yaml`, và bullet FE (return page, `payments.ts`, admin tabs).
 - **2026-04-22:** Thêm mục **Trạm — tọa độ & bản đồ** và mục lớn **Owner Vehicle Request (P2P)** — mô hình dữ liệu, quy tắc BE, bảng API, bảng FE, sequence owner/admin.
@@ -750,9 +751,9 @@ sequenceDiagram
 
 ---
 
-## 16. Media Cloudinary & đánh giá xe sau booking (Feedback)
+## 16. Media AWS S3 & đánh giá xe sau booking (Feedback)
 
-Phần này mô tả **luồng mới** sau khi bổ sung: lưu ảnh qua **Cloudinary**, **một feedback / một booking** (sau khi `COMPLETED`), cập nhật **điểm trung bình xe**, và **hai giao diện đọc** feedback (khách xem trên trang xe + admin xem toàn hệ thống).
+Phần này mô tả **luồng mới** sau khi bổ sung: lưu ảnh qua **AWS S3**, **một feedback / một booking** (sau khi `COMPLETED`), cập nhật **điểm trung bình xe**, và **hai giao diện đọc** feedback (khách xem trên trang xe + admin xem toàn hệ thống).
 
 ### 16.1 Ý tưởng nghiệp vụ (đọc 30 giây)
 
@@ -760,26 +761,26 @@ Phần này mô tả **luồng mới** sau khi bổ sung: lưu ảnh qua **Cloud
 |-----------|------------------|
 | **Feedback** | Một bản ghi gắn **1–1** với `Booking`; chỉ tạo khi khách gửi đánh giá sau chuyến **hoàn tất**. |
 | **Điểm xe (`vehicleRating`)** | Thang 1–5 (bước 0.5 phía FE); backend làm tròn và kiểm tra khoảng. |
-| **Ảnh đính kèm** | Upload lên Cloudinary (folder riêng theo booking), submit feedback chỉ nhận **URL** đã upload + validate đúng cloud/path. |
+| **Ảnh đính kèm** | Upload lên S3 (folder riêng theo booking), submit feedback chỉ nhận **URL** đã upload + validate đúng bucket/path. |
 | **`Vehicle.rating`** | Sau mỗi feedback hợp lệ, service **tính lại AVG** các `vehicleRating` của xe và ghi vào `vehicles.rating`. |
 
 ---
 
 ### 16.2 Tech stack phía lưu trữ ảnh
 
-Phần **Mermaid** phía dưới cùng tinh thần với **§4 → mục 6) Đăng nhập Google**: một **sequenceDiagram** mô tả luồng chính (client → Spring → Cloudinary), và một sơ đồ phụ cho nhánh **xóa asset an toàn**.
+Phần **Mermaid** phía dưới cùng tinh thần với **§4 → mục 6) Đăng nhập Google**: một **sequenceDiagram** mô tả luồng chính (client → Spring → S3), và một sơ đồ phụ cho nhánh **xóa asset an toàn**.
 
 | Thành phần | Vai trò |
 |------------|---------|
-| **`CloudinaryConfiguration`** | Tạo bean `Cloudinary` từ biến môi trường (`CLOUDINARY_URL` hoặc cloud name + API key/secret trong `application.yaml`). |
-| **`MediaService`** | `upload(MultipartFile, folder)` → URL HTTPS Cloudinary; dùng chung cho ảnh xe, ảnh feedback booking. |
+| **`AwsConfiguration`** | Tạo bean `S3Client` từ `aws.credentials.*` và `aws.region.static` trong `application.yaml`. |
+| **`MediaService`** | Upload/xóa/validate URL S3 (`uploadToS3AndGetUrl`, `tryDeleteS3ByUrl`, `isOurS3Url`); dùng chung cho các luồng media. |
 | **`VehicleService` + `VehiclePhotoController`** | Upload ảnh mô tả xe → append URL vào `Vehicle.photos` (admin / chủ xe đã duyệt — logic quyền trong service). |
 | **`BookingFeedbackService`** | Upload ảnh feedback vào folder `bookings/{bookingId}/feedback`; validate MIME/size; submit feedback nhận JSON kèm `photoUrls`. |
-| **`OwnerVehicleMediaService`** | Ảnh & giấy tờ **owner request**: Cloudinary + (tuỳ) xóa file local legacy. |
+| **`OwnerVehicleMediaService`** | Ảnh & giấy tờ **owner request**: S3 + (tuỳ) xóa file local legacy. |
 
-#### Luồng upload Cloudinary (Mermaid — tổng quát)
+#### Luồng upload S3 (Mermaid — tổng quát)
 
-Một lần **multipart** lên Spring; service chọn **folder** Cloudinary; phản hồi là **`secure_url`** để client/DB lưu — không lưu file nhị phân trong MySQL cho các endpoint này.
+Một lần **multipart** lên Spring; service chọn **folder/key prefix** trên S3; phản hồi là **URL HTTPS S3** để client/DB lưu — không lưu file nhị phân trong MySQL cho các endpoint này.
 
 ```mermaid
 sequenceDiagram
@@ -787,14 +788,14 @@ sequenceDiagram
   participant CTL as REST Controller
   participant SVC as VehicleService / OwnerVehicleMediaService / BookingFeedbackService
   participant MS as MediaService
-  participant CL as Cloudinary API
+  participant S3 as AWS S3
 
   C->>CTL: POST multipart + JWT (theo endpoint)
   CTL->>SVC: validate quyền, MIME, kích thước
-  SVC->>MS: upload(...) hoặc uploadOwnerAsset(..., rawPdf?)
-  MS->>CL: uploader.upload(bytes, folder, options)
-  CL-->>MS: JSON secure_url
-  MS-->>SVC: URL HTTPS res.cloudinary.com
+  SVC->>MS: uploadToS3AndGetUrl(...) hoặc uploadVehiclePhotoToS3(...)
+  MS->>S3: PutObject(bucket, key, contentType)
+  S3-->>MS: 200 OK
+  MS-->>SVC: URL HTTPS bucket.s3.region.amazonaws.com/key
   Note over SVC: Ghi URL: Vehicle.photos, owner request DTO, hoặc trả url cho bước feedback
   CTL-->>C: ApiResponse data.url
 ```
@@ -803,33 +804,29 @@ sequenceDiagram
 
 | Luồng | Folder ví dụ | Ghi chú |
 |--------|----------------|--------|
-| Ảnh mô tả xe | `vehicles/{vehicleId}` | `MediaService.upload` |
-| Ảnh / PDF hồ sơ chủ xe | `owner-vehicles/{userId}/photos`, `.../documents` | `uploadOwnerAsset`; PDF → `resource_type=raw` |
-| Ảnh feedback booking | `bookings/{bookingId}/feedback` | `MediaService.upload` |
+| Ảnh mô tả xe | `vehicles/{vehicleId}` | `MediaService.uploadVehiclePhotoToS3` |
+| Ảnh / tài liệu hồ sơ chủ xe | `owner-vehicles/{userId}/photos`, `.../documents` | `MediaService.uploadToS3AndGetUrl` |
+| Ảnh feedback booking | `bookings/{bookingId}/feedback` | `MediaService.uploadToS3AndGetUrl` |
 
-#### Luồng xóa asset trên Cloudinary (Mermaid — best-effort)
+#### Luồng xóa asset trên S3 (Mermaid — best-effort)
 
-Khi thay URL cũ (owner request) hoặc dọn dẹp: chỉ gọi **`destroy`** nếu URL là **`res.cloudinary.com`** và path bắt đầu bằng **`/{cloud_name}/`** đã cấu hình — tránh xóa nhầm URL ngoài hệ thống.
+Khi thay URL cũ (owner request/user documents) hoặc dọn dẹp: chỉ gọi **`DeleteObject`** nếu URL thuộc đúng bucket/region hệ thống — tránh xóa nhầm URL ngoài hệ thống.
 
 ```mermaid
 flowchart TB
   subgraph in [Đầu vào]
     U[secure_url từ DB hoặc request]
   end
-  subgraph gate [MediaService.tryDestroyBySecureUrl]
-    H{Host là res.cloudinary.com?}
-    P{Path bắt đầu /cloudName/?}
-    R{Có image/upload hoặc raw/upload?}
-    X[Parse public_id + resource_type]
-    D[uploader.destroy public_id]
+  subgraph gate [MediaService.tryDeleteS3ByUrl]
+    H{Host khớp bucket.s3.region.amazonaws.com?}
+    P{Path chứa key hợp lệ?}
+    D[s3Client.deleteObject bucket key]
   end
   U --> H
   H -->|không| Z[Dừng — không gọi API]
   H -->|có| P
   P -->|không| Z
-  P -->|có| R
-  R -->|hợp lệ| X --> D
-  R -->|không| Z
+  P -->|có| D
 ```
 
 **Ghi nhớ:** Frontend dev gọi API qua **`/api`** — Vite proxy tới backend **không** có tiền tố `/api` (xem mục 1).
@@ -864,11 +861,11 @@ sequenceDiagram
   participant P as POST .../feedback/photos
   participant F as POST .../feedback
   participant S as BookingFeedbackService
-  participant DB as DB + Cloudinary
+  participant DB as DB + S3
 
   U->>P: multipart file JWT
   P->>S: upload folder bookings/{id}/feedback
-  S->>DB: Cloudinary URL
+  S->>DB: S3 URL
   P-->>U: url
   U->>F: JSON vehicleRating, comment?, photoUrls?
   F->>S: validate URLs + rating
@@ -884,7 +881,7 @@ sequenceDiagram
 | `POST` | `/bookings/{id}/feedback` | Gửi đánh giá (tối đa 8 ảnh trong `photoUrls`). |
 | `GET` | `/bookings/{id}/feedback/me` | Xem feedback của chính mình cho booking đó (404 nếu chưa gửi). |
 
-**Xử lý lỗi:** `ErrorCode` + i18n (`FEEDBACK_*`, `BOOKING_FEEDBACK_NOT_ALLOWED`, …); ảnh phải là URL Cloudinary và path chứa `/bookings/{id}/feedback`.
+**Xử lý lỗi:** `ErrorCode` + i18n (`FEEDBACK_*`, `BOOKING_FEEDBACK_NOT_ALLOWED`, …); ảnh phải là URL S3 của hệ thống và path chứa `/bookings/{id}/feedback`.
 
 ---
 
