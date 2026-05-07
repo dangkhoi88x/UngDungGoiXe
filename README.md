@@ -1,84 +1,78 @@
-# New-rentcar (UngDungGoiXe)
+# Rent-car-platform (UngDungGoiXe)
 
 Ứng dụng thuê xe gồm:
 
-- **Backend**: Spring Boot (Java 21, Maven Wrapper)
-- **Frontend**: React + Vite + TypeScript
-- **Database**: MySQL
-- **Cache / token store**: Redis
+- Backend: Spring Boot (Java 21, Maven Wrapper)
+- Frontend: React + Vite + TypeScript
+- Database: MySQL
+- Cache / token store: Redis
+- Media storage: AWS S3
 
----
+## Yêu cầu môi trường
 
-## 1) Yêu cầu môi trường
+- Java 21
+- Node.js >= 20 và npm
+- MySQL local (mặc định `localhost:3306`)
+- Redis local (mặc định `localhost:6379`)
 
-- Java `21`
-- Node.js `>= 20` + npm
-- MySQL chạy local (mặc định `localhost:3306`)
-- Redis chạy local (mặc định `localhost:6379`)
+## Cấu trúc thư mục chính
 
----
+- `src/`: backend Spring Boot
+- `frontend/`: SPA React/Vite
+- `src/main/resources/application.yaml`: cấu hình backend
+- `.github/workflows/ci.yml`: pipeline CI/CD
 
-## 2) Cấu trúc thư mục chính
+## Setup local nhanh
 
-- `src/` - backend Spring Boot
-- `frontend/` - SPA React/Vite
-- `src/main/resources/application.yaml` - config backend
-- `architecture.md` - mô tả kiến trúc và luồng nghiệp vụ
-- `plan.md` - tóm tắt stack/route/rules
-
----
-
-## 3) Setup nhanh local
-
-### 3.1 Tạo database
+### 1) Tạo database
 
 ```sql
 CREATE DATABASE UngDungGoiXe CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 3.2 Biến môi trường backend
+### 2) Cấu hình biến môi trường backend
 
-Backend cần các biến:
+Biến tối thiểu nên có khi chạy local:
 
-- `JWT_SECRET`
-- `JWT_AUDIENCE`
-- `EMAIL_USERNAME`
-- `EMAIL_PASSWORD`
+```env
+JWT_SECRET=your_jwt_secret
+JWT_AUDIENCE=ungdunggoixe-local
+EMAIL_USERNAME=your_email
+EMAIL_PASSWORD=your_email_app_password
 
-Nếu đã có file `.env` ở root:
-
-```bash
-cd "/Users/dank/Documents/New-rentcar"
-set -a
-source .env
-set +a
+AWS_ACCESS_KEY=your_aws_access_key
+AWS_SECRET_KEY=your_aws_secret_key
+REGION=ap-southeast-1
+BUCKET_NAME=your_s3_bucket
 ```
 
-### 3.3 Chạy backend
+Ghi chú:
+
+- `application.yaml` đã có fallback cho một số biến, nhưng để test đầy đủ upload/media bạn cần set đủ bộ AWS.
+- Không commit các giá trị thật vào repo.
+
+### 3) Chạy backend
 
 ```bash
-cd "/Users/dank/Documents/New-rentcar"
+cd /Users/dank/Desktop/giaoxe/Rent-car-platform
 ./mvnw spring-boot:run
 ```
 
-Backend mặc định: `http://localhost:8080`
+- Backend mặc định: `http://localhost:8080`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
 
-Swagger: `http://localhost:8080/swagger-ui.html`
-
-### 3.4 Chạy frontend
+### 4) Chạy frontend
 
 ```bash
-cd "/Users/dank/Documents/New-rentcar/frontend"
+cd /Users/dank/Desktop/giaoxe/Rent-car-platform/frontend
 npm install
 cp .env.example .env.local
 npm run dev
 ```
 
-Frontend mặc định: `http://localhost:5173`
+- Frontend mặc định: `http://localhost:5173`
 
----
-
-## 4) Env frontend
+## Env frontend
 
 Trong `frontend/.env.local`:
 
@@ -89,20 +83,20 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
 # VITE_API_BASE=/api
 ```
 
-Mặc định Vite proxy:
+Vite proxy mặc định:
 
 - `/api` -> `http://localhost:8080`
 - `/files` -> `http://localhost:8080`
 
----
-
-## 5) Scripts thường dùng
+## Scripts thường dùng
 
 ### Backend
 
 ```bash
 ./mvnw spring-boot:run
 ./mvnw test
+./mvnw verify
+./mvnw package -DskipTests
 ```
 
 ### Frontend
@@ -113,43 +107,50 @@ npm run build
 npm run lint
 ```
 
----
+## Trạng thái media storage
 
-## 6) Tài khoản / phân quyền chính
+Các luồng upload hiện đã chuyển sang AWS S3:
 
-- Người dùng thường: thuê xe, xem lịch sử, quản lý tài khoản/GPLX
-- Owner: gửi yêu cầu đăng xe, sửa request, theo dõi duyệt
-- Admin: quản lý xe/trạm/booking/người dùng, duyệt owner request
+- `POST /vehicles/{id}/photos`
+- `POST /uploads/owner-vehicle/photo`
+- `POST /uploads/owner-vehicle/document`
+- `POST /bookings/{id}/feedback/photos`
+- `POST /admin/blog/posts/cover-image`
+- `POST /users/my-documents`
 
----
+## CI/CD (GitHub Actions)
 
-## 7) Một số route chính
+Workflow: `.github/workflows/ci.yml`
 
-- `/` - trang chủ
-- `/rent` - danh sách xe thuê
-- `/rent/:id` - chi tiết xe
-- `/booking/:vehicleId` - đặt xe
-- `/owner/register-vehicle` - gửi yêu cầu xe owner
-- `/owner/vehicle-requests` - danh sách yêu cầu owner
-- `/admin/*` - dashboard admin
+- Runner: `ubuntu-latest`
+- Services: MySQL 8 + Redis 7
+- Build backend bằng Maven Wrapper
+- Build và push Docker image lên Docker Hub
 
----
+Secrets cần cấu hình trong GitHub:
 
-## 8) Lỗi hay gặp
+- `JWT_SECRET`, `JWT_AUDIENCE`
+- `EMAIL_USERNAME`, `EMAIL_PASSWORD`
+- `DOCKER_USERNAME`, `DOCKER_PASSWORD`
 
+Nếu bật test hoặc cần upload S3 trong CI, thêm:
+
+- `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `REGION`, `BUCKET_NAME`
+
+## Lỗi hay gặp
+
+- `Could not resolve placeholder 'JWT_AUDIENCE'`:
+  - Thiếu env JWT khi chạy test/context.
+- `Bucket cannot be empty`:
+  - Thiếu `BUCKET_NAME`.
+- `Unable to locate credentials` hoặc lỗi quyền S3:
+  - Kiểm tra `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, IAM policy và region.
 - `vite http proxy error ECONNREFUSED`:
-  - Backend chưa chạy hoặc crash.
-- Vào trang có API mà trắng/lỗi:
-  - Kiểm tra token đăng nhập và backend log.
-- Thay đổi backend không phản ánh ở UI:
-  - Restart backend.
-- HMR lỗi lạ ở frontend:
-  - restart `npm run dev` (nếu cần, xóa cache `.vite`).
+  - Backend chưa chạy hoặc bị crash.
 
----
+## Bảo mật
 
-## 9) Ghi chú bảo mật
-
-- Không commit secret thật (`.env`, mail app password, key thanh toán).
-- Nên tách config local/prod bằng env và profile.
+- Không commit `.env` hoặc secret thật.
+- Rotate secret ngay nếu lộ trong chat/log/commit.
+- Dùng GitHub Secrets cho CI thay vì hard-code trong workflow.
 

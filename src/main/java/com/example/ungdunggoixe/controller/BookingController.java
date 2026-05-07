@@ -126,8 +126,8 @@ public class BookingController {
 
     @PostMapping(value = "/{id}/feedback/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
-            summary = "Upload anh kem danh gia (Cloudinary)",
-            description = "Truoc khi POST /bookings/{id}/feedback: tai anh len Cloudinary (folder bookings/{id}/feedback). Chi booking COMPLETED, chua co feedback.")
+            summary = "Upload anh kem danh gia (S3)",
+            description = "Truoc khi POST /bookings/{id}/feedback: tai anh len S3 (folder bookings/{id}/feedback). Chi booking COMPLETED, chua co feedback.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload thanh cong, tra ve url"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File khong hop le"),

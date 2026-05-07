@@ -42,9 +42,6 @@ jobs:
       JWT_AUDIENCE: ${{ secrets.JWT_AUDIENCE }}
       EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
       EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-      CLOUDINARY_NAME: ${{ secrets.CLOUDINARY_NAME }}
-      CLOUDINARY_KEY: ${{ secrets.CLOUDINARY_KEY }}
-      CLOUDINARY_SECRET: ${{ secrets.CLOUDINARY_SECRET }}
       SPRING_DATA_REDIS_PASSWORD: '12345678'
 
     steps:

@@ -17,7 +17,7 @@ public class SubmitBookingVehicleFeedbackRequest {
     /** Ghi chú tùy chọn của khách. */
     private String comment;
     /**
-     * URL ảnh (Cloudinary), lấy qua {@code POST /bookings/{id}/feedback/photos}.
+     * URL ảnh (S3), lấy qua {@code POST /bookings/{id}/feedback/photos}.
      * Tuỳ chọn; tối đa 8 URL.
      */
     private List<String> photoUrls;

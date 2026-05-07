@@ -29,7 +29,7 @@ public class VehiclePhotoController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/{id}/photos")
     @Operation(
-            summary = "Upload anh xe (Cloudinary)",
+            summary = "Upload anh xe (S3)",
             description = "Admin: moi xe. Chu xe: chi xe da duoc gan qua owner vehicle request (da duyet).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload thanh cong"),

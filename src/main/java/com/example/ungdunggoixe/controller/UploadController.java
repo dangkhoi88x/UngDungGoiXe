@@ -39,7 +39,7 @@ public class UploadController {
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/owner-vehicle/photo")
-    @Operation(summary = "Upload anh xe", description = "Tai len anh xe len Cloudinary (folder owner-vehicles/{userId}/photos).")
+    @Operation(summary = "Upload anh xe", description = "Tai len anh xe len S3 (folder owner-vehicles/{userId}/photos).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload anh xe thanh cong"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File anh khong hop le"),
@@ -59,7 +59,7 @@ public class UploadController {
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/owner-vehicle/document")
-    @Operation(summary = "Upload tai lieu xe", description = "Tai len tai lieu len Cloudinary (folder owner-vehicles/{userId}/documents; PDF = raw).")
+    @Operation(summary = "Upload tai lieu xe", description = "Tai len tai lieu len S3 (folder owner-vehicles/{userId}/documents).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload tai lieu thanh cong"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File tai lieu khong hop le"),

@@ -16,8 +16,7 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * Upload ảnh / tài liệu hồ sơ chủ xe lên Cloudinary (thay thế lưu local {@code /files/owner-vehicles/...}).
- * Vẫn hỗ trợ xóa file local cũ trong DB và asset Cloudinary của đúng cloud được cấu hình.
+ * Upload ảnh / tài liệu hồ sơ chủ xe lên S3 (thay thế lưu local {@code /files/owner-vehicles/...}).
  */
 @Service
 @RequiredArgsConstructor
@@ -34,20 +33,13 @@ public class OwnerVehicleMediaService {
     private final MediaService mediaService;
     private final LocalOwnerVehicleFileStorage localOwnerVehicleFileStorage;
 
-    @Value("${cloudinary.cloud-name:}")
-    private String cloudinaryCloudName;
-
     @Value("${app.owner-vehicle-upload.max-file-size-bytes:6291456}")
     private long maxBytesPerFile;
 
     public String storePhoto(Long userId, MultipartFile file) {
         validateOwnerPhoto(file);
         try {
-            return mediaService.uploadOwnerAsset(
-                    file,
-                    "owner-vehicles/" + userId + "/photos",
-                    false
-            );
+            return mediaService.uploadToS3AndGetUrl(file, "owner-vehicles/" + userId + "/photos");
         } catch (IOException e) {
             throw new AppException(ErrorCode.INTERNAL_ERROR);
         }
@@ -55,13 +47,8 @@ public class OwnerVehicleMediaService {
 
     public String storeDocument(Long userId, MultipartFile file) {
         validateOwnerDocument(file);
-        boolean pdf = isPdfContentType(file.getContentType());
         try {
-            return mediaService.uploadOwnerAsset(
-                    file,
-                    "owner-vehicles/" + userId + "/documents",
-                    pdf
-            );
+            return mediaService.uploadToS3AndGetUrl(file, "owner-vehicles/" + userId + "/documents");
         } catch (IOException e) {
             throw new AppException(ErrorCode.INTERNAL_ERROR);
         }
@@ -75,7 +62,7 @@ public class OwnerVehicleMediaService {
         if (p.startsWith("/files/owner-vehicles/")) {
             return true;
         }
-        return isOurCloudinaryUrl(p);
+        return isOurS3OwnerVehicleUrl(p);
     }
 
     public void deleteStoredFileIfPresent(String publicUrl) {
@@ -87,30 +74,20 @@ public class OwnerVehicleMediaService {
             localOwnerVehicleFileStorage.deleteStoredFileIfPresent(publicUrl);
             return;
         }
-        if (isOurCloudinaryUrl(p)) {
-            mediaService.tryDestroyBySecureUrl(p);
+        if (isOurS3OwnerVehicleUrl(p)) {
+            mediaService.tryDeleteS3ByUrl(p);
+            return;
         }
     }
 
-    private boolean isOurCloudinaryUrl(String p) {
-        if (cloudinaryCloudName == null || cloudinaryCloudName.isBlank()) {
+    private boolean isOurS3OwnerVehicleUrl(String p) {
+        if (!mediaService.isOurS3Url(p)) {
             return false;
         }
         try {
             URI u = URI.create(p.replace(" ", "%20"));
-            String scheme = u.getScheme();
-            if (scheme == null
-                    || (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme))) {
-                return false;
-            }
-            if (!"res.cloudinary.com".equalsIgnoreCase(u.getHost())) {
-                return false;
-            }
             String path = u.getPath();
-            if (path == null || !path.startsWith("/" + cloudinaryCloudName + "/")) {
-                return false;
-            }
-            return path.contains("/image/upload/") || path.contains("/raw/upload/");
+            return path != null && path.startsWith("/owner-vehicles/");
         } catch (Exception e) {
             return false;
         }
@@ -149,13 +126,6 @@ public class OwnerVehicleMediaService {
         if (!allowedTypes.contains(normalizedType)) {
             throw new AppException(ErrorCode.FILE_UPLOAD_INVALID);
         }
-    }
-
-    private static boolean isPdfContentType(String contentType) {
-        if (contentType == null) {
-            return false;
-        }
-        return contentType.toLowerCase(Locale.ROOT).contains("pdf");
     }
 
     private void validateMagicBytes(MultipartFile file, String normalizedType) {

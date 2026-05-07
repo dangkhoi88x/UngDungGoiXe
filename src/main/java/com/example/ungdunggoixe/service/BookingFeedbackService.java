@@ -45,9 +45,6 @@ public class BookingFeedbackService {
     private final VehicleRepository vehicleRepository;
     private final MediaService mediaService;
 
-    @Value("${cloudinary.cloud-name:}")
-    private String cloudinaryCloudName;
-
     @Value("${app.owner-vehicle-upload.max-file-size-bytes:6291456}")
     private long maxFeedbackPhotoBytes;
 
@@ -60,7 +57,7 @@ public class BookingFeedbackService {
     }
 
     /**
-     * Upload một ảnh đánh giá (Cloudinary, folder {@code bookings/{bookingId}/feedback}).
+     * Upload một ảnh đánh giá (S3, folder {@code bookings/{bookingId}/feedback}).
      * Chỉ trước khi gửi feedback; booking phải COMPLETED và chưa có feedback.
      */
     @Transactional(readOnly = true)
@@ -68,7 +65,7 @@ public class BookingFeedbackService {
         Booking booking = requireBookingReadyForPhotoUpload(bookingId, renterUserId);
         validateFeedbackPhotoFile(file);
         try {
-            String url = mediaService.upload(file, "bookings/" + booking.getId() + "/feedback");
+            String url = mediaService.uploadToS3AndGetUrl(file, "bookings/" + booking.getId() + "/feedback");
             if (url == null || url.isBlank()) {
                 throw new AppException(ErrorCode.INTERNAL_ERROR);
             }
@@ -187,7 +184,7 @@ public class BookingFeedbackService {
     }
 
     /**
-     * Chỉ chấp nhận URL Cloudinary của đúng cloud và folder feedback của booking này.
+     * Chỉ chấp nhận URL S3 của hệ thống và folder feedback của booking này.
      */
     private boolean isAllowedFeedbackPhotoUrl(String url, Long bookingId) {
         try {
@@ -195,17 +192,15 @@ public class BookingFeedbackService {
             if (!"https".equalsIgnoreCase(u.getScheme())) {
                 return false;
             }
-            if (!"res.cloudinary.com".equalsIgnoreCase(u.getHost())) {
+            String path = u.getPath();
+            if (path == null) {
                 return false;
             }
-            if (cloudinaryCloudName != null && !cloudinaryCloudName.isBlank()) {
-                String path = u.getPath();
-                if (path == null || !path.startsWith("/" + cloudinaryCloudName + "/")) {
-                    return false;
-                }
-            }
             String marker = "/bookings/" + bookingId + "/feedback";
-            return u.getPath() != null && u.getPath().contains(marker);
+            if (!path.contains(marker)) {
+                return false;
+            }
+            return mediaService.isOurS3Url(url);
         } catch (Exception e) {
             return false;
         }
