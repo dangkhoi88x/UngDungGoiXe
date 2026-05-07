@@ -230,7 +230,7 @@ public class VehicleService {
     }
 
     /**
-     * Upload ảnh xe lên Cloudinary và append URL vào {@link Vehicle#getPhotos()}.
+     * Upload ảnh xe lên AWS S3 và append URL vào {@link Vehicle#getPhotos()}.
      * Admin / super-admin: mọi xe. Chu xe: chỉ khi có hồ sơ duyệt (owner vehicle request) gắn {@code approved_vehicle_id} = vehicleId và đúng owner.
      */
     @Transactional
@@ -245,7 +245,7 @@ public class VehicleService {
                 .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
         String url;
         try {
-            url = mediaService.upload(file, "vehicles/" + vehicleId);
+            url = mediaService.uploadVehiclePhotoToS3(file, "vehicles/" + vehicleId);
         } catch (IOException e) {
             throw new AppException(ErrorCode.INTERNAL_ERROR);
         }

@@ -1,139 +1,122 @@
 package com.example.ungdunggoixe.service;
 
-import com.cloudinary.Cloudinary;
+import com.example.ungdunggoixe.dto.response.FileResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class MediaService {
-    private final Cloudinary cloudinary;
+public class  MediaService {
+    private final S3Client s3Client;
+    @Value("${aws.s3.bucket}")
+    private String bucketName;
+    @Value("${aws.region.static}")
+    private String region;
 
-    @Value("${cloudinary.cloud-name:}")
-    private String cloudinaryCloudName;
-
-    public String upload(MultipartFile file) throws IOException {
-        return upload(file, null);
+    public FileResponse uploadFiletoS3AWS(MultipartFile file) throws IOException {
+        String key = uploadToS3(file, null);
+        return FileResponse.builder()
+                .key(key)
+                .fileName(file.getOriginalFilename())
+                .fileType(file.getContentType())
+                .fileSize(file.getSize())
+                .url(buildS3Url(key))
+                .build();
     }
 
-    /**
-     * @param folder Cloudinary folder, e.g. {@code vehicles/12} (no leading slash)
-     */
-    public String upload(MultipartFile file, String folder) throws IOException {
-        Map<String, Object> options = new HashMap<>();
-        options.put("user_filename", true);
-        options.put("unique_filename", false);
-        options.put("overwrite", true);
-        if (folder != null && !folder.isBlank()) {
-            options.put("folder", folder.trim().replaceAll("^/+", ""));
-        }
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> uploadResult =
-                cloudinary.uploader().upload(file.getBytes(), options);
-        Object url = uploadResult.get("secure_url");
-        if (url == null) {
-            url = uploadResult.get("url");
-        }
-        return url != null ? url.toString() : "";
+    public String uploadVehiclePhotoToS3(MultipartFile file, String folder) throws IOException {
+        String key = uploadToS3(file, folder);
+        return buildS3Url(key);
     }
 
-    /**
-     * Upload cho hồ sơ chủ xe: tên file duy nhất, folder cố định; PDF dùng {@code resource_type = raw}.
-     */
-    public String uploadOwnerAsset(MultipartFile file, String folder, boolean rawPdf) throws IOException {
-        Map<String, Object> options = new HashMap<>();
-        options.put("folder", folder.trim().replaceAll("^/+", ""));
-        options.put("user_filename", true);
-        options.put("unique_filename", true);
-        options.put("overwrite", false);
-        if (rawPdf) {
-            options.put("resource_type", "raw");
-        }
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> uploadResult =
-                cloudinary.uploader().upload(file.getBytes(), options);
-        Object url = uploadResult.get("secure_url");
-        if (url == null) {
-            url = uploadResult.get("url");
-        }
-        return url != null ? url.toString() : "";
+    public String uploadToS3AndGetUrl(MultipartFile file, String folder) throws IOException {
+        String key = uploadToS3(file, folder);
+        return buildS3Url(key);
     }
 
-    /**
-     * Xóa asset theo {@code secure_url} (chỉ khi host đúng và cloud name khớp cấu hình).
-     */
-    public void tryDestroyBySecureUrl(String secureUrl) {
-        if (secureUrl == null || secureUrl.isBlank() || cloudinaryCloudName.isBlank()) {
+    private String uploadToS3(MultipartFile file, String folder) throws IOException {
+        String key = generateKeyS3(file.getOriginalFilename(), folder);
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(file.getContentType())
+                .build();
+        RequestBody requestBody = RequestBody.fromInputStream(file.getInputStream(), file.getSize());
+        s3Client.putObject(request, requestBody);
+        return key;
+    }
+
+    private String buildS3Url(String key) {
+        return "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + key;
+    }
+
+    public void tryDeleteS3ByUrl(String publicUrl) {
+        String key = extractOurS3Key(publicUrl);
+        if (key == null || key.isBlank()) {
             return;
         }
         try {
-            URI uri = URI.create(secureUrl.trim().replace(" ", "%20"));
-            if (!"res.cloudinary.com".equalsIgnoreCase(uri.getHost())) {
-                return;
-            }
-            String path = uri.getPath();
-            if (path == null || !path.startsWith("/" + cloudinaryCloudName + "/")) {
-                return;
-            }
-            ParsedDestroy target = parseDestroyTarget(path);
-            if (target == null) {
-                return;
-            }
-            Map<String, Object> opts = new HashMap<>();
-            opts.put("resource_type", target.resourceType());
-            cloudinary.uploader().destroy(target.publicId(), opts);
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build());
         } catch (Exception ignored) {
             // best-effort cleanup
         }
     }
 
-    private ParsedDestroy parseDestroyTarget(String path) {
-        String[] parts = path.split("/");
-        int uploadIdx = -1;
-        for (int i = 0; i < parts.length; i++) {
-            if ("upload".equals(parts[i])) {
-                uploadIdx = i;
-                break;
-            }
-        }
-        if (uploadIdx < 2) {
-            return null;
-        }
-        String kind = parts[uploadIdx - 1];
-        if (!"image".equals(kind) && !"raw".equals(kind)) {
-            return null;
-        }
-        List<String> tail = new ArrayList<>();
-        for (int i = uploadIdx + 1; i < parts.length; i++) {
-            tail.add(parts[i]);
-        }
-        if (tail.isEmpty()) {
-            return null;
-        }
-        if (tail.get(0).matches("^v\\d+$")) {
-            tail.remove(0);
-        }
-        if (tail.isEmpty()) {
-            return null;
-        }
-        String joined = String.join("/", tail);
-        if ("raw".equals(kind)) {
-            return new ParsedDestroy(joined, "raw");
-        }
-        String withoutExt = joined.replaceFirst("\\.[^.]+$", "");
-        return new ParsedDestroy(withoutExt, "image");
+    public boolean isOurS3Url(String publicUrl) {
+        return extractOurS3Key(publicUrl) != null;
     }
 
-    private record ParsedDestroy(String publicId, String resourceType) {}
+    private String generateKeyS3(String fileName, String folder) {
+        String cleanFolder = folder == null ? "" : folder.trim().replaceAll("^/+", "").replaceAll("/+$", "");
+        String safeName = (fileName == null || fileName.isBlank()) ? "file" : fileName.trim();
+        int dotIdx = safeName.lastIndexOf('.');
+        String baseName = dotIdx > 0 ? safeName.substring(0, dotIdx) : safeName;
+        String extension = dotIdx > 0 ? safeName.substring(dotIdx) : "";
+        String generatedName = baseName + "-" + System.currentTimeMillis() + extension;
+        if (cleanFolder.isBlank()) {
+            return generatedName;
+        }
+        return cleanFolder + "/" + generatedName;
+    }
+
+    private String extractOurS3Key(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()
+                || bucketName == null || bucketName.isBlank()
+                || region == null || region.isBlank()) {
+            return null;
+        }
+        try {
+            URI uri = URI.create(publicUrl.trim().replace(" ", "%20"));
+            if (!"https".equalsIgnoreCase(uri.getScheme())) {
+                return null;
+            }
+            String expectedHost = bucketName + ".s3." + region + ".amazonaws.com";
+            if (!expectedHost.equalsIgnoreCase(uri.getHost())) {
+                return null;
+            }
+            String path = uri.getPath();
+            if (path == null || path.length() <= 1) {
+                return null;
+            }
+            return path.substring(1);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
+
+
 }

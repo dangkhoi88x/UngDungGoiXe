@@ -121,7 +121,7 @@ public class AdminBlogPostController {
         Long adminId = parseUserId(jwt);
         String url;
         try {
-            url = mediaService.upload(file, "blog-posts/" + adminId + "/covers");
+            url = mediaService.uploadToS3AndGetUrl(file, "blog-posts/" + adminId + "/covers");
         } catch (IOException e) {
             throw new AppException(ErrorCode.INTERNAL_ERROR);
         }

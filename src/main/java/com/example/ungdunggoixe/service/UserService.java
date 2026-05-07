@@ -29,10 +29,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
@@ -40,11 +42,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserService {
     private static final Set<String> USER_SORT_FIELDS = Set.of("id", "email", "firstName", "lastName");
+    private static final Set<String> USER_DOCUMENT_IMAGE_TYPES = Set.of(
+            "image/jpeg", "image/jpg", "image/png", "image/webp"
+    );
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleService roleService;
     private final LocalUserDocumentStorage localUserDocumentStorage;
+    private final MediaService mediaService;
     private final MailService mailService;
     private final I18nService i18nService;
 
@@ -148,8 +154,8 @@ public class UserService {
         if (request.getLicenseVerificationStatus() != null) {
             LicenseVerificationStatus st = request.getLicenseVerificationStatus();
             if (st == LicenseVerificationStatus.REJECTED) {
-                localUserDocumentStorage.deleteStoredFileIfPresent(user.getLicenseCardFrontImageUrl());
-                localUserDocumentStorage.deleteStoredFileIfPresent(user.getLicenseCardBackImageUrl());
+                deleteUserDocumentIfPresent(user.getLicenseCardFrontImageUrl());
+                deleteUserDocumentIfPresent(user.getLicenseCardBackImageUrl());
                 user.setIdentityNumber(null);
                 user.setLicenseNumber(null);
                 user.setLicenseCardFrontImageUrl(null);
@@ -168,7 +174,7 @@ public class UserService {
     }
 
     /**
-     * Người dùng gửi CMND/CCCD, số GPLX và ảnh hai mặt — trạng thái {@link LicenseVerificationStatus#PENDING}.
+     * Người dùng gửi CMND/CCCD, số GPLX và ảnh hai mặt lên S3 — trạng thái {@link LicenseVerificationStatus#PENDING}.
      */
     @Transactional
     public UserResponse submitMyDocuments(
@@ -192,10 +198,24 @@ public class UserService {
                 || licenseNumber == null || licenseNumber.isBlank()) {
             throw new AppException(ErrorCode.DOCUMENT_SUBMISSION_INVALID);
         }
+        validateUserDocumentImage(frontImage);
+        validateUserDocumentImage(backImage);
 
-        String frontUrl = localUserDocumentStorage.storeUserImage(userId, frontImage, "gplx-front");
-        String backUrl = localUserDocumentStorage.storeUserImage(userId, backImage, "gplx-back");
+        String folder = "users/" + userId + "/documents";
+        String frontUrl = null;
+        String backUrl = null;
+        try {
+            frontUrl = mediaService.uploadToS3AndGetUrl(frontImage, folder);
+            backUrl = mediaService.uploadToS3AndGetUrl(backImage, folder);
+        } catch (Exception e) {
+            if (frontUrl != null && mediaService.isOurS3Url(frontUrl)) {
+                mediaService.tryDeleteS3ByUrl(frontUrl);
+            }
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
+        }
 
+        deleteUserDocumentIfPresent(user.getLicenseCardFrontImageUrl());
+        deleteUserDocumentIfPresent(user.getLicenseCardBackImageUrl());
         user.setIdentityNumber(identityNumber.trim());
         user.setLicenseNumber(licenseNumber.trim());
         user.setLicenseCardFrontImageUrl(frontUrl);
@@ -205,6 +225,28 @@ public class UserService {
 
         userRepository.saveAndFlush(user);
         return UserMapper.INSTANCE.ToUserResponse(user);
+    }
+
+    private void validateUserDocumentImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new AppException(ErrorCode.DOCUMENT_SUBMISSION_INVALID);
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !USER_DOCUMENT_IMAGE_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+            throw new AppException(ErrorCode.DOCUMENT_SUBMISSION_INVALID);
+        }
+    }
+
+    private void deleteUserDocumentIfPresent(String url) {
+        if (url == null || url.isBlank()) {
+            return;
+        }
+        String t = url.trim();
+        if (mediaService.isOurS3Url(t)) {
+            mediaService.tryDeleteS3ByUrl(t);
+            return;
+        }
+        localUserDocumentStorage.deleteStoredFileIfPresent(t);
     }
 
     public UserResponse getMyInfo(){
