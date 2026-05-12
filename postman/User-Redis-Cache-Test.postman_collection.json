@@ -1,0 +1,133 @@
+{
+  "info": {
+    "name": "User Redis cache test",
+    "description": "Đăng nhập → gọi /users/my-info (cache) → cập nhật profile (evict) → gọi lại my-info.\nAdmin: GET /users/{id} (cache theo id). Kiểm Redis: redis-cli KEYS '*userInfo*' hoặc MONITOR.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" },
+    { "key": "adminAccessToken", "value": "" },
+    { "key": "userId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth — Login (user thường)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const j = pm.response.json();",
+              "if (j.data && j.data.accessToken) {",
+              "  pm.collectionVariables.set('accessToken', j.data.accessToken);",
+              "  console.log('Đã lưu accessToken vào collection variable accessToken');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"your-password\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/login"
+      }
+    },
+    {
+      "name": "2. User — GET /users/my-info (lần 1 — nạp cache)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": "{{baseUrl}}/users/my-info"
+      }
+    },
+    {
+      "name": "3. User — GET /users/my-info (lần 2 — nên đọc từ Redis cache)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": "{{baseUrl}}/users/my-info"
+      }
+    },
+    {
+      "name": "4. User — PUT /users/my-profile (xóa cache user hiện tại)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Ten\",\n  \"lastName\": \"Ho\",\n  \"phone\": \"0900000000\"\n}"
+        },
+        "url": "{{baseUrl}}/users/my-profile"
+      }
+    },
+    {
+      "name": "5. User — GET /users/my-info (sau update — nên hit DB rồi cache lại)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": "{{baseUrl}}/users/my-info"
+      }
+    },
+    {
+      "name": "6. Admin — Login (lưu adminAccessToken)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const j = pm.response.json();",
+              "if (j.data && j.data.accessToken) {",
+              "  pm.collectionVariables.set('adminAccessToken', j.data.accessToken);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin-password\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/login"
+      }
+    },
+    {
+      "name": "7. Admin — GET /users/{{userId}} (cache theo id)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+        ],
+        "url": "{{baseUrl}}/users/{{userId}}"
+      }
+    },
+    {
+      "name": "8. Admin — GET /users/{{userId}} (gọi lại — cache hit)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+        ],
+        "url": "{{baseUrl}}/users/{{userId}}"
+      }
+    }
+  ]
+}

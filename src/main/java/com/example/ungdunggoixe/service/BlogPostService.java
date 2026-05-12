@@ -2,6 +2,7 @@ package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.common.BlogPostStatus;
 import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.dto.request.AdminBlogPostUpsertRequest;
 import com.example.ungdunggoixe.dto.response.BlogPostAdminResponse;
 import com.example.ungdunggoixe.dto.response.BlogPostPublicResponse;
@@ -11,6 +12,8 @@ import com.example.ungdunggoixe.entity.BlogPost;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.repository.BlogPostRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +40,14 @@ public class BlogPostService {
 
     private final BlogPostRepository blogPostRepository;
 
+    /** Slug key for {@code @Cacheable}; mirrors {@link #getPublishedBySlug(String)} normalization. */
+    public static String toPublishedSlugCacheKey(String rawSlug) {
+        if (rawSlug == null || rawSlug.isBlank()) {
+            return "";
+        }
+        return normalizeSlugInput(rawSlug);
+    }
+
     @Transactional(readOnly = true)
     public PagedBlogPostResponse listPublished(String keyword, int page, int size, String sortBy, String sortDir) {
         Pageable pageable = buildPageable(page, size, sortBy, sortDir, PUBLIC_SORT_FIELDS, "publishedAt");
@@ -46,6 +57,11 @@ public class BlogPostService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = RedisConfiguration.BLOG_INFO_CACHE,
+            key = "T(com.example.ungdunggoixe.service.BlogPostService).toPublishedSlugCacheKey(#rawSlug)",
+            condition = "#rawSlug != null && !#rawSlug.isBlank()"
+    )
     public BlogPostPublicResponse getPublishedBySlug(String rawSlug) {
         String slug = requireSlug(rawSlug);
         BlogPost post = blogPostRepository
@@ -78,6 +94,7 @@ public class BlogPostService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = RedisConfiguration.BLOG_INFO_CACHE, allEntries = true)
     public BlogPostAdminResponse create(AdminBlogPostUpsertRequest request, Long authorAdminId) {
         validateUpsert(request, true);
         String title = request.getTitle().trim();
@@ -109,6 +126,7 @@ public class BlogPostService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = RedisConfiguration.BLOG_INFO_CACHE, allEntries = true)
     public BlogPostAdminResponse update(Long id, AdminBlogPostUpsertRequest request) {
         BlogPost post = blogPostRepository
                 .findById(id)
@@ -153,6 +171,7 @@ public class BlogPostService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = RedisConfiguration.BLOG_INFO_CACHE, allEntries = true)
     public BlogPostAdminResponse publish(Long id) {
         BlogPost post = blogPostRepository
                 .findById(id)
@@ -167,6 +186,7 @@ public class BlogPostService {
 
     /** Soft-delete: move to ARCHIVED so slug stays reserved. */
     @Transactional
+    @CacheEvict(cacheNames = RedisConfiguration.BLOG_INFO_CACHE, allEntries = true)
     public void delete(Long id) {
         BlogPost post = blogPostRepository
                 .findById(id)

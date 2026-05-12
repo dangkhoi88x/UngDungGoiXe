@@ -6,6 +6,7 @@ import com.example.ungdunggoixe.common.FuelType;
 import com.example.ungdunggoixe.common.OwnerVehicleRequestStatus;
 import com.example.ungdunggoixe.common.VehiclePolicyTerm;
 import com.example.ungdunggoixe.common.VehicleStatus;
+import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
 import com.example.ungdunggoixe.dto.response.CreateVehicleResponse;
@@ -20,6 +21,9 @@ import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +43,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@CacheConfig(cacheNames = RedisConfiguration.VEHICLE_INFO_CACHE)
 public class VehicleService {
     private static final Set<String> VEHICLE_SORT_FIELDS = Set.of(
             "id", "licensePlate", "name", "brand", "status", "fuelType", "capacity", "rentCount",
@@ -173,6 +178,7 @@ public class VehicleService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(key = "#id.toString()")
     public CreateVehicleResponse getVehicleById(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
@@ -191,6 +197,7 @@ public class VehicleService {
     }
 
     @Transactional
+    @CacheEvict(key = "#id.toString()")
     public CreateVehicleResponse updateVehicle(Long id, UpdateVehicleRequest request) {
         if (request == null) {
             throw new AppException(ErrorCode.INTERNAL_ERROR);
@@ -222,6 +229,7 @@ public class VehicleService {
     }
 
     @Transactional
+    @CacheEvict(key = "#id.toString()")
     public String deleteVehicle(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
@@ -234,6 +242,7 @@ public class VehicleService {
      * Admin / super-admin: mọi xe. Chu xe: chỉ khi có hồ sơ duyệt (owner vehicle request) gắn {@code approved_vehicle_id} = vehicleId và đúng owner.
      */
     @Transactional
+    @CacheEvict(key = "#vehicleId.toString()")
     public String addVehiclePhoto(Long vehicleId, MultipartFile file, Long userId, List<String> jwtRoleAuthorities) {
         validateVehiclePhoto(file);
         boolean allowed = isAdminRole(jwtRoleAuthorities)

@@ -1,8 +1,10 @@
 package com.example.ungdunggoixe.service;
 
+import com.example.ungdunggoixe.cache.UserCacheExpressions;
 import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.example.ungdunggoixe.common.RoleName;
+import com.example.ungdunggoixe.configuration.RedisConfiguration;
 
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 
@@ -17,6 +19,9 @@ import com.example.ungdunggoixe.dto.response.PagedUserResponse;
 import com.example.ungdunggoixe.mapper.UserMapper;
 import com.example.ungdunggoixe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +45,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@CacheConfig(cacheNames = RedisConfiguration.USER_INFO_CACHE)
 public class UserService {
     private static final Set<String> USER_SORT_FIELDS = Set.of("id", "email", "firstName", "lastName");
     private static final Set<String> USER_DOCUMENT_IMAGE_TYPES = Set.of(
@@ -80,11 +86,14 @@ public class UserService {
         return UserMapper.INSTANCE.ToCreateUserResponse(user);
 }
 
+    @Cacheable(key = "#id.toString()")
     public UserResponse getUserbyID(Long id){
         return userRepository.findById(id)
                 .map(UserMapper.INSTANCE::ToUserResponse)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
+
+    @CacheEvict(key = "#id.toString()")
     public String deleteUserbyID(Long id){
         if(!userRepository.existsById(id)){
             throw new AppException(ErrorCode.USER_NOT_FOUND);
@@ -118,6 +127,7 @@ public class UserService {
                 .build();
     }
 
+    @CacheEvict(key = "#id.toString()")
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
         User user = userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -177,6 +187,7 @@ public class UserService {
      * Người dùng gửi CMND/CCCD, số GPLX và ảnh hai mặt lên S3 — trạng thái {@link LicenseVerificationStatus#PENDING}.
      */
     @Transactional
+    @CacheEvict(key = UserCacheExpressions.CURRENT_PRINCIPAL_NAME)
     public UserResponse submitMyDocuments(
             String identityNumber,
             String licenseNumber,
@@ -249,6 +260,7 @@ public class UserService {
         localUserDocumentStorage.deleteStoredFileIfPresent(t);
     }
 
+    @Cacheable(key = UserCacheExpressions.CURRENT_PRINCIPAL_NAME)
     public UserResponse getMyInfo(){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if(authentication == null)
@@ -259,6 +271,7 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(key = UserCacheExpressions.CURRENT_PRINCIPAL_NAME)
     public UserResponse updateMyProfile(UpdateMyProfileRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {

@@ -3,6 +3,7 @@ package com.example.ungdunggoixe.service;
 import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.common.OwnerVehicleRequestStatus;
 import com.example.ungdunggoixe.common.VehicleStatus;
+import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.dto.request.CreateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
@@ -22,6 +23,8 @@ import com.example.ungdunggoixe.repository.UserRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -46,12 +49,23 @@ public class OwnerVehicleRequestService {
     private final VehicleRepository vehicleRepository;
     private final OwnerVehicleMediaService ownerVehicleMediaService;
     private final MailService mailService;
+    private final CacheManager cacheManager;
     @Value("${app.web-base-url:http://localhost:5173}")
     private String webBaseUrl;
     private static final int MAX_PHOTOS_PER_REQUEST = 20;
 
     private static String normalizePlate(String raw) {
         return raw == null ? "" : raw.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private void evictVehicleInfoCache(Long vehicleId) {
+        if (vehicleId == null) {
+            return;
+        }
+        Cache cache = cacheManager.getCache(RedisConfiguration.VEHICLE_INFO_CACHE);
+        if (cache != null) {
+            cache.evict(vehicleId.toString());
+        }
     }
 
     private static final class ActorSnapshot {
@@ -561,6 +575,7 @@ public class OwnerVehicleRequestService {
                 adminNote
         );
         OwnerVehicleRequest saved = ownerVehicleRequestRepository.save(req);
+        evictVehicleInfoCache(savedVehicle.getId());
         sendOwnerRequestReviewEmail(saved, OwnerVehicleRequestStatus.APPROVED, adminNote);
         return OwnerVehicleRequestMapper.INSTANCE.toResponse(saved);
     }
