@@ -7,7 +7,7 @@ import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.CreateVehicleResponse;
 import com.example.ungdunggoixe.dto.response.PageResponse;
-import com.example.ungdunggoixe.dto.response.PagedVehiclePublicFeedbackResponse;
+import com.example.ungdunggoixe.dto.response.VehiclePublicFeedbackRowResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.VehiclePublicFeedbackService;
 import com.example.ungdunggoixe.service.VehicleService;
@@ -116,7 +116,7 @@ public class VehicleController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lay danh gia thanh cong"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay xe")
     })
-    public ApiResponse<PagedVehiclePublicFeedbackResponse> getPublicFeedbackForVehicle(
+    public ApiResponse<PageResponse<VehiclePublicFeedbackRowResponse>> getPublicFeedbackForVehicle(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
@@ -124,9 +124,9 @@ public class VehicleController {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), MAX_PUBLIC_FEEDBACK_PAGE_SIZE);
         var pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
-        PagedVehiclePublicFeedbackResponse result =
+        PageResponse<VehiclePublicFeedbackRowResponse> result =
                 vehiclePublicFeedbackService.listForVehicle(id, pageable);
-        return ApiResponse.<PagedVehiclePublicFeedbackResponse>builder()
+        return ApiResponse.<PageResponse<VehiclePublicFeedbackRowResponse>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.vehicle.public_feedback.success"))
                 .data(result)

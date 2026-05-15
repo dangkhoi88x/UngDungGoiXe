@@ -1,7 +1,7 @@
 package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.dto.response.AdminBookingFeedbackRowResponse;
-import com.example.ungdunggoixe.dto.response.PagedAdminBookingFeedbackResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.entity.Booking;
 import com.example.ungdunggoixe.entity.Feedback;
 import com.example.ungdunggoixe.entity.User;
@@ -27,7 +27,7 @@ public class AdminBookingFeedbackService {
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("createdAt", "vehicleRating", "id");
 
     @Transactional(readOnly = true)
-    public PagedAdminBookingFeedbackResponse list(
+    public PageResponse<AdminBookingFeedbackRowResponse> list(
             int page,
             int size,
             String sortBy,
@@ -50,7 +50,7 @@ public class AdminBookingFeedbackService {
         List<AdminBookingFeedbackRowResponse> rows = pageData.getContent().stream()
                 .map(this::toRow)
                 .toList();
-        return PagedAdminBookingFeedbackResponse.builder()
+        return PageResponse.<AdminBookingFeedbackRowResponse>builder()
                 .content(rows)
                 .totalElements(pageData.getTotalElements())
                 .totalPages(pageData.getTotalPages())
