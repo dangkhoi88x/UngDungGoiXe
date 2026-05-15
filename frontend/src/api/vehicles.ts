@@ -105,13 +105,15 @@ function parseNum(v: string | number | null | undefined): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-export type PagedVehiclesResponse = {
-  content: VehicleDto[]
+export type PageResponse<T> = {
+  content: T[]
   totalElements: number
   totalPages: number
   page: number
   size: number
 }
+
+export type PagedVehiclesResponse = PageResponse<VehicleDto>
 
 /** Admin: phân trang + sort + lọc (JWT). */
 export async function fetchVehiclesPage(params: {

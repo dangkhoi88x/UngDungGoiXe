@@ -52,13 +52,15 @@ export type UserProfileDto = UserDto & {
   verifiedAt?: string | null
 }
 
-export type PagedUsersResponse = {
-  content: UserDto[]
+export type PageResponse<T> = {
+  content: T[]
   totalElements: number
   totalPages: number
   page: number
   size: number
 }
+
+export type PagedUsersResponse = PageResponse<UserDto>
 
 /** PUT /users/my-profile — null = không gửi trường đó (giữ nguyên trên server). */
 export type UpdateMyProfilePayload = {
@@ -93,12 +95,20 @@ export async function fetchUsersPage(params: {
   size?: number
   sortBy?: string
   sortDir?: 'asc' | 'desc'
+  licenseVerificationStatus?: LicenseVerificationStatus
+  keyword?: string
 }): Promise<PagedUsersResponse> {
   const q = new URLSearchParams()
   q.set('page', String(params.page ?? 0))
   q.set('size', String(params.size ?? 10))
   q.set('sortBy', params.sortBy ?? 'id')
   q.set('sortDir', params.sortDir ?? 'desc')
+  if (params.licenseVerificationStatus) {
+    q.set('licenseVerificationStatus', params.licenseVerificationStatus)
+  }
+  if (params.keyword != null && params.keyword.trim() !== '') {
+    q.set('keyword', params.keyword.trim())
+  }
   const res = await authFetch(`${API_BASE}/users/paged?${q}`)
   if (!res.ok) {
     throw new Error(await parseApiError(res))

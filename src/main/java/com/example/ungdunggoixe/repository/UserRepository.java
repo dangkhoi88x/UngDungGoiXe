@@ -1,10 +1,12 @@
 package com.example.ungdunggoixe.repository;
 
 import com.example.ungdunggoixe.entity.User;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,7 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
     boolean existsByEmail(String email);
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.email = :email AND u.id <> :id")
@@ -28,6 +30,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
     @Override
     Page<User> findAll(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
+    @Override
+    Page<User> findAll(Specification<User> spec, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
+    @Override
+    java.util.List<User> findAll(Specification<User> spec);
 
     long countByCreatedAtGreaterThanEqual(java.time.LocalDateTime from);
 }

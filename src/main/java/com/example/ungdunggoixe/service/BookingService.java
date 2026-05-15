@@ -8,7 +8,7 @@ import com.example.ungdunggoixe.common.VehicleStatus;
 import com.example.ungdunggoixe.dto.request.CreateBookingRequest;
 import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
-import com.example.ungdunggoixe.dto.response.PagedBookingResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.entity.Booking;
 import com.example.ungdunggoixe.entity.Payment;
 import com.example.ungdunggoixe.entity.Station;
@@ -319,7 +319,7 @@ public class BookingService {
     }
 
     @Transactional(readOnly = true)
-    public PagedBookingResponse getBookingsPaged(
+    public PageResponse<BookingResponse> getBookingsPaged(
             Long renterId,
             Long stationId,
             Long vehicleId,
@@ -356,7 +356,7 @@ public class BookingService {
         Page<Booking> result = bookingRepository.findAll(spec, pageable);
 
         Page<BookingResponse> mapped = result.map(BookingMapper.INSTANCE::toBookingResponse);
-        return PagedBookingResponse.builder()
+        return PageResponse.<BookingResponse>builder()
                 .content(mapped.getContent())
                 .totalElements(mapped.getTotalElements())
                 .totalPages(mapped.getTotalPages())

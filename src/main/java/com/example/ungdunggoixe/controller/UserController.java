@@ -1,13 +1,14 @@
 package com.example.ungdunggoixe.controller;
 
 
+import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 
 import com.example.ungdunggoixe.dto.request.UpdateMyProfileRequest;
 import com.example.ungdunggoixe.dto.request.UpdateUserRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.CreateUserResponse;
-import com.example.ungdunggoixe.dto.response.PagedUserResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.UserService;
@@ -114,13 +115,22 @@ public class UserController {
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @GetMapping("/paged")
-    public ApiResponse<PagedUserResponse> getUsersPage(
+    public ApiResponse<PageResponse<UserResponse>> getUsersPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-        PagedUserResponse result = userService.getUsersPaged(page, size, sortBy, sortDir);
-        return ApiResponse.<PagedUserResponse>builder()
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) LicenseVerificationStatus licenseVerificationStatus,
+            @RequestParam(required = false) String keyword) {
+        PageResponse<UserResponse> result = userService.getUsersPaged(
+                page,
+                size,
+                sortBy,
+                sortDir,
+                licenseVerificationStatus,
+                keyword
+        );
+        return ApiResponse.<PageResponse<UserResponse>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.user.page.success"))
                 .data(result)

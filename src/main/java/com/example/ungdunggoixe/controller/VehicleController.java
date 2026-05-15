@@ -6,8 +6,8 @@ import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.CreateVehicleResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.dto.response.PagedVehiclePublicFeedbackResponse;
-import com.example.ungdunggoixe.dto.response.PagedVehicleResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.VehiclePublicFeedbackService;
 import com.example.ungdunggoixe.service.VehicleService;
@@ -60,7 +60,7 @@ public class VehicleController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Khong du quyen")
     })
-    public ApiResponse<PagedVehicleResponse> getVehiclesPaged(
+    public ApiResponse<PageResponse<CreateVehicleResponse>> getVehiclesPaged(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -69,9 +69,9 @@ public class VehicleController {
             @RequestParam(required = false) VehicleStatus status,
             @RequestParam(required = false) FuelType fuelType,
             @RequestParam(required = false) String keyword) {
-        PagedVehicleResponse result = vehicleService.getVehiclesPaged(
+        PageResponse<CreateVehicleResponse> result = vehicleService.getVehiclesPaged(
                 page, size, sortBy, sortDir, stationId, status, fuelType, keyword);
-        return ApiResponse.<PagedVehicleResponse>builder()
+        return ApiResponse.<PageResponse<CreateVehicleResponse>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.vehicle.page.success"))
                 .data(result)

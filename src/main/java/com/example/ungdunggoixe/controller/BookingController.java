@@ -10,7 +10,7 @@ import com.example.ungdunggoixe.dto.request.SubmitBookingVehicleFeedbackRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
 import com.example.ungdunggoixe.dto.response.BookingVehicleFeedbackResponse;
-import com.example.ungdunggoixe.dto.response.PagedBookingResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.service.BookingFeedbackService;
 import com.example.ungdunggoixe.service.BookingService;
@@ -108,7 +108,7 @@ public class BookingController {
     }
 
     @GetMapping("/paged")
-    public ApiResponse<PagedBookingResponse> getBookingsPaged(
+    public ApiResponse<PageResponse<BookingResponse>> getBookingsPaged(
             @RequestParam(required = false) Long renterId,
             @RequestParam(required = false) Long stationId,
             @RequestParam(required = false) Long vehicleId,
@@ -123,7 +123,7 @@ public class BookingController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
-        PagedBookingResponse result = bookingService.getBookingsPaged(
+        PageResponse<BookingResponse> result = bookingService.getBookingsPaged(
                 renterId,
                 stationId,
                 vehicleId,
@@ -139,7 +139,7 @@ public class BookingController {
                 sortBy,
                 sortDir
         );
-        return ApiResponse.<PagedBookingResponse>builder()
+        return ApiResponse.<PageResponse<BookingResponse>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.booking.page.success"))
                 .data(result)

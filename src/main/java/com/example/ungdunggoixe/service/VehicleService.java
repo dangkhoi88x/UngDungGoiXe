@@ -10,7 +10,7 @@ import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
 import com.example.ungdunggoixe.dto.response.CreateVehicleResponse;
-import com.example.ungdunggoixe.dto.response.PagedVehicleResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.entity.OwnerVehicleRequest;
 import com.example.ungdunggoixe.entity.Station;
 import com.example.ungdunggoixe.entity.Vehicle;
@@ -19,6 +19,7 @@ import com.example.ungdunggoixe.mapper.VehicleMapper;
 import com.example.ungdunggoixe.repository.OwnerVehicleRequestRepository;
 import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
+import com.example.ungdunggoixe.repository.specification.VehicleSpecs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
@@ -28,6 +29,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,6 +81,27 @@ public class VehicleService {
             return "station.id";
         }
         return sortBy;
+    }
+
+    private static Specification<Vehicle> buildVehicleSpec(
+            Long stationId,
+            VehicleStatus status,
+            FuelType fuelType,
+            String brand,
+            Integer minCapacity,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            String keyword
+    ) {
+        Long normalizedStationId = stationId != null && stationId > 0 ? stationId : null;
+        return Specification.where(VehicleSpecs.stationIdEquals(normalizedStationId))
+                .and(VehicleSpecs.statusEquals(status))
+                .and(VehicleSpecs.fuelTypeEquals(fuelType))
+                .and(VehicleSpecs.brandContains(brand))
+                .and(VehicleSpecs.minCapacity(minCapacity))
+                .and(VehicleSpecs.minPrice(minPrice))
+                .and(VehicleSpecs.maxPrice(maxPrice))
+                .and(VehicleSpecs.keywordContains(keyword));
     }
 
     @Transactional
@@ -139,15 +162,28 @@ public class VehicleService {
             BigDecimal minPrice,
             BigDecimal maxPrice
     ) {
-        return vehicleRepository.searchVehicles(
-                stationId, status, fuelType, brand, minCapacity, minPrice, maxPrice
-        ).stream()
+        Specification<Vehicle> spec = buildVehicleSpec(
+                stationId,
+                status,
+                fuelType,
+                brand,
+                minCapacity,
+                minPrice,
+                maxPrice,
+                null
+        );
+        Sort sort = Sort.by(
+                Sort.Order.desc("rating"),
+                Sort.Order.desc("rentCount"),
+                Sort.Order.desc("id")
+        );
+        return vehicleRepository.findAll(spec, sort).stream()
                 .map(VehicleMapper.INSTANCE::toCreateVehicleResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public PagedVehicleResponse getVehiclesPaged(
+    public PageResponse<CreateVehicleResponse> getVehiclesPaged(
             int page,
             int size,
             String sortBy,
@@ -162,13 +198,19 @@ public class VehicleService {
         int safeSize = Math.min(Math.max(size, 1), 100);
         int safePage = Math.max(page, 0);
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, property));
-
-        Long sid = stationId != null && stationId > 0 ? stationId : null;
-        String kw = keyword != null ? keyword : "";
-
-        Page<Vehicle> result = vehicleRepository.findAdminPage(sid, status, fuelType, kw, pageable);
+        Specification<Vehicle> spec = buildVehicleSpec(
+                stationId,
+                status,
+                fuelType,
+                null,
+                null,
+                null,
+                null,
+                keyword
+        );
+        Page<Vehicle> result = vehicleRepository.findAll(spec, pageable);
         Page<CreateVehicleResponse> mapped = result.map(VehicleMapper.INSTANCE::toCreateVehicleResponse);
-        return PagedVehicleResponse.builder()
+        return PageResponse.<CreateVehicleResponse>builder()
                 .content(mapped.getContent())
                 .totalElements(mapped.getTotalElements())
                 .totalPages(mapped.getTotalPages())

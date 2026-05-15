@@ -5,7 +5,7 @@ import com.example.ungdunggoixe.dto.request.UpdateStationRequest;
 import com.example.ungdunggoixe.common.StationStatus;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.CreateStationResponse;
-import com.example.ungdunggoixe.dto.response.PagedStationResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.dto.response.StationResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.StationService;
@@ -50,16 +50,16 @@ public class StationController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Khong du quyen")
     })
-    public ApiResponse<PagedStationResponse> getStationsPaged(
+    public ApiResponse<PageResponse<StationResponse>> getStationsPaged(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) StationStatus status,
             @RequestParam(required = false) String keyword) {
-        PagedStationResponse result = stationService.getStationsPaged(
+        PageResponse<StationResponse> result = stationService.getStationsPaged(
                 page, size, sortBy, sortDir, status, keyword);
-        return ApiResponse.<PagedStationResponse>builder()
+        return ApiResponse.<PageResponse<StationResponse>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.station.page.success"))
                 .data(result)

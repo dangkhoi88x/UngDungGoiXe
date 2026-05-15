@@ -30,13 +30,15 @@ export type BookingDto = {
   updatedAt: string | null
 }
 
-export type PagedBookingsResponse = {
-  content: BookingDto[]
+export type PageResponse<T> = {
+  content: T[]
   totalElements: number
   totalPages: number
   page: number
   size: number
 }
+
+export type PagedBookingsResponse = PageResponse<BookingDto>
 
 export type BookingCreatePayload = {
   renterId: number
