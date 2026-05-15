@@ -28,6 +28,18 @@ const SORT_OPTIONS = [
   { value: 'email', label: 'Email' },
   { value: 'firstName', label: 'Tên' },
   { value: 'lastName', label: 'Họ' },
+  { value: 'licenseVerificationStatus', label: 'GPLX' },
+  { value: 'verifiedAt', label: 'Ngày duyệt GPLX' },
+  { value: 'updatedAt', label: 'Cập nhật' },
+  { value: 'createdAt', label: 'Ngày tạo' },
+] as const
+
+const LICENSE_FILTERS: Array<'' | LicenseVerificationStatus> = [
+  '',
+  'NOT_SUBMITTED',
+  'PENDING',
+  'APPROVED',
+  'REJECTED',
 ] as const
 
 type FormCreate = {
@@ -77,6 +89,7 @@ function initialUserTableState() {
     sortBy: 'id',
     sortDir: 'desc' as 'asc' | 'desc',
     searchQuery: '',
+    filterLicenseStatus: '',
   })
   return {
     page: Math.max(
@@ -87,6 +100,8 @@ function initialUserTableState() {
     sortBy: typeof d.sortBy === 'string' && d.sortBy ? d.sortBy : 'id',
     sortDir: d.sortDir === 'asc' ? ('asc' as const) : ('desc' as const),
     searchQuery: typeof d.searchQuery === 'string' ? d.searchQuery : '',
+    filterLicenseStatus:
+      typeof d.filterLicenseStatus === 'string' ? d.filterLicenseStatus : '',
   }
 }
 
@@ -97,6 +112,9 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
   const [sortBy, setSortBy] = useState<string>(initialTable.sortBy)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>(initialTable.sortDir)
   const [searchQuery, setSearchQuery] = useState(initialTable.searchQuery)
+  const [filterLicenseStatus, setFilterLicenseStatus] = useState<
+    '' | LicenseVerificationStatus
+  >(initialTable.filterLicenseStatus as '' | LicenseVerificationStatus)
   const [data, setData] = useState<PagedUsersResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -124,7 +142,14 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
     setError(null)
     setLoading(true)
     try {
-      const res = await fetchUsersPage({ page, size, sortBy, sortDir })
+      const res = await fetchUsersPage({
+        page,
+        size,
+        sortBy,
+        sortDir,
+        keyword: searchQuery.trim() || undefined,
+        licenseVerificationStatus: filterLicenseStatus || undefined,
+      })
       setData(res)
       if (res.totalPages > 0 && page >= res.totalPages) {
         setPage(Math.max(0, res.totalPages - 1))
@@ -137,7 +162,7 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [page, size, sortBy, sortDir])
+  }, [page, size, sortBy, sortDir, searchQuery, filterLicenseStatus])
 
   useEffect(() => {
     void load()
@@ -150,8 +175,13 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
       sortBy,
       sortDir,
       searchQuery,
+      filterLicenseStatus,
     })
-  }, [page, size, sortBy, sortDir, searchQuery])
+  }, [page, size, sortBy, sortDir, searchQuery, filterLicenseStatus])
+
+  useEffect(() => {
+    setPage(0)
+  }, [searchQuery, filterLicenseStatus])
 
   const openCreate = () => {
     setToast(null)
@@ -271,22 +301,6 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
   const totalPages = data?.totalPages ?? 0
   const totalElements = data?.totalElements ?? 0
 
-  const filteredRows = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return content
-    return content.filter((u) => {
-      const name = userDisplayName(u).toLowerCase()
-      const email = (u.email || '').toLowerCase()
-      const idStr = String(u.id)
-      return (
-        name.includes(q) ||
-        email.includes(q) ||
-        idStr.includes(q) ||
-        (u.roles ?? []).some((r) => r.toLowerCase().includes(q))
-      )
-    })
-  }, [content, searchQuery])
-
   useEscapeToClose(modal !== null, closeModal, !saving)
   useEscapeToClose(
     deleteId != null,
@@ -322,7 +336,7 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
       <div className="adm-users__filters">
         <div className="adm-users__search-field">
           <label className="adm-users__filter-label" htmlFor="adm-users-search">
-            Tìm trên trang này
+            Từ khóa
           </label>
           <input
             id="adm-users-search"
@@ -334,6 +348,20 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
             autoComplete="off"
           />
         </div>
+        <label>
+          <span className="adm-users__filter-label">GPLX</span>
+          <select
+            value={filterLicenseStatus}
+            onChange={(e) => setFilterLicenseStatus(e.target.value as '' | LicenseVerificationStatus)}
+          >
+            <option value="">Tất cả</option>
+            {LICENSE_FILTERS.filter((status): status is LicenseVerificationStatus => status !== '').map((status) => (
+              <option key={status} value={status}>
+                {licenseVerificationLabel(status)}
+              </option>
+            ))}
+          </select>
+        </label>
         <label>
           <span className="adm-users__filter-label">Sắp xếp</span>
           <select
@@ -399,13 +427,7 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
         <p className="adm-veh__empty">Không có người dùng trên trang này.</p>
       ) : null}
 
-      {!loading && content.length > 0 && filteredRows.length === 0 ? (
-        <p className="adm-veh__empty">
-          Không có dòng nào khớp tìm kiếm. Đổi từ khóa hoặc chuyển trang.
-        </p>
-      ) : null}
-
-      {filteredRows.length > 0 ? (
+      {content.length > 0 ? (
         <>
           <div className="adm-veh__scroll">
             <table className="adm-veh__table">
@@ -420,7 +442,7 @@ export default function AdminUsersSection({ refreshKey = 0 }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((u) => (
+                {content.map((u) => (
                   <tr key={u.id}>
                     <td className="adm-veh__mono">{u.id}</td>
                     <td>{userDisplayName(u)}</td>

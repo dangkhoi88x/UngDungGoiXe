@@ -11,13 +11,14 @@ import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 import com.example.ungdunggoixe.dto.request.UpdateMyProfileRequest;
 import com.example.ungdunggoixe.dto.request.UpdateUserRequest;
 import com.example.ungdunggoixe.dto.response.CreateUserResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
 import com.example.ungdunggoixe.entity.Role;
 import com.example.ungdunggoixe.entity.User;
 import com.example.ungdunggoixe.exception.AppException;
-import com.example.ungdunggoixe.dto.response.PagedUserResponse;
 import com.example.ungdunggoixe.mapper.UserMapper;
 import com.example.ungdunggoixe.repository.UserRepository;
+import com.example.ungdunggoixe.repository.specification.UserSpecs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
@@ -26,6 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -47,7 +49,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @CacheConfig(cacheNames = RedisConfiguration.USER_INFO_CACHE)
 public class UserService {
-    private static final Set<String> USER_SORT_FIELDS = Set.of("id", "email", "firstName", "lastName");
+    private static final Set<String> USER_SORT_FIELDS = Set.of(
+            "id", "email", "firstName", "lastName", "licenseVerificationStatus", "verifiedAt", "updatedAt", "createdAt"
+    );
     private static final Set<String> USER_DOCUMENT_IMAGE_TYPES = Set.of(
             "image/jpeg", "image/jpg", "image/png", "image/webp"
     );
@@ -59,6 +63,22 @@ public class UserService {
     private final MediaService mediaService;
     private final MailService mailService;
     private final I18nService i18nService;
+
+    private static String mapUserSortProperty(String sortBy) {
+        if (sortBy == null || sortBy.isBlank() || !USER_SORT_FIELDS.contains(sortBy)) {
+            return "id";
+        }
+        return sortBy;
+    }
+
+    private static Specification<User> buildUserSpec(
+            LicenseVerificationStatus licenseVerificationStatus,
+            String keyword
+    ) {
+        return UserSpecs.alwaysTrue()
+                .and(UserSpecs.licenseVerificationStatusEquals(licenseVerificationStatus))
+                .and(UserSpecs.keywordContains(keyword));
+    }
 
 
     public CreateUserResponse createUser(CreateUserRequest request){
@@ -110,15 +130,23 @@ public class UserService {
                 .toList();
     }
 
-    public PagedUserResponse getUsersPaged(int page, int size, String sortBy, String sortDir) {
-        String field = USER_SORT_FIELDS.contains(sortBy) ? sortBy : "id";
+    public PageResponse<UserResponse> getUsersPaged(
+            int page,
+            int size,
+            String sortBy,
+            String sortDir,
+            LicenseVerificationStatus licenseVerificationStatus,
+            String keyword
+    ) {
+        String field = mapUserSortProperty(sortBy);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
         int safeSize = Math.min(Math.max(size, 1), 100);
         int safePage = Math.max(page, 0);
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, field));
-        Page<User> result = userRepository.findAll(pageable);
+        Specification<User> spec = buildUserSpec(licenseVerificationStatus, keyword);
+        Page<User> result = userRepository.findAll(spec, pageable);
         Page<UserResponse> mapped = result.map(UserMapper.INSTANCE::ToUserResponse);
-        return PagedUserResponse.builder()
+        return PageResponse.<UserResponse>builder()
                 .content(mapped.getContent())
                 .totalElements(mapped.getTotalElements())
                 .totalPages(mapped.getTotalPages())

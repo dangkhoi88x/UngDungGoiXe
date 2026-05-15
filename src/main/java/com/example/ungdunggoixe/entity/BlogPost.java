@@ -3,6 +3,7 @@ package com.example.ungdunggoixe.entity;
 import com.example.ungdunggoixe.common.BlogPostStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -19,12 +20,8 @@ import java.time.Instant;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class BlogPost {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class BlogPost extends BaseEntity {
 
     @Column(nullable = false, unique = true, length = 220)
     private String slug;

@@ -5,14 +5,16 @@ import com.example.ungdunggoixe.entity.Booking;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface BookingRepository extends JpaRepository<Booking, Long> {
+public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpecificationExecutor<Booking> {
         boolean existsByBookingCode(String bookingCode);
 
         List<Booking> findByRenterId(Long renterId);
@@ -41,6 +43,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
         @Override
         Page<Booking> findAll(Pageable pageable);
+
+        @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
+        @Override
+        Page<Booking> findAll(Specification<Booking> spec, Pageable pageable);
+
+        @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
+        @Override
+        List<Booking> findAll(Specification<Booking> spec);
 
         @EntityGraph(attributePaths = {"renter", "vehicle", "station", "checkedOutBy", "checkedInBy"})
         Page<Booking> findByRenterId(Long renterId, Pageable pageable);

@@ -2,6 +2,7 @@ package com.example.ungdunggoixe.controller;
 
 import com.example.ungdunggoixe.common.BookingStatus;
 import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.common.PaymentStatus;
 import com.example.ungdunggoixe.dto.momo.CreatePaymentResponse;
 import com.example.ungdunggoixe.dto.request.CreateBookingRequest;
 import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
@@ -9,7 +10,7 @@ import com.example.ungdunggoixe.dto.request.SubmitBookingVehicleFeedbackRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
 import com.example.ungdunggoixe.dto.response.BookingVehicleFeedbackResponse;
-import com.example.ungdunggoixe.dto.response.PagedBookingResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.service.BookingFeedbackService;
 import com.example.ungdunggoixe.service.BookingService;
@@ -107,16 +108,38 @@ public class BookingController {
     }
 
     @GetMapping("/paged")
-    public ApiResponse<PagedBookingResponse> getBookingsPaged(
+    public ApiResponse<PageResponse<BookingResponse>> getBookingsPaged(
             @RequestParam(required = false) Long renterId,
             @RequestParam(required = false) Long stationId,
+            @RequestParam(required = false) Long vehicleId,
             @RequestParam(required = false) BookingStatus status,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTimeFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTimeTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAtFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAtTo,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
-        PagedBookingResponse result = bookingService.getBookingsPaged(renterId, stationId, status, page, size, sortBy, sortDir);
-        return ApiResponse.<PagedBookingResponse>builder()
+        PageResponse<BookingResponse> result = bookingService.getBookingsPaged(
+                renterId,
+                stationId,
+                vehicleId,
+                status,
+                paymentStatus,
+                startTimeFrom,
+                startTimeTo,
+                createdAtFrom,
+                createdAtTo,
+                keyword,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
+        return ApiResponse.<PageResponse<BookingResponse>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.booking.page.success"))
                 .data(result)

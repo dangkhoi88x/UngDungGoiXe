@@ -1,20 +1,17 @@
 package com.example.ungdunggoixe.dto.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Collections;
 import java.util.List;
-
 @Getter
 @Setter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class PagedBookingResponse {
-    private List<BookingResponse> content;
+public class PageResponse<T> {
+    @Builder.Default
+    private List<T> content = Collections.emptyList();
     private long totalElements;
     private int totalPages;
     private int page;

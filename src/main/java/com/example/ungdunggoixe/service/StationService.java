@@ -6,12 +6,13 @@ import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.dto.request.CreateStationRequest;
 import com.example.ungdunggoixe.dto.request.UpdateStationRequest;
 import com.example.ungdunggoixe.dto.response.CreateStationResponse;
-import com.example.ungdunggoixe.dto.response.PagedStationResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.dto.response.StationResponse;
 import com.example.ungdunggoixe.entity.Station;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.mapper.StationMapper;
 import com.example.ungdunggoixe.repository.StationRepository;
+import com.example.ungdunggoixe.repository.specification.StationSpecs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +49,12 @@ public class StationService {
             return "id";
         }
         return sortBy;
+    }
+
+    private static Specification<Station> buildStationSpec(StationStatus status, String keyword) {
+        return StationSpecs.alwaysTrue()
+                .and(StationSpecs.statusEquals(status))
+                .and(StationSpecs.keywordContains(keyword));
     }
 
     @CacheEvict(key = ALL_STATIONS_CACHE_KEY)
@@ -80,7 +88,7 @@ public class StationService {
     }
 
     @Transactional(readOnly = true)
-    public PagedStationResponse getStationsPaged(
+    public PageResponse<StationResponse> getStationsPaged(
             int page,
             int size,
             String sortBy,
@@ -94,10 +102,10 @@ public class StationService {
         int safePage = Math.max(page, 0);
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, property));
 
-        String kw = keyword != null ? keyword : "";
-        Page<Station> result = stationRepository.findAdminPage(status, kw, pageable);
+        Specification<Station> spec = buildStationSpec(status, keyword);
+        Page<Station> result = stationRepository.findAll(spec, pageable);
         Page<StationResponse> mapped = result.map(StationMapper.INSTANCE::toStationResponse);
-        return PagedStationResponse.builder()
+        return PageResponse.<StationResponse>builder()
                 .content(mapped.getContent())
                 .totalElements(mapped.getTotalElements())
                 .totalPages(mapped.getTotalPages())

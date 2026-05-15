@@ -3,12 +3,8 @@ package com.example.ungdunggoixe.entity;
 import com.example.ungdunggoixe.common.StationStatus;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "stations")
@@ -16,11 +12,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class Station {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class Station extends AuditableEntity {
     @Column(nullable = false)
     private String name;
     @Column(nullable = false)
@@ -39,10 +32,4 @@ public class Station {
     private Double latitude;
     /** Kinh độ WGS84 — nullable nếu chưa gán. */
     private Double longitude;
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
-
 }

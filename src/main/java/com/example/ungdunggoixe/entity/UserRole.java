@@ -2,6 +2,7 @@ package com.example.ungdunggoixe.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @NoArgsConstructor
@@ -9,11 +10,8 @@ import lombok.*;
 @Getter
 @AllArgsConstructor
 @Table(name="users-roles")
-@Builder
-public class UserRole {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class UserRole extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name="user_id")

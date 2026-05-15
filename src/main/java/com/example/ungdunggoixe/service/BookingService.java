@@ -8,7 +8,7 @@ import com.example.ungdunggoixe.common.VehicleStatus;
 import com.example.ungdunggoixe.dto.request.CreateBookingRequest;
 import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
-import com.example.ungdunggoixe.dto.response.PagedBookingResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.entity.Booking;
 import com.example.ungdunggoixe.entity.Payment;
 import com.example.ungdunggoixe.entity.Station;
@@ -21,11 +21,13 @@ import com.example.ungdunggoixe.repository.PaymentRepository;
 import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.UserRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
+import com.example.ungdunggoixe.repository.specification.BookingSpecs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -45,7 +47,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class BookingService {
     private static final Set<String> BOOKING_SORT_FIELDS = Set.of(
-            "id", "startTime", "expectedEndTime", "createdAt", "bookingCode", "totalAmount", "status");
+            "id", "startTime", "expectedEndTime", "createdAt", "bookingCode", "totalAmount", "status",
+            "paymentStatus", "renterId", "stationId", "vehicleId");
 
     /** Tối thiểu cọc (tiền mặt đã vào) so với tổng booking trước khi PENDING → CONFIRMED. */
     private static final BigDecimal MIN_DEPOSIT_RATE = new BigDecimal("0.10");
@@ -63,6 +66,47 @@ public class BookingService {
             BookingStatus.CONFIRMED,
             BookingStatus.ONGOING
     );
+
+    private static String mapBookingSortProperty(String sortBy) {
+        if (sortBy == null || sortBy.isBlank() || !BOOKING_SORT_FIELDS.contains(sortBy)) {
+            return "id";
+        }
+        return switch (sortBy) {
+            case "renterId" -> "renter.id";
+            case "stationId" -> "station.id";
+            case "vehicleId" -> "vehicle.id";
+            default -> sortBy;
+        };
+    }
+
+    private static Specification<Booking> buildBookingSpec(
+            Long renterId,
+            Long stationId,
+            Long vehicleId,
+            BookingStatus status,
+            PaymentStatus paymentStatus,
+            LocalDateTime startTimeFrom,
+            LocalDateTime startTimeTo,
+            LocalDateTime createdAtFrom,
+            LocalDateTime createdAtTo,
+            String keyword
+    ) {
+        Long safeRenterId = renterId != null && renterId > 0 ? renterId : null;
+        Long safeStationId = stationId != null && stationId > 0 ? stationId : null;
+        Long safeVehicleId = vehicleId != null && vehicleId > 0 ? vehicleId : null;
+
+        return BookingSpecs.alwaysTrue()
+                .and(BookingSpecs.renterIdEquals(safeRenterId))
+                .and(BookingSpecs.stationIdEquals(safeStationId))
+                .and(BookingSpecs.vehicleIdEquals(safeVehicleId))
+                .and(BookingSpecs.statusEquals(status))
+                .and(BookingSpecs.paymentStatusEquals(paymentStatus))
+                .and(BookingSpecs.startTimeFrom(startTimeFrom))
+                .and(BookingSpecs.startTimeTo(startTimeTo))
+                .and(BookingSpecs.createdAtFrom(createdAtFrom))
+                .and(BookingSpecs.createdAtTo(createdAtTo))
+                .and(BookingSpecs.keywordContains(keyword));
+    }
 
     // ═══════════════════════════════════════════════════════
     // 1. TẠO BOOKING (có kiểm tra xe trống theo time range)
@@ -256,49 +300,63 @@ public class BookingService {
 
     @Transactional(readOnly = true)
     public List<BookingResponse> getBookings(Long renterId, Long stationId, BookingStatus status) {
-        List<Booking> bookings;
-        if (renterId != null) {
-            bookings = bookingRepository.findByRenterId(renterId);
-        } else if (stationId != null) {
-            bookings = bookingRepository.findByStationId(stationId);
-        } else if (status != null) {
-            bookings = bookingRepository.findByStatus(status);
-        } else {
-            bookings = bookingRepository.findAll();
-        }
+        Specification<Booking> spec = buildBookingSpec(
+                renterId,
+                stationId,
+                null,
+                status,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        List<Booking> bookings = bookingRepository.findAll(spec);
         return bookings.stream()
                 .map(BookingMapper.INSTANCE::toBookingResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public PagedBookingResponse getBookingsPaged(
+    public PageResponse<BookingResponse> getBookingsPaged(
             Long renterId,
             Long stationId,
+            Long vehicleId,
             BookingStatus status,
+            PaymentStatus paymentStatus,
+            LocalDateTime startTimeFrom,
+            LocalDateTime startTimeTo,
+            LocalDateTime createdAtFrom,
+            LocalDateTime createdAtTo,
+            String keyword,
             int page,
             int size,
             String sortBy,
             String sortDir) {
-        String field = BOOKING_SORT_FIELDS.contains(sortBy) ? sortBy : "id";
+        String field = mapBookingSortProperty(sortBy);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
         int safeSize = Math.min(Math.max(size, 1), 100);
         int safePage = Math.max(page, 0);
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, field));
 
-        Page<Booking> result;
-        if (renterId != null) {
-            result = bookingRepository.findByRenterId(renterId, pageable);
-        } else if (stationId != null) {
-            result = bookingRepository.findByStationId(stationId, pageable);
-        } else if (status != null) {
-            result = bookingRepository.findByStatus(status, pageable);
-        } else {
-            result = bookingRepository.findAll(pageable);
-        }
+        Specification<Booking> spec = buildBookingSpec(
+                renterId,
+                stationId,
+                vehicleId,
+                status,
+                paymentStatus,
+                startTimeFrom,
+                startTimeTo,
+                createdAtFrom,
+                createdAtTo,
+                keyword
+        );
+
+        Page<Booking> result = bookingRepository.findAll(spec, pageable);
 
         Page<BookingResponse> mapped = result.map(BookingMapper.INSTANCE::toBookingResponse);
-        return PagedBookingResponse.builder()
+        return PageResponse.<BookingResponse>builder()
                 .content(mapped.getContent())
                 .totalElements(mapped.getTotalElements())
                 .totalPages(mapped.getTotalPages())

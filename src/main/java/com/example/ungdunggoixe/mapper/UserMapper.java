@@ -11,6 +11,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Mapper
@@ -36,13 +37,13 @@ public interface UserMapper {
     @AfterMapping
     default void fillRoles(User user, @MappingTarget UserResponse response) {
         if (user.getUserRoles() == null || user.getUserRoles().isEmpty()) {
-            response.setRoles(List.of());
+            response.setRoles(new ArrayList<>());
             return;
         }
         List<String> names = user.getUserRoles().stream()
                 .map(ur -> ur.getRole() != null ? ur.getRole().getName() : null)
                 .filter(n -> n != null && !n.isBlank())
                 .toList();
-        response.setRoles(names);
+        response.setRoles(new ArrayList<>(names));
     }
 }

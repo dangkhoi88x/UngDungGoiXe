@@ -1,7 +1,8 @@
 package com.example.ungdunggoixe.controller;
 
 import com.example.ungdunggoixe.dto.response.ApiResponse;
-import com.example.ungdunggoixe.dto.response.PagedAdminBookingFeedbackResponse;
+import com.example.ungdunggoixe.dto.response.AdminBookingFeedbackRowResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.service.AdminBookingFeedbackService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,7 +24,7 @@ public class AdminBookingFeedbackController {
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @GetMapping
-    public ApiResponse<PagedAdminBookingFeedbackResponse> list(
+    public ApiResponse<PageResponse<AdminBookingFeedbackRowResponse>> list(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -34,7 +35,7 @@ public class AdminBookingFeedbackController {
     ) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
-        PagedAdminBookingFeedbackResponse data = adminBookingFeedbackService.list(
+        PageResponse<AdminBookingFeedbackRowResponse> data = adminBookingFeedbackService.list(
                 safePage,
                 safeSize,
                 sortBy,
@@ -43,7 +44,7 @@ public class AdminBookingFeedbackController {
                 minRating,
                 hasPhotos
         );
-        return ApiResponse.<PagedAdminBookingFeedbackResponse>builder()
+        return ApiResponse.<PageResponse<AdminBookingFeedbackRowResponse>>builder()
                 .status("success")
                 .message("Lay danh sach danh gia booking thanh cong")
                 .data(data)

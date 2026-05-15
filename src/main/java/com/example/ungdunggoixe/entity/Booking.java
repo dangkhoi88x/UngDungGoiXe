@@ -5,8 +5,7 @@ import com.example.ungdunggoixe.common.BookingStatus;
 import com.example.ungdunggoixe.common.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,14 +13,11 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "bookings")
-public class Booking {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Booking extends AuditableEntity {
 
     private String bookingCode;
     @ManyToOne(fetch = FetchType.LAZY)
@@ -78,14 +74,6 @@ public class Booking {
     @Column(name = "payment_status", length = 20)
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     // ───────────────────────────────────────────
     // Enums

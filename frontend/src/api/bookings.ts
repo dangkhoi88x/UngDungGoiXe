@@ -30,13 +30,15 @@ export type BookingDto = {
   updatedAt: string | null
 }
 
-export type PagedBookingsResponse = {
-  content: BookingDto[]
+export type PageResponse<T> = {
+  content: T[]
   totalElements: number
   totalPages: number
   page: number
   size: number
 }
+
+export type PagedBookingsResponse = PageResponse<BookingDto>
 
 export type BookingCreatePayload = {
   renterId: number
@@ -67,7 +69,14 @@ function buildPagedQuery(params: {
   sortDir?: 'asc' | 'desc'
   renterId?: number
   stationId?: number
+  vehicleId?: number
   status?: string
+  paymentStatus?: string
+  startTimeFrom?: string
+  startTimeTo?: string
+  createdAtFrom?: string
+  createdAtTo?: string
+  keyword?: string
 }): string {
   const q = new URLSearchParams()
   q.set('page', String(params.page ?? 0))
@@ -76,7 +85,14 @@ function buildPagedQuery(params: {
   q.set('sortDir', params.sortDir ?? 'desc')
   if (params.renterId != null) q.set('renterId', String(params.renterId))
   if (params.stationId != null) q.set('stationId', String(params.stationId))
+  if (params.vehicleId != null) q.set('vehicleId', String(params.vehicleId))
   if (params.status && params.status !== '') q.set('status', params.status)
+  if (params.paymentStatus && params.paymentStatus !== '') q.set('paymentStatus', params.paymentStatus)
+  if (params.startTimeFrom && params.startTimeFrom !== '') q.set('startTimeFrom', params.startTimeFrom)
+  if (params.startTimeTo && params.startTimeTo !== '') q.set('startTimeTo', params.startTimeTo)
+  if (params.createdAtFrom && params.createdAtFrom !== '') q.set('createdAtFrom', params.createdAtFrom)
+  if (params.createdAtTo && params.createdAtTo !== '') q.set('createdAtTo', params.createdAtTo)
+  if (params.keyword != null && params.keyword.trim() !== '') q.set('keyword', params.keyword.trim())
   return q.toString()
 }
 
@@ -101,7 +117,14 @@ export async function fetchBookingsPaged(params: {
   sortDir?: 'asc' | 'desc'
   renterId?: number
   stationId?: number
+  vehicleId?: number
   status?: string
+  paymentStatus?: string
+  startTimeFrom?: string
+  startTimeTo?: string
+  createdAtFrom?: string
+  createdAtTo?: string
+  keyword?: string
 }): Promise<PagedBookingsResponse> {
   const res = await authFetch(
     `${API_BASE}/bookings/paged?${buildPagedQuery(params)}`,

@@ -45,13 +45,15 @@ export type StationUpdatePayload = {
   endTime?: string | null
 }
 
-export type PagedStationsResponse = {
-  content: StationDto[]
+export type PageResponse<T> = {
+  content: T[]
   totalElements: number
   totalPages: number
   page: number
   size: number
 }
+
+export type PagedStationsResponse = PageResponse<StationDto>
 
 /** Admin: phân trang + sort + lọc (JWT). */
 export async function fetchStationsPage(params: {

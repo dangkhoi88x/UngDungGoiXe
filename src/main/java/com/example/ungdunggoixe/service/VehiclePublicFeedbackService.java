@@ -1,7 +1,7 @@
 package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.common.ErrorCode;
-import com.example.ungdunggoixe.dto.response.PagedVehiclePublicFeedbackResponse;
+import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.dto.response.VehiclePublicFeedbackRowResponse;
 import com.example.ungdunggoixe.entity.Feedback;
 import com.example.ungdunggoixe.entity.User;
@@ -26,7 +26,7 @@ public class VehiclePublicFeedbackService {
     private final FeedbackRepository feedbackRepository;
 
     @Transactional(readOnly = true)
-    public PagedVehiclePublicFeedbackResponse listForVehicle(Long vehicleId, Pageable pageable) {
+    public PageResponse<VehiclePublicFeedbackRowResponse> listForVehicle(Long vehicleId, Pageable pageable) {
         if (!vehicleRepository.existsById(vehicleId)) {
             throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
         }
@@ -34,7 +34,7 @@ public class VehiclePublicFeedbackService {
         List<VehiclePublicFeedbackRowResponse> rows = page.getContent().stream()
                 .map(this::toRow)
                 .toList();
-        return PagedVehiclePublicFeedbackResponse.builder()
+        return PageResponse.<VehiclePublicFeedbackRowResponse>builder()
                 .content(rows)
                 .totalElements(page.getTotalElements())
                 .totalPages(page.getTotalPages())

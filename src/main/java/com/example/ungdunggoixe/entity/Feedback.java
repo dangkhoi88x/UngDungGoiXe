@@ -2,8 +2,7 @@ package com.example.ungdunggoixe.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -12,14 +11,11 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "feedbacks")
-public class Feedback {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Feedback extends AuditableEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", unique = true)
     private Booking booking;
@@ -56,12 +52,4 @@ public class Feedback {
 
     @Column(name = "responded_at")
     private LocalDateTime respondedAt;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 }
