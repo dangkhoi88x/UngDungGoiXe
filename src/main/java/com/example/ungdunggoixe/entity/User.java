@@ -4,8 +4,7 @@ import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,8 +20,8 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class User implements UserDetails {
+@SuperBuilder
+public class User extends AuditableEntity implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
                 List<Role> listRoles = this.userRoles.stream()
@@ -72,10 +71,6 @@ public class User implements UserDetails {
         return UserDetails.super.isEnabled();
     }
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @Column(unique = true, nullable = false)
     private String email;
 
@@ -103,13 +98,6 @@ public class User implements UserDetails {
     @Column(name = "license_card_back_image_url")
     private String licenseCardBackImageUrl;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
 
