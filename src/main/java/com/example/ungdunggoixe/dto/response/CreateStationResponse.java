@@ -36,6 +36,9 @@ public class CreateStationResponse {
 
     private Double longitude;
 
+    private Long createdBy;
+    private Long updatedBy;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

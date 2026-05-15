@@ -29,6 +29,8 @@ public class UserResponse {
     private LicenseVerificationStatus licenseVerificationStatus;
     private String licenseCardFrontImageUrl;
     private String licenseCardBackImageUrl;
+    private Long createdBy;
+    private Long updatedBy;
     private LocalDateTime updatedAt;
     private LocalDateTime verifiedAt;
 

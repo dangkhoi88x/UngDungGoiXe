@@ -48,6 +48,8 @@ public class BookingResponse {
 
     private PaymentStatus paymentStatus;
 
+    private Long createdBy;
+    private Long updatedBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
