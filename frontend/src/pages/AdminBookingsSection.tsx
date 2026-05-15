@@ -42,6 +42,14 @@ const BOOKING_STATUSES = [
   'CANCELLED',
 ] as const
 
+const PAYMENT_STATUSES = [
+  '',
+  'PENDING',
+  'PARTIALLY_PAID',
+  'PAID',
+  'FAILED',
+] as const
+
 const SORT_OPTIONS = [
   { value: 'id', label: 'ID' },
   { value: 'startTime', label: 'Bắt đầu' },
@@ -50,6 +58,10 @@ const SORT_OPTIONS = [
   { value: 'bookingCode', label: 'Mã' },
   { value: 'totalAmount', label: 'Tổng tiền' },
   { value: 'status', label: 'Trạng thái' },
+  { value: 'paymentStatus', label: 'Thanh toán' },
+  { value: 'renterId', label: 'Người thuê' },
+  { value: 'vehicleId', label: 'Xe' },
+  { value: 'stationId', label: 'Trạm' },
 ] as const
 
 const SORT_OPTION_VALUES = new Set(
@@ -67,8 +79,14 @@ function initialBookingsFilters() {
     sortBy: 'id',
     sortDir: 'desc' as 'asc' | 'desc',
     filterStatus: '',
+    filterPaymentStatus: '',
     filterStationId: '',
     filterRenterId: '',
+    filterVehicleId: '',
+    startTimeFrom: '',
+    startTimeTo: '',
+    createdAtFrom: '',
+    createdAtTo: '',
     searchQuery: '',
   })
   return {
@@ -80,9 +98,16 @@ function initialBookingsFilters() {
     sortBy: normalizeBookingSortBy(d.sortBy),
     sortDir: d.sortDir === 'asc' ? ('asc' as const) : ('desc' as const),
     filterStatus: typeof d.filterStatus === 'string' ? d.filterStatus : '',
+    filterPaymentStatus:
+      typeof d.filterPaymentStatus === 'string' ? d.filterPaymentStatus : '',
     filterStationId:
       typeof d.filterStationId === 'string' ? d.filterStationId : '',
     filterRenterId: typeof d.filterRenterId === 'string' ? d.filterRenterId : '',
+    filterVehicleId: typeof d.filterVehicleId === 'string' ? d.filterVehicleId : '',
+    startTimeFrom: typeof d.startTimeFrom === 'string' ? d.startTimeFrom : '',
+    startTimeTo: typeof d.startTimeTo === 'string' ? d.startTimeTo : '',
+    createdAtFrom: typeof d.createdAtFrom === 'string' ? d.createdAtFrom : '',
+    createdAtTo: typeof d.createdAtTo === 'string' ? d.createdAtTo : '',
     searchQuery: typeof d.searchQuery === 'string' ? d.searchQuery : '',
   }
 }
@@ -129,12 +154,22 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
   const [sortBy, setSortBy] = useState(initialFilters.sortBy)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>(initialFilters.sortDir)
   const [filterStatus, setFilterStatus] = useState(initialFilters.filterStatus)
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState(
+    initialFilters.filterPaymentStatus,
+  )
   const [filterStationId, setFilterStationId] = useState(
     initialFilters.filterStationId,
   )
   const [filterRenterId, setFilterRenterId] = useState(
     initialFilters.filterRenterId,
   )
+  const [filterVehicleId, setFilterVehicleId] = useState(
+    initialFilters.filterVehicleId,
+  )
+  const [startTimeFrom, setStartTimeFrom] = useState(initialFilters.startTimeFrom)
+  const [startTimeTo, setStartTimeTo] = useState(initialFilters.startTimeTo)
+  const [createdAtFrom, setCreatedAtFrom] = useState(initialFilters.createdAtFrom)
+  const [createdAtTo, setCreatedAtTo] = useState(initialFilters.createdAtTo)
   const [searchQuery, setSearchQuery] = useState(initialFilters.searchQuery)
 
   const [data, setData] = useState<PagedBookingsResponse | null>(null)
@@ -221,6 +256,9 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
       const renterId = filterRenterId.trim()
         ? Number(filterRenterId)
         : undefined
+      const vehicleId = filterVehicleId.trim()
+        ? Number(filterVehicleId)
+        : undefined
       const res = await fetchBookingsPaged({
         page,
         size,
@@ -238,6 +276,16 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
           renterId != null && Number.isInteger(renterId) && renterId > 0
             ? renterId
             : undefined,
+        vehicleId:
+          vehicleId != null && Number.isInteger(vehicleId) && vehicleId > 0
+            ? vehicleId
+            : undefined,
+        paymentStatus: filterPaymentStatus || undefined,
+        startTimeFrom: fromDateTimeLocalValue(startTimeFrom) || undefined,
+        startTimeTo: fromDateTimeLocalValue(startTimeTo) || undefined,
+        createdAtFrom: fromDateTimeLocalValue(createdAtFrom) || undefined,
+        createdAtTo: fromDateTimeLocalValue(createdAtTo) || undefined,
+        keyword: searchQuery.trim() || undefined,
       })
       setData(res)
       if (res.totalPages > 0 && page >= res.totalPages) {
@@ -258,8 +306,15 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
     sortBy,
     sortDir,
     filterStatus,
+    filterPaymentStatus,
     filterStationId,
     filterRenterId,
+    filterVehicleId,
+    startTimeFrom,
+    startTimeTo,
+    createdAtFrom,
+    createdAtTo,
+    searchQuery,
   ])
 
   useEffect(() => {
@@ -273,8 +328,14 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
       sortBy,
       sortDir,
       filterStatus,
+      filterPaymentStatus,
       filterStationId,
       filterRenterId,
+      filterVehicleId,
+      startTimeFrom,
+      startTimeTo,
+      createdAtFrom,
+      createdAtTo,
       searchQuery,
     })
   }, [
@@ -283,8 +344,14 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
     sortBy,
     sortDir,
     filterStatus,
+    filterPaymentStatus,
     filterStationId,
     filterRenterId,
+    filterVehicleId,
+    startTimeFrom,
+    startTimeTo,
+    createdAtFrom,
+    createdAtTo,
     searchQuery,
   ])
 
@@ -297,6 +364,22 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
     setCEnd('')
     setCNote('')
     setModalCreate(true)
+  }
+
+  const resetFilters = () => {
+    setFilterStatus('')
+    setFilterPaymentStatus('')
+    setFilterStationId('')
+    setFilterRenterId('')
+    setFilterVehicleId('')
+    setStartTimeFrom('')
+    setStartTimeTo('')
+    setCreatedAtFrom('')
+    setCreatedAtTo('')
+    setSearchQuery('')
+    setSortBy('id')
+    setSortDir('desc')
+    setPage(0)
   }
 
   const submitCreate = async (e: React.FormEvent) => {
@@ -720,7 +803,7 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
       <div className="adm-users__filters">
         <div className="adm-users__search-field">
           <label className="adm-users__filter-label" htmlFor="adm-bk-search">
-            Tìm trên trang này
+            Từ khóa
           </label>
           <input
             id="adm-bk-search"
@@ -728,7 +811,10 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
             className="adm-users__search-input"
             placeholder="Mã đơn, người thuê, xe, trạm, trạng thái…"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              setPage(0)
+            }}
             autoComplete="off"
           />
         </div>
@@ -753,6 +839,23 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
           </select>
         </label>
         <label>
+          <span className="adm-users__filter-label">Thanh toán</span>
+          <select
+            value={filterPaymentStatus}
+            onChange={(e) => {
+              setFilterPaymentStatus(e.target.value)
+              setPage(0)
+            }}
+          >
+            <option value="">Tất cả TT</option>
+            {PAYMENT_STATUSES.filter(Boolean).map((s) => (
+              <option key={s} value={s}>
+                {paymentVi(s)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           <span className="adm-users__filter-label">Trạm</span>
           <select
             value={filterStationId}
@@ -765,6 +868,23 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
             {stations.map((s) => (
               <option key={s.id} value={String(s.id)}>
                 #{s.id} — {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className="adm-users__filter-label">Xe</span>
+          <select
+            value={filterVehicleId}
+            onChange={(e) => {
+              setFilterVehicleId(e.target.value)
+              setPage(0)
+            }}
+          >
+            <option value="">Mọi xe</option>
+            {vehicles.map((v) => (
+              <option key={v.id} value={String(v.id)}>
+                #{v.id} — {v.name || v.licensePlate}
               </option>
             ))}
           </select>
@@ -785,6 +905,50 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
               </option>
             ))}
           </select>
+        </label>
+        <label>
+          <span className="adm-users__filter-label">Bắt đầu từ</span>
+          <input
+            type="datetime-local"
+            value={startTimeFrom}
+            onChange={(e) => {
+              setStartTimeFrom(e.target.value)
+              setPage(0)
+            }}
+          />
+        </label>
+        <label>
+          <span className="adm-users__filter-label">Bắt đầu đến</span>
+          <input
+            type="datetime-local"
+            value={startTimeTo}
+            onChange={(e) => {
+              setStartTimeTo(e.target.value)
+              setPage(0)
+            }}
+          />
+        </label>
+        <label>
+          <span className="adm-users__filter-label">Tạo từ</span>
+          <input
+            type="datetime-local"
+            value={createdAtFrom}
+            onChange={(e) => {
+              setCreatedAtFrom(e.target.value)
+              setPage(0)
+            }}
+          />
+        </label>
+        <label>
+          <span className="adm-users__filter-label">Tạo đến</span>
+          <input
+            type="datetime-local"
+            value={createdAtTo}
+            onChange={(e) => {
+              setCreatedAtTo(e.target.value)
+              setPage(0)
+            }}
+          />
         </label>
         <label>
           <span className="adm-users__filter-label">Sắp xếp</span>
@@ -830,6 +994,15 @@ export default function AdminBookingsSection({ refreshKey = 0 }: Props) {
             <option value={50}>50</option>
           </select>
         </label>
+        <div className="adm-users__filters-actions">
+          <button
+            type="button"
+            className="adm-veh__btn adm-veh__btn--ghost"
+            onClick={resetFilters}
+          >
+            Xóa lọc
+          </button>
+        </div>
       </div>
 
       {error ? (

@@ -328,13 +328,15 @@
   margin-bottom: 4px;
 }
 
-.adm-users__filters select {
+.adm-users__filters select,
+.adm-users__filters input[type='datetime-local'] {
   min-width: 132px;
   border: 1px solid var(--adm-border, #e8e8e8);
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 13px;
   background: #fff;
+  font-family: inherit;
 }
 
 .adm-users__search-field {
@@ -406,7 +408,8 @@
   color: var(--adm-dark, #1a1a1a);
 }
 
-.adm-bookings-section .adm-users__filters select {
+.adm-bookings-section .adm-users__filters select,
+.adm-bookings-section .adm-users__filters input[type='datetime-local'] {
   min-width: min(100%, 200px);
   max-width: 280px;
 }

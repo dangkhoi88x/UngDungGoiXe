@@ -2,6 +2,7 @@ package com.example.ungdunggoixe.controller;
 
 import com.example.ungdunggoixe.common.BookingStatus;
 import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.common.PaymentStatus;
 import com.example.ungdunggoixe.dto.momo.CreatePaymentResponse;
 import com.example.ungdunggoixe.dto.request.CreateBookingRequest;
 import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
@@ -110,12 +111,34 @@ public class BookingController {
     public ApiResponse<PagedBookingResponse> getBookingsPaged(
             @RequestParam(required = false) Long renterId,
             @RequestParam(required = false) Long stationId,
+            @RequestParam(required = false) Long vehicleId,
             @RequestParam(required = false) BookingStatus status,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTimeFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTimeTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAtFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAtTo,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
-        PagedBookingResponse result = bookingService.getBookingsPaged(renterId, stationId, status, page, size, sortBy, sortDir);
+        PagedBookingResponse result = bookingService.getBookingsPaged(
+                renterId,
+                stationId,
+                vehicleId,
+                status,
+                paymentStatus,
+                startTimeFrom,
+                startTimeTo,
+                createdAtFrom,
+                createdAtTo,
+                keyword,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
         return ApiResponse.<PagedBookingResponse>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.booking.page.success"))

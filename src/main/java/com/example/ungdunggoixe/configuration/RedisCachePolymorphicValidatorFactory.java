@@ -25,6 +25,8 @@ public final class RedisCachePolymorphicValidatorFactory {
                 .allowIfSubType(CreateVehicleResponse.class)
                 .allowIfSubType(BlogPostPublicResponse.class)
                 .allowIfSubType(ArrayList.class)
+                // Backward-compatible with values cached before DTO mappers normalized List fields.
+                .allowIfSubType("java.util.ImmutableCollections$")
                 .build();
     }
 }
