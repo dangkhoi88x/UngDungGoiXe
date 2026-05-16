@@ -1,0 +1,82 @@
+spring:
+  application:
+    name: UngDungGoiXe
+
+  servlet:
+    multipart:
+      # Giữ >= app.owner-vehicle-upload.max-file-size-bytes (mặc định 6MB = 6291456)
+      max-file-size: 6MB
+      max-request-size: 14MB
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/UngDungGoiXe
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:12345}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    # Chạy schema-mysql.sql sau Hibernate để thêm cột còn thiếu (tránh lỗi login khi entity có field mới).
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:12345678}
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME}
+    password: ${EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+momo:
+  partner-code: MOMO
+  partner-name: ${MOMO_PARTNER_NAME:UngDungGoiXe}
+  store-id: ${MOMO_STORE_ID:UngDungGoiXeStore}
+  return-url: http://localhost:5173/payment/momo-return
+  endpoint: https://test-payment.momo.vn/v2/gateway/api
+  ipn-url: http://localhost:8080/momo/ipn-handler
+  access-key: F8BBA842ECF85
+  secret-key: K951B6PE1waDMi640xX08PD3vg6EkVlz
+  # captureWallet = vi MoMo; co the override khi goi API (payWithATM = the ATM noi dia)
+  request-type: captureWallet
+jwt:
+  secret-key: ${JWT_SECRET}
+  audience: ${JWT_AUDIENCE}
+oauth2:
+  google:
+    client-id: ${OAUTH_GOOGLE_ID:}
+    client-secret: ${OAUTH_GOOGLE_SECRET:}
+app:
+  web-base-url: ${APP_WEB_BASE_URL:http://localhost:5173}
+  upload-dir: uploads
+  booking:
+    # Thời gian chờ thanh toán MoMo prepay tổng; sau mốc này booking PENDING (chưa có tiền PAID) được hủy để nhường slot.
+    # ~1h40 khớp countdown đơn hàng trên cổng test MoMo; có thể tăng nhẹ (vd. 105m) để giảm race với IPN trễ.
+    momo-prepaid-expiration: ${APP_BOOKING_MOMO_PREPAID_EXPIRATION:100m}
+    momo-prepaid-expiry-scan-interval: ${APP_BOOKING_MOMO_PREPAID_EXPIRY_SCAN_INTERVAL:PT5M}
+    momo-prepaid-expiry-enabled: ${APP_BOOKING_MOMO_PREPAID_EXPIRY_ENABLED:true}
+  owner-vehicle-upload:
+    # Giới hạn kích thước từng file upload owner vehicle (bytes), có thể override bằng env.
+    max-file-size-bytes: ${OWNER_VEHICLE_MAX_FILE_SIZE_BYTES:6291456}
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+aws:
+  credentials:
+    access-key: ${AWS_ACCESS_KEY:}
+    secret-key: ${AWS_SECRET_KEY:}
+  region:
+    static: ${REGION:ap-southeast-1}
+  s3:
+    bucket: ${BUCKET_NAME:}
