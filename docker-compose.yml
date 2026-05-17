@@ -20,7 +20,7 @@ services:
     networks:
       - app-networks
   backend-rent:
-    image: backend-rent-car:1.0
+    image: dangkhoi081f/backend-rent-car:1.0
     env_file:
       - .env
     ports:
