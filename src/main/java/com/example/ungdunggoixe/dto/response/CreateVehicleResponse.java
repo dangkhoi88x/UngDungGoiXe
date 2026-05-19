@@ -38,6 +38,8 @@ public class CreateVehicleResponse {
 
     private List<String> policies;
 
+    private Long createdBy;
+    private Long updatedBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

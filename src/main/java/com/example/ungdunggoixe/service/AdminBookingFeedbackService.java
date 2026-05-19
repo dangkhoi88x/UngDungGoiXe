@@ -79,6 +79,8 @@ public class AdminBookingFeedbackService {
                 .vehicleRating(fb.getVehicleRating())
                 .comment(fb.getComment())
                 .photoUrls(photos.isEmpty() ? List.of() : new ArrayList<>(photos))
+                .createdBy(fb.getCreatedBy())
+                .updatedBy(fb.getUpdatedBy())
                 .createdAt(fb.getCreatedAt() != null
                         ? fb.getCreatedAt().toInstant(ZoneOffset.UTC)
                         : null)

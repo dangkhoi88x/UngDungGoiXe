@@ -1,6 +1,7 @@
 package com.example.ungdunggoixe.configuration;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,6 +19,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -26,10 +33,14 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfiguration {
     private final UserDetailsService userDetailsService;
 
+    @Value("${app.cors.allowed-origins:http://localhost:5173}")
+    private String allowedOrigins;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
             throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable)
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/files/**").permitAll()
@@ -56,6 +67,22 @@ public class SecurityConfiguration {
         return http.build();
     }
 
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        corsConfig.setAllowCredentials(true);
+        corsConfig.setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList());
+        corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        corsConfig.setAllowedHeaders(List.of("*"));
+        corsConfig.setExposedHeaders(List.of("Authorization"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", corsConfig);
+        return source;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

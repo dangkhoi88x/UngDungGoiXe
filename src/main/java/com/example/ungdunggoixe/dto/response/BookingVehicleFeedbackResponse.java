@@ -19,5 +19,7 @@ public class BookingVehicleFeedbackResponse {
     private Double vehicleRating;
     private String comment;
     private List<String> photoUrls;
+    private Long createdBy;
+    private Long updatedBy;
     private Instant createdAt;
 }

@@ -19,6 +19,9 @@ import {
   fetchPublishedBlogPostsPage,
   type BlogPostPublicDto,
 } from '../api/blogPosts'
+import ownerCarImage from '../assets/owner-car.jpg'
+import renterImage from '../assets/renter.jpg'
+import stationImage from '../assets/station.jpg'
 import './studio-x-landing-page.css'
 
 const SX_BLOG_FALLBACK_IMAGE =
@@ -90,7 +93,7 @@ function HeroSection() {
         playsInline
         aria-hidden="true"
       >
-        <source src="public/videos/cars-hero.mp4" type="video/mp4" />
+        <source src="/videos/cars-hero.mp4" type="video/mp4" />
       </video>
       <div className="vex-hero__scrim" aria-hidden="true" />
 
@@ -435,7 +438,7 @@ const SOLUTIONS_DATA: Record<
   }
 > = {
   vehicle: {
-    image: '/src/assets/owner-car.jpg',
+    image: ownerCarImage,
     useCases: [
       {
         id: 'v1',
@@ -472,7 +475,7 @@ const SOLUTIONS_DATA: Record<
     ],
   },
   renter: {
-    image: '/src/assets/renter.jpg',
+    image: renterImage,
     useCases: [
       {
         id: 'r1',
@@ -948,7 +951,7 @@ function ValueShowcaseSection() {
           </article>
           <article className="sx-value-card sx-value-card--image">
             <img
-              src="/src/assets/station.jpg"
+              src={stationImage}
               alt="Bãi giao nhận xe"
               loading="lazy"
             />

@@ -37,6 +37,8 @@ public class OwnerVehicleRequestResponse {
     private OwnerVehicleRequestStatus status;
     private String adminNote;
     private List<OwnerVehicleRequestHistoryItemResponse> history;
+    private Long createdBy;
+    private Long updatedBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

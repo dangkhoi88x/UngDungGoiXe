@@ -27,4 +27,6 @@ public class StationResponse {
 
     private Double latitude;
     private Double longitude;
+    private Long createdBy;
+    private Long updatedBy;
 }
