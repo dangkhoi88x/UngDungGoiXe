@@ -371,7 +371,7 @@ export default function CarRentalPage() {
             </li>
             <li>
               <a href="/rent" className="is-active">
-                Car Rental
+                Thuê xe
               </a>
             </li>
             <li>
@@ -396,8 +396,8 @@ export default function CarRentalPage() {
           </form>
         </div>
         <div className="cr-nav__right">
-          <button type="button" className="cr-nav__lang" aria-label="Language English">
-            🌐 EN
+          <button type="button" className="cr-nav__lang" aria-label="Ngôn ngữ Tiếng Việt">
+            🌐 VI
           </button>
           {authUi.loggedIn ? (
             <>
@@ -713,7 +713,7 @@ export default function CarRentalPage() {
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <a href="/">Trang chủ</a>
             <a href="/auth">Đăng nhập</a>
-            <a href="/rent">Car Rental</a>
+            <a href="/rent">Thuê xe</a>
           </div>
         </div>
       </footer>

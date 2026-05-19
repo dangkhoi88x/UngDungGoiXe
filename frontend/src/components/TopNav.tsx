@@ -41,7 +41,7 @@ export default function TopNav({ solid = false, showSearch = true }: TopNavProps
         </a>
         <ul className="cr-nav__links">
           <li><a href="/blog">Blog</a></li>
-          <li><a href="/rent">Car Rental</a></li>
+          <li><a href="/rent">Thuê xe</a></li>
           <li><a href="/mapstation">Trạm xe</a></li>
           <li>
             <a href="/account/orders">Lịch sử</a>
@@ -66,8 +66,8 @@ export default function TopNav({ solid = false, showSearch = true }: TopNavProps
         <div className="cr-nav__search-wrap" aria-hidden="true" />
       )}
       <div className="cr-nav__right">
-        <button type="button" className="cr-nav__lang" aria-label="Language English">
-          🌐 EN
+        <button type="button" className="cr-nav__lang" aria-label="Ngôn ngữ Tiếng Việt">
+          🌐 VI
         </button>
         {authUi.loggedIn ? (
           <>
