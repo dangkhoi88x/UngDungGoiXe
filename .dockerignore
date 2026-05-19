@@ -1,0 +1,22 @@
+.git
+.gitignore
+.DS_Store
+
+# Frontend and local JS dependencies are not needed for the Spring Boot image.
+frontend
+node_modules
+package-lock.json
+package.json
+skills
+skills-lock.json
+
+# Build outputs and local runtime files.
+target
+*.log
+.env
+docker-compose.yml
+
+# Docs and local notes.
+README.md
+*.md
+postman

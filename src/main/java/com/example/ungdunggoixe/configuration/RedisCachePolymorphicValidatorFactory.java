@@ -7,6 +7,7 @@ import com.example.ungdunggoixe.dto.response.UserResponse;
 import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import tools.jackson.databind.jsontype.PolymorphicTypeValidator;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 
 /**
@@ -24,6 +25,7 @@ public final class RedisCachePolymorphicValidatorFactory {
                 .allowIfSubType(StationResponse.class)
                 .allowIfSubType(CreateVehicleResponse.class)
                 .allowIfSubType(BlogPostPublicResponse.class)
+                .allowIfSubType(BigDecimal.class)
                 .allowIfSubType(ArrayList.class)
                 // Backward-compatible with values cached before DTO mappers normalized List fields.
                 .allowIfSubType("java.util.ImmutableCollections$")
