@@ -1,0 +1,159 @@
+package com.example.ungdunggoixe.service.implement;
+
+import com.example.ungdunggoixe.service.*;
+
+import com.example.ungdunggoixe.common.TokenType;
+import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.dto.TokenPayload;
+import com.example.ungdunggoixe.dto.request.AuthenticationRequest;
+import com.example.ungdunggoixe.dto.response.AuthenticationResponse;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.example.ungdunggoixe.entity.RefreshToken;
+import com.example.ungdunggoixe.entity.User;
+import com.example.ungdunggoixe.exception.AppException;
+import com.example.ungdunggoixe.repository.UserRepository;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jwt.SignedJWT;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.stereotype.Service;
+
+import java.text.ParseException;
+import java.time.Instant;
+import java.util.Date;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class AuthenticationServiceImplement implements AuthenticationService {
+
+    @Value("${jwt.secret-key}")
+    private String secretKey;
+
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final UserRepository userRepository;
+    private final TokenService tokenService;
+    private final GoogleOAuthService googleOAuthService;
+    private final UserService userService;
+
+    public AuthenticationResponse authenticate(AuthenticationRequest request) {
+        var authToken = new UsernamePasswordAuthenticationToken(request.email(), request.password());
+        Authentication authentication = authenticationManager.authenticate(authToken);
+        var user = (User) authentication.getPrincipal();
+        return issueSessionForUser(user);
+    }
+
+    public AuthenticationResponse authenticateWithGoogle(String code, String redirectUri) {
+        GoogleIdToken.Payload payload = googleOAuthService.verifyAuthorizationCode(code, redirectUri);
+        Boolean emailVerified = payload.getEmailVerified();
+        if (emailVerified == null || !emailVerified) {
+            throw new AppException(ErrorCode.GOOGLE_EMAIL_NOT_VERIFIED);
+        }
+        String email = payload.getEmail();
+        if (email == null || email.isBlank()) {
+            throw new AppException(ErrorCode.GOOGLE_ID_TOKEN_INVALID);
+        }
+        String given = (String) payload.get("given_name");
+        String family = (String) payload.get("family_name");
+        User user = userService.ensureUserForGoogleOAuth(email, given, family);
+        return issueSessionForUser(user);
+    }
+
+    private AuthenticationResponse issueSessionForUser(User user) {
+        List<String> roles = user.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        String accessToken = jwtService.generateAccessToken(user.getId(), roles);
+        TokenPayload refreshToken = jwtService.generateRefreshToken(user.getId());
+
+        tokenService.saveRefreshToken(refreshToken.jti(), user.getId(), refreshToken.expiration());
+
+        return AuthenticationResponse.builder()
+                .userId(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken.tokenValue())
+                .build();
+    }
+
+    public AuthenticationResponse refreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(refreshToken);
+
+            boolean isValid = signedJWT.verify(new MACVerifier(secretKey));
+            if (!isValid) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+
+            Date expiry = signedJWT.getJWTClaimsSet().getExpirationTime();
+            if (expiry == null || expiry.toInstant().isBefore(Instant.now())) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+
+            long userID = Long.parseLong(signedJWT.getJWTClaimsSet().getSubject());
+            String jti = signedJWT.getJWTClaimsSet().getJWTID();
+
+            RefreshToken session = tokenService.findRefreshByJti(jti);
+            if (session == null) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+
+            if (session.getUserId() != userID) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+
+            User user = userRepository.findByIdWithUserRoles(userID)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+            List<String> roles = user.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .toList();
+
+            String newAccessToken = jwtService.generateAccessToken(user.getId(), roles);
+
+            tokenService.deleteRefreshToken(jti);
+            TokenPayload newRefreshToken = jwtService.generateRefreshToken(userID);
+            tokenService.saveRefreshToken(
+                    newRefreshToken.jti(), userID, newRefreshToken.expiration());
+
+            return AuthenticationResponse.builder()
+                    .userId(user.getId())
+                    .firstName(user.getFirstName())
+                    .lastName(user.getLastName())
+                    .accessToken(newAccessToken)
+                    .refreshToken(newRefreshToken.tokenValue())
+                    .build();
+
+        } catch (ParseException | JOSEException e) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+    }
+
+    /**
+     * Thứ tự: xóa refresh Redis trước, blacklist access sau.
+     * Nếu Redis lỗi giữa chừng, thà access còn sống tối đa ~1h ít rủi ro hơn refresh 14 ngày vẫn dùng được.
+     */
+    public void logOut(String accessToken, String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            var payloadRefresh = jwtService.validateToken(refreshToken, TokenType.REFRESH);
+            tokenService.deleteRefreshToken(payloadRefresh.jti());
+        }
+
+        var payloadAccess = jwtService.validateToken(accessToken, TokenType.ACCESS);
+        tokenService.blacklistAccessToken(
+                payloadAccess.jti(),
+                payloadAccess.userId(),
+                payloadAccess.expiration());
+    }
+}
