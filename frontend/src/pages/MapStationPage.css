@@ -191,6 +191,15 @@
   background: #eef2f7;
 }
 
+.map-canvas.leaflet-container {
+  font-family: inherit;
+  z-index: 1;
+}
+
+.map-canvas .leaflet-popup-content {
+  margin: 10px 12px;
+}
+
 .map-banner {
   margin: 10px;
   padding: 10px 12px;

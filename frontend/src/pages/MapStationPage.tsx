@@ -1,90 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import type { Map as LeafletMap, Marker as LeafletMarker } from 'leaflet'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { fetchStations, stationLabel, type StationDto } from '../api/stations'
-import {
-  ensureGoogleMapsConfigured,
-  loadGoogleMapsLibrary,
-} from '../lib/googleMapsLoader'
 import TopNav from '../components/TopNav'
 import './MapStationPage.css'
 
-const DEFAULT_CENTER = { lat: 10.7769, lng: 106.7009 }
+const DEFAULT_CENTER: [number, number] = [10.7769, 106.7009]
 const STATUS_OPTIONS = ['ALL', 'ACTIVE', 'INACTIVE', 'MAINTENANCE'] as const
 
-type LatLngLiteral = { lat: number; lng: number }
-
-type MapInstance = {
-  fitBounds: (bounds: LatLngBoundsInstance, padding?: number) => void
-  panTo: (latLng: LatLngLiteral) => void
-  setCenter: (latLng: LatLngLiteral) => void
-  setZoom: (zoom: number) => void
-}
-
-type MarkerInstance = {
-  addListener: (eventName: string, handler: () => void) => void
-  getPosition: () => { lat: () => number; lng: () => number } | null
-  setMap: (map: MapInstance | null) => void
-}
-
-type InfoWindowInstance = {
-  open: (options: { anchor: MarkerInstance; map: MapInstance }) => void
-  setContent: (content: string) => void
-}
-
-type LatLngBoundsInstance = {
-  extend: (point: LatLngLiteral) => void
-  getCenter: () => LatLngLiteral
-}
-
-type GoogleMapsRuntime = {
-  event: {
-    trigger: (instance: MarkerInstance, eventName: string) => void
-  }
-  InfoWindow: new () => InfoWindowInstance
-  LatLngBounds: new () => LatLngBoundsInstance
-  Map: new (
-    element: HTMLElement,
-    options: {
-      center: LatLngLiteral
-      fullscreenControl: boolean
-      mapId?: string
-      mapTypeControl: boolean
-      streetViewControl: boolean
-      zoom: number
-    },
-  ) => MapInstance
-  Marker: new (options: {
-    map: MapInstance
-    position: LatLngLiteral
-    title: string
-  }) => MarkerInstance
-}
-
-function getGoogleMapsRuntime(): GoogleMapsRuntime | null {
-  return ((globalThis as unknown as { google?: { maps?: GoogleMapsRuntime } }).google?.maps ??
-    null)
-}
-
-function toFriendlyMapError(raw: string): string {
-  const msg = raw.trim()
-  const low = msg.toLowerCase()
-  if (low.includes('permission denied') || low.includes('referer')) {
-    return 'Permission denied: API key bị chặn bởi HTTP referrer hoặc giới hạn ứng dụng/API chưa khớp.'
-  }
-  if (low.includes('apinotactivatedmaperror') || low.includes('api not activated')) {
-    return 'ApiNotActivatedMapError: cần bật Maps JavaScript API cho đúng project chứa API key.'
-  }
-  return msg
-}
+const stationMarkerIcon = L.icon({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+})
 
 export default function MapStationPage() {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim()
-  const mapId = import.meta.env.VITE_GOOGLE_MAP_ID?.trim()
   const mapElRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<MapInstance | null>(null)
-  const markersRef = useRef<MarkerInstance[]>([])
-  const infoWindowRef = useRef<InfoWindowInstance | null>(null)
+  const mapRef = useRef<LeafletMap | null>(null)
+  const markersRef = useRef<Map<number, LeafletMarker>>(new Map())
 
-  const [origin, setOrigin] = useState('')
   const [stations, setStations] = useState<StationDto[]>([])
   const [loadingStations, setLoadingStations] = useState(true)
   const [dataError, setDataError] = useState<string | null>(null)
@@ -93,10 +35,6 @@ export default function MapStationPage() {
   const [statusFilter, setStatusFilter] =
     useState<(typeof STATUS_OPTIONS)[number]>('ALL')
   const [mapBootKey, setMapBootKey] = useState(0)
-
-  useEffect(() => {
-    setOrigin(typeof window !== 'undefined' ? window.location.origin : '')
-  }, [])
 
   const filteredStations = useMemo(
     () => {
@@ -170,125 +108,84 @@ export default function MapStationPage() {
   }, [mapBootKey])
 
   useEffect(() => {
-    mapRef.current = null
-    infoWindowRef.current = null
-    for (const mk of markersRef.current) mk.setMap(null)
-    markersRef.current = []
-    if (mapElRef.current) mapElRef.current.replaceChildren()
-
-    if (!apiKey) {
-      setMapError(
-        'Thiếu VITE_GOOGLE_MAPS_API_KEY trong frontend/.env.local. Thêm key rồi khởi động lại npm run dev.',
-      )
-      return
-    }
     if (!mapElRef.current || mapRef.current) return
 
-    let cancelled = false
     setMapError(null)
-
-    ensureGoogleMapsConfigured(apiKey, mapId)
-    void loadGoogleMapsLibrary()
-      .then(() => {
-        if (cancelled || !mapElRef.current) return
-        const googleMaps = getGoogleMapsRuntime()
-        if (!googleMaps) {
-          throw new Error('Google Maps runtime chưa sẵn sàng sau khi tải thư viện.')
-        }
-        const opts: ConstructorParameters<GoogleMapsRuntime['Map']>[1] = {
-          center: DEFAULT_CENTER,
-          zoom: 12,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-        }
-        if (mapId) opts.mapId = mapId
-        mapRef.current = new googleMaps.Map(mapElRef.current, opts)
-        infoWindowRef.current = new googleMaps.InfoWindow()
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          const raw =
-            err instanceof Error ? err.message : 'Không thể khởi tạo Google Maps.'
-          setMapError(toFriendlyMapError(raw))
-        }
-      })
+    const map = L.map(mapElRef.current, {
+      center: DEFAULT_CENTER,
+      zoom: 12,
+      scrollWheelZoom: true,
+    })
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map)
+    mapRef.current = map
 
     return () => {
-      cancelled = true
+      map.remove()
+      mapRef.current = null
+      markersRef.current.clear()
     }
-  }, [apiKey, mapId, mapBootKey])
+  }, [])
 
   useEffect(() => {
     const map = mapRef.current
-    const googleMaps = getGoogleMapsRuntime()
-    if (!map || !googleMaps) return
-    const info = infoWindowRef.current ?? new googleMaps.InfoWindow()
-    infoWindowRef.current = info
+    if (!map) return
 
-    for (const mk of markersRef.current) mk.setMap(null)
-    markersRef.current = []
+    for (const marker of markersRef.current.values()) marker.remove()
+    markersRef.current.clear()
 
     if (stationsWithCoords.length === 0) {
-      map.setCenter(DEFAULT_CENTER)
-      map.setZoom(11)
+      map.setView(DEFAULT_CENTER, 11)
       return
     }
 
-    const bounds = new googleMaps.LatLngBounds()
+    const bounds: [number, number][] = []
     for (const s of stationsWithCoords) {
-      const position = {
-        lat: Number(s.latitude),
-        lng: Number(s.longitude),
-      }
+      const position: [number, number] = [Number(s.latitude), Number(s.longitude)]
       const title = stationLabel(s)
       const status = String(s.status ?? '').toUpperCase() || 'UNKNOWN'
-      const marker = new googleMaps.Marker({
-        map,
-        position,
+      const marker = L.marker(position, {
+        icon: stationMarkerIcon,
         title,
       })
       const hotline = s.hotline ? `<div>📞 ${s.hotline}</div>` : ''
       const address = s.address ? `<div>📍 ${s.address}</div>` : ''
-      const html = `
+      marker
+        .bindPopup(
+          `
         <div style="min-width:220px;line-height:1.45">
           <div style="font-weight:700;margin-bottom:4px">${title}</div>
           ${address}
           ${hotline}
           <div style="margin-top:6px;font-size:12px;color:#475569">Trạng thái: ${status}</div>
         </div>
-      `
-      marker.addListener('click', () => {
-        info.setContent(html)
-        info.open({ map, anchor: marker })
-      })
-      markersRef.current.push(marker)
-      bounds.extend(position)
+      `,
+        )
+        .addTo(map)
+      markersRef.current.set(s.id, marker)
+      bounds.push(position)
     }
 
     if (stationsWithCoords.length === 1) {
-      map.setCenter(bounds.getCenter())
-      map.setZoom(15)
+      map.setView(bounds[0], 15)
     } else {
-      map.fitBounds(bounds, 56)
+      map.fitBounds(bounds, { padding: [56, 56] })
     }
   }, [stationsWithCoords])
 
   const focusStation = (station: StationDto) => {
     const map = mapRef.current
-    const googleMaps = getGoogleMapsRuntime()
-    if (!map || !googleMaps || station.latitude == null || station.longitude == null) return
-    const position = { lat: Number(station.latitude), lng: Number(station.longitude) }
-    map.panTo(position)
-    map.setZoom(16)
-    const mk = markersRef.current.find(
-      (m) =>
-        Math.abs((m.getPosition()?.lat() ?? 0) - position.lat) < 1e-9 &&
-        Math.abs((m.getPosition()?.lng() ?? 0) - position.lng) < 1e-9,
-    )
-    if (mk && infoWindowRef.current) {
-      googleMaps.event.trigger(mk, 'click')
-    }
+    if (!map || station.latitude == null || station.longitude == null) return
+    const position: [number, number] = [
+      Number(station.latitude),
+      Number(station.longitude),
+    ]
+    if (!Number.isFinite(position[0]) || !Number.isFinite(position[1])) return
+    map.setView(position, 16)
+    markersRef.current.get(station.id)?.openPopup()
   }
 
   return (
@@ -300,13 +197,7 @@ export default function MapStationPage() {
           <h1>Bản đồ trạm</h1>
           <p>Xem vị trí trạm theo bản đồ và lọc nhanh theo trạng thái.</p>
         </header>
-        <section className="map-wrap" aria-label="Google Maps">
-          {origin ? (
-            <p className="map-banner map-banner--info" role="status">
-              Origin hiện tại: <code>{origin}</code>. Nếu key bị chặn, thêm HTTP referrer:
-              <code>{` ${origin}/*`}</code>
-            </p>
-          ) : null}
+        <section className="map-wrap" aria-label="OpenStreetMap">
           {mapError ? (
             <div className="map-banner map-banner--err" role="alert">
               <div>{mapError}</div>
