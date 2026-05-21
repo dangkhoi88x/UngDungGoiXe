@@ -3,10 +3,11 @@ package com.example.ungdunggoixe.service.implement;
 import com.example.ungdunggoixe.service.*;
 
 import com.example.ungdunggoixe.cache.UserCacheExpressions;
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.example.ungdunggoixe.common.RoleName;
 import com.example.ungdunggoixe.configuration.RedisConfiguration;
+import com.example.ungdunggoixe.constant.FileUploadConstants;
 
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 
@@ -31,14 +32,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -54,14 +53,9 @@ public class UserServiceImplement implements UserService {
     private static final Set<String> USER_SORT_FIELDS = Set.of(
             "id", "email", "firstName", "lastName", "licenseVerificationStatus", "verifiedAt", "updatedAt", "createdAt"
     );
-    private static final Set<String> USER_DOCUMENT_IMAGE_TYPES = Set.of(
-            "image/jpeg", "image/jpg", "image/png", "image/webp"
-    );
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleService roleService;
-    private final LocalUserDocumentStorage localUserDocumentStorage;
     private final MediaService mediaService;
     private final MailService mailService;
     private final I18nService i18nService;
@@ -273,7 +267,7 @@ public class UserServiceImplement implements UserService {
             throw new AppException(ErrorCode.DOCUMENT_SUBMISSION_INVALID);
         }
         String contentType = file.getContentType();
-        if (contentType == null || !USER_DOCUMENT_IMAGE_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+        if (contentType == null || !FileUploadConstants.IMAGE_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
             throw new AppException(ErrorCode.DOCUMENT_SUBMISSION_INVALID);
         }
     }
@@ -285,9 +279,7 @@ public class UserServiceImplement implements UserService {
         String t = url.trim();
         if (mediaService.isOurS3Url(t)) {
             mediaService.tryDeleteS3ByUrl(t);
-            return;
         }
-        localUserDocumentStorage.deleteStoredFileIfPresent(t);
     }
 
     @Cacheable(key = UserCacheExpressions.CURRENT_PRINCIPAL_NAME)

@@ -1,9 +1,7 @@
 package com.example.ungdunggoixe.exception;
 
-import com.example.ungdunggoixe.common.ErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor

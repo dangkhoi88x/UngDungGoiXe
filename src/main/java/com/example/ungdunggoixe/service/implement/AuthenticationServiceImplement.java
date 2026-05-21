@@ -3,7 +3,7 @@ package com.example.ungdunggoixe.service.implement;
 import com.example.ungdunggoixe.service.*;
 
 import com.example.ungdunggoixe.common.TokenType;
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.dto.TokenPayload;
 import com.example.ungdunggoixe.dto.request.AuthenticationRequest;
 import com.example.ungdunggoixe.dto.response.AuthenticationResponse;

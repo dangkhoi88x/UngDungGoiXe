@@ -1,38 +1,12 @@
 package com.example.ungdunggoixe.service;
 
-import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.common.OwnerVehicleRequestStatus;
-import com.example.ungdunggoixe.common.VehicleStatus;
-import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.dto.request.CreateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
 import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestResponse;
-import com.example.ungdunggoixe.entity.OwnerVehicleRequest;
-import com.example.ungdunggoixe.entity.OwnerVehicleRequestHistoryItem;
-import com.example.ungdunggoixe.entity.Station;
-import com.example.ungdunggoixe.entity.User;
-import com.example.ungdunggoixe.entity.Vehicle;
-import com.example.ungdunggoixe.exception.AppException;
-import com.example.ungdunggoixe.mapper.OwnerVehicleRequestMapper;
-import com.example.ungdunggoixe.mapper.BookingMapper;
-import com.example.ungdunggoixe.repository.BookingRepository;
-import com.example.ungdunggoixe.repository.OwnerVehicleRequestRepository;
-import com.example.ungdunggoixe.repository.StationRepository;
-import com.example.ungdunggoixe.repository.UserRepository;
-import com.example.ungdunggoixe.repository.VehicleRepository;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import java.util.ArrayList;
-import java.util.HashSet;
+
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.time.LocalDateTime;
 
 public interface OwnerVehicleRequestService {
     OwnerVehicleRequestResponse create(CreateOwnerVehicleRequest request);

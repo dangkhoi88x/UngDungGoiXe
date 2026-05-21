@@ -1,12 +1,11 @@
 package com.example.ungdunggoixe.controller;
 
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.OwnerVehicleMediaService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -40,11 +39,6 @@ public class UploadController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/owner-vehicle/photo")
     @Operation(summary = "Upload anh xe", description = "Tai len anh xe len S3 (folder owner-vehicles/{userId}/photos).")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload anh xe thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File anh khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap")
-    })
     public ApiResponse<Map<String, String>> uploadOwnerVehiclePhoto(
             @RequestParam("file") MultipartFile file
     ) {
@@ -60,11 +54,6 @@ public class UploadController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/owner-vehicle/document")
     @Operation(summary = "Upload tai lieu xe", description = "Tai len tai lieu len S3 (folder owner-vehicles/{userId}/documents).")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload tai lieu thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File tai lieu khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap")
-    })
     public ApiResponse<Map<String, String>> uploadOwnerVehicleDocument(
             @RequestParam("file") MultipartFile file
     ) {

@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.configuration;
 
+import com.example.ungdunggoixe.constant.JwtConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -31,6 +32,34 @@ import java.util.List;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration {
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/v3/api-docs/**",
+            "/momo/**",
+            "/users",
+            "/auth/**",
+            "/stations/**",
+            "/vehicles/**",
+            "/users/**",
+            "/bookings/vehicle-availability",
+            "/blog/posts",
+            "/blog/posts/**",
+            "/api/blog/posts",
+            "/api/blog/posts/**"
+    };
+
+    private static final String[] AUTHENTICATED_ENDPOINTS = {
+            "/users/my-info",
+            "/users/my-documents",
+            "/users/my-profile"
+    };
+
+    private static final String[] AUTHENTICATED_POST_ENDPOINTS = {
+            "/vehicles/*/photos",
+            "/api/vehicles/*/photos"
+    };
+
     private final UserDetailsService userDetailsService;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173}")
@@ -39,28 +68,15 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
             throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/files/**").permitAll()
-                        .requestMatchers("/momo/**").permitAll()
-                        .requestMatchers("/users/my-info", "/users/my-documents", "/users/my-profile").authenticated() // ✅ cụ thể trước
-                        // Quyen cu the (admin vs chu xe so huu xe) xu ly trong VehicleService
-                        .requestMatchers(HttpMethod.POST, "/vehicles/*/photos", "/api/vehicles/*/photos")
-                                .authenticated()
-                        .requestMatchers("/users", "/auth/**", "/stations/**", "/vehicles/**").permitAll()
-                        .requestMatchers("/users/**").permitAll() // ✅ wildcard sau
-
-                        .requestMatchers("/bookings/vehicle-availability").permitAll()
-                        .requestMatchers(
-                                        "/blog/posts",
-                                        "/blog/posts/**",
-                                        "/api/blog/posts",
-                                        "/api/blog/posts/**")
-                                .permitAll()
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(AUTHENTICATED_ENDPOINTS).authenticated()
+                        .requestMatchers(HttpMethod.POST, AUTHENTICATED_POST_ENDPOINTS).authenticated()
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated())
-                .oauth2ResourceServer((oauth2) -> oauth2
+                .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
@@ -98,7 +114,7 @@ public class SecurityConfiguration {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("roles");
+        grantedAuthoritiesConverter.setAuthoritiesClaimName(JwtConstants.CLAIM_ROLES);
         grantedAuthoritiesConverter.setAuthorityPrefix("");
 
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();

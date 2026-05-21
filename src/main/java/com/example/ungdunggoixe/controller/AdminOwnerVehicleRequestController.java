@@ -7,7 +7,6 @@ import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.OwnerVehicleRequestService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,11 +24,6 @@ public class AdminOwnerVehicleRequestController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @GetMapping
     @Operation(summary = "Admin lay danh sach yeu cau chu xe", description = "Lay danh sach yeu cau chu xe theo trang thai.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lay danh sach yeu cau thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Khong du quyen")
-    })
     public ApiResponse<List<OwnerVehicleRequestResponse>> getAdminRequests(
             @RequestParam(required = false) OwnerVehicleRequestStatus status
     ) {
@@ -45,10 +39,6 @@ public class AdminOwnerVehicleRequestController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @GetMapping("/{id}")
     @Operation(summary = "Admin lay chi tiet yeu cau", description = "Lay chi tiet yeu cau chu xe theo id.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lay chi tiet yeu cau thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay yeu cau")
-    })
     public ApiResponse<OwnerVehicleRequestResponse> getAdminRequestById(@PathVariable Long id) {
         OwnerVehicleRequestResponse result = ownerVehicleRequestService.getAdminRequestById(id);
         return ApiResponse.<OwnerVehicleRequestResponse>builder()
@@ -62,11 +52,6 @@ public class AdminOwnerVehicleRequestController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @PostMapping("/{id}/approve")
     @Operation(summary = "Admin phe duyet yeu cau", description = "Phe duyet yeu cau chu xe.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Phe duyet yeu cau thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Trang thai yeu cau khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay yeu cau")
-    })
     public ApiResponse<OwnerVehicleRequestResponse> approve(
             @PathVariable Long id,
             @RequestBody(required = false) AdminReviewOwnerVehicleRequest request
@@ -84,11 +69,6 @@ public class AdminOwnerVehicleRequestController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @PostMapping("/{id}/reject")
     @Operation(summary = "Admin tu choi yeu cau", description = "Tu choi yeu cau chu xe.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tu choi yeu cau thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Trang thai yeu cau khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay yeu cau")
-    })
     public ApiResponse<OwnerVehicleRequestResponse> reject(
             @PathVariable Long id,
             @RequestBody(required = false) AdminReviewOwnerVehicleRequest request
@@ -106,11 +86,6 @@ public class AdminOwnerVehicleRequestController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @PostMapping("/{id}/need-more-info")
     @Operation(summary = "Admin yeu cau bo sung", description = "Danh dau yeu cau chu xe can bo sung thong tin.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Danh dau bo sung thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Trang thai yeu cau khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay yeu cau")
-    })
     public ApiResponse<OwnerVehicleRequestResponse> needMoreInfo(
             @PathVariable Long id,
             @RequestBody(required = false) AdminReviewOwnerVehicleRequest request

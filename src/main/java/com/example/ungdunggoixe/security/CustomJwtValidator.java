@@ -1,6 +1,7 @@
 package com.example.ungdunggoixe.security;
 
 import com.example.ungdunggoixe.common.TokenType;
+import com.example.ungdunggoixe.constant.JwtConstants;
 import com.example.ungdunggoixe.repository.BlacklistedTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +34,7 @@ public class CustomJwtValidator implements OAuth2TokenValidator<Jwt> {
             return OAuth2TokenValidatorResult.failure(INVALID);
         }
 
-        Object typClaim = jwt.getClaim("typ");
+        Object typClaim = jwt.getClaim(JwtConstants.CLAIM_TOKEN_TYPE);
         if (typClaim == null) {
             return OAuth2TokenValidatorResult.failure(INVALID);
         }

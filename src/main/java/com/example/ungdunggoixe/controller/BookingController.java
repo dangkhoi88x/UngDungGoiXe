@@ -1,9 +1,8 @@
 package com.example.ungdunggoixe.controller;
 
 import com.example.ungdunggoixe.common.BookingStatus;
-import com.example.ungdunggoixe.common.ErrorCode;
-import com.example.ungdunggoixe.common.PaymentStatus;
 import com.example.ungdunggoixe.dto.momo.CreatePaymentResponse;
+import com.example.ungdunggoixe.dto.request.BookingPageRequest;
 import com.example.ungdunggoixe.dto.request.CreateBookingRequest;
 import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
 import com.example.ungdunggoixe.dto.request.SubmitBookingVehicleFeedbackRequest;
@@ -11,14 +10,13 @@ import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
 import com.example.ungdunggoixe.dto.response.BookingVehicleFeedbackResponse;
 import com.example.ungdunggoixe.dto.response.PageResponse;
-import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.service.BookingFeedbackService;
 import com.example.ungdunggoixe.service.BookingService;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.PaymentService;
+import com.example.ungdunggoixe.util.JwtPrincipalUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
@@ -42,24 +40,8 @@ public class BookingController {
     private final I18nService i18nService;
     private final PaymentService paymentService;
 
-    private static Long jwtUserId(Jwt jwt) {
-        if (jwt == null || jwt.getSubject() == null || jwt.getSubject().isBlank()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
-        try {
-            return Long.parseLong(jwt.getSubject());
-        } catch (NumberFormatException ex) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
-    }
-
     @PostMapping
     @Operation(summary = "Tao booking", description = "Tao don dat xe moi va tinh tong tien du kien.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao booking thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Du lieu booking khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Xe khong san sang trong khoang thoi gian yeu cau")
-    })
     public ApiResponse<BookingResponse> create(@Valid @RequestBody CreateBookingRequest request) {
         BookingResponse result = bookingService.createBooking(request);
         return ApiResponse.<BookingResponse>builder()
@@ -94,10 +76,7 @@ public class BookingController {
 
     @GetMapping("/me")
     public ApiResponse<List<BookingResponse>> getMyBookings(@AuthenticationPrincipal Jwt jwt) {
-        if (jwt == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
-        Long userId = jwtUserId(jwt);
+        Long userId = JwtPrincipalUtils.requireUserId(jwt);
         List<BookingResponse> result = bookingService.getMyBookings(userId);
         return ApiResponse.<List<BookingResponse>>builder()
                 .status("success")
@@ -108,37 +87,8 @@ public class BookingController {
     }
 
     @GetMapping("/paged")
-    public ApiResponse<PageResponse<BookingResponse>> getBookingsPaged(
-            @RequestParam(required = false) Long renterId,
-            @RequestParam(required = false) Long stationId,
-            @RequestParam(required = false) Long vehicleId,
-            @RequestParam(required = false) BookingStatus status,
-            @RequestParam(required = false) PaymentStatus paymentStatus,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTimeFrom,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTimeTo,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAtFrom,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAtTo,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-        PageResponse<BookingResponse> result = bookingService.getBookingsPaged(
-                renterId,
-                stationId,
-                vehicleId,
-                status,
-                paymentStatus,
-                startTimeFrom,
-                startTimeTo,
-                createdAtFrom,
-                createdAtTo,
-                keyword,
-                page,
-                size,
-                sortBy,
-                sortDir
-        );
+    public ApiResponse<PageResponse<BookingResponse>> getBookingsPaged(@ModelAttribute BookingPageRequest request) {
+        PageResponse<BookingResponse> result = bookingService.getBookingsPaged(request);
         return ApiResponse.<PageResponse<BookingResponse>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.booking.page.success"))
@@ -151,18 +101,12 @@ public class BookingController {
     @Operation(
             summary = "Upload anh kem danh gia (S3)",
             description = "Truoc khi POST /bookings/{id}/feedback: tai anh len S3 (folder bookings/{id}/feedback). Chi booking COMPLETED, chua co feedback.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Upload thanh cong, tra ve url"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "File khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Khong phai nguoi thue"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Da gui feedback")
-    })
     public ApiResponse<Map<String, String>> uploadBookingFeedbackPhoto(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam("file") MultipartFile file
     ) {
-        Long userId = jwtUserId(jwt);
+        Long userId = JwtPrincipalUtils.requireUserId(jwt);
         String url = bookingFeedbackService.uploadFeedbackPhoto(id, userId, file);
         return ApiResponse.<Map<String, String>>builder()
                 .status("success")
@@ -176,19 +120,12 @@ public class BookingController {
     @Operation(
             summary = "Danh gia xe sau khi hoan thanh thue",
             description = "Diem sao (1-5), comment; photoUrls tuy chon (URL tu POST .../feedback/photos). Toi da 8 anh. Mot booking mot lan.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Gui danh gia thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Booking chua hoac khong du dieu kien / diem khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Khong phai nguoi thue"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay booking"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Da danh gia booking nay")
-    })
     public ApiResponse<BookingVehicleFeedbackResponse> submitVehicleFeedback(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody SubmitBookingVehicleFeedbackRequest body
     ) {
-        Long userId = jwtUserId(jwt);
+        Long userId = JwtPrincipalUtils.requireUserId(jwt);
         BookingVehicleFeedbackResponse result =
                 bookingFeedbackService.submitVehicleFeedback(id, userId, body);
         return ApiResponse.<BookingVehicleFeedbackResponse>builder()
@@ -205,7 +142,7 @@ public class BookingController {
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        Long userId = jwtUserId(jwt);
+        Long userId = JwtPrincipalUtils.requireUserId(jwt);
         BookingVehicleFeedbackResponse result =
                 bookingFeedbackService.getMyFeedbackForBooking(id, userId);
         return ApiResponse.<BookingVehicleFeedbackResponse>builder()
@@ -259,11 +196,6 @@ public class BookingController {
 
     @PatchMapping("/{id}/confirm")
     @Operation(summary = "Xac nhan booking", description = "Chuyen booking tu PENDING sang CONFIRMED neu da thu du coc.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Xac nhan booking thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Chua du dieu kien xac nhan booking"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay booking")
-    })
     public ApiResponse<BookingResponse> confirm(@PathVariable Long id) {
         BookingResponse result = bookingService.confirmBooking(id);
         return ApiResponse.<BookingResponse>builder()
@@ -298,11 +230,6 @@ public class BookingController {
 
     @PatchMapping("/{id}/cancel")
     @Operation(summary = "Huy booking", description = "Huy booking theo luong trang thai hop le.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Huy booking thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Khong the huy o trang thai hien tai"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay booking")
-    })
     public ApiResponse<BookingResponse> cancel(@PathVariable Long id) {
         BookingResponse result = bookingService.cancelBooking(id);
         return ApiResponse.<BookingResponse>builder()
@@ -318,11 +245,6 @@ public class BookingController {
             summary = "Thanh toan tong truoc qua MoMo",
             description = "Tao giao dich MoMo tra truoc (estimatedRental + depositAmount). "
                     + "Tham so momoRequestType: captureWallet = vi MoMo; payWithATM = the ATM noi dia (theo tai lieu MoMo payWithATM).")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao giao dich thanh toan tong truoc thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Booking khong hop le de thanh toan"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay booking")
-    })
     public ApiResponse<CreatePaymentResponse> prepayTotalByMomo(
             @PathVariable Long id,
             @Parameter(

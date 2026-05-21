@@ -10,7 +10,6 @@ import com.example.ungdunggoixe.dto.response.StationResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.StationService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,10 +27,6 @@ public class StationController {
 
     @PostMapping
     @Operation(summary = "Tao tram", description = "Tao moi tram xe.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao tram thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Ten tram da ton tai")
-    })
     public ApiResponse<CreateStationResponse> create(@Valid @RequestBody CreateStationRequest request) {
             CreateStationResponse result = stationService.createStation(request);
             return ApiResponse.<CreateStationResponse>builder()
@@ -45,11 +40,6 @@ public class StationController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @GetMapping("/paged")
     @Operation(summary = "Lay danh sach tram theo trang", description = "Loc va phan trang danh sach tram cho admin.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lay danh sach tram theo trang thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Khong du quyen")
-    })
     public ApiResponse<PageResponse<StationResponse>> getStationsPaged(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -69,10 +59,6 @@ public class StationController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Lay chi tiet tram", description = "Lay thong tin tram theo id.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lay chi tiet tram thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay tram")
-    })
     public ApiResponse<StationResponse> getbyID(@PathVariable Long id){
         StationResponse result = stationService.getStationbyID(id);
         return ApiResponse.<StationResponse>builder()
@@ -84,9 +70,6 @@ public class StationController {
     }
     @GetMapping
     @Operation(summary = "Lay tat ca tram", description = "Lay danh sach tat ca tram.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lay tat ca tram thanh cong")
-    })
     public ApiResponse<List<StationResponse>> getAll(){
         List<StationResponse> result = stationService.getAllStation();
         return ApiResponse.<List<StationResponse>>builder()
@@ -98,10 +81,6 @@ public class StationController {
     }
     @PutMapping("/{id}")
     @Operation(summary = "Cap nhat tram", description = "Cap nhat thong tin tram theo id.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Cap nhat tram thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay tram")
-    })
     public ApiResponse<StationResponse> update(@PathVariable Long id, @Valid @RequestBody UpdateStationRequest request) {
         StationResponse result = stationService.updateStation(id, request);
         return ApiResponse.<StationResponse>builder()
@@ -114,10 +93,6 @@ public class StationController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Xoa tram", description = "Soft delete tram bang cach chuyen trang thai INACTIVE.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Xoa tram thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay tram")
-    })
     public String delete(@PathVariable Long id) {
         return stationService.deleteStation(id);
     }

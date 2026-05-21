@@ -1,40 +1,16 @@
 package com.example.ungdunggoixe.service;
 
-import com.example.ungdunggoixe.cache.UserCacheExpressions;
-import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.common.LicenseVerificationStatus;
-import com.example.ungdunggoixe.common.RoleName;
-import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 import com.example.ungdunggoixe.dto.request.UpdateMyProfileRequest;
 import com.example.ungdunggoixe.dto.request.UpdateUserRequest;
 import com.example.ungdunggoixe.dto.response.CreateUserResponse;
 import com.example.ungdunggoixe.dto.response.PageResponse;
 import com.example.ungdunggoixe.dto.response.UserResponse;
-import com.example.ungdunggoixe.entity.Role;
 import com.example.ungdunggoixe.entity.User;
-import com.example.ungdunggoixe.exception.AppException;
-import com.example.ungdunggoixe.mapper.UserMapper;
-import com.example.ungdunggoixe.repository.UserRepository;
-import com.example.ungdunggoixe.repository.specification.UserSpecs;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.IOException;
-import java.time.LocalDateTime;
+
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
 
 public interface UserService {
     CreateUserResponse createUser(CreateUserRequest request);

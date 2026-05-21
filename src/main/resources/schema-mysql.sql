@@ -27,6 +27,9 @@ ALTER TABLE users DROP COLUMN is_license_verified;
 ALTER TABLE stations ADD COLUMN latitude DOUBLE NULL;
 ALTER TABLE stations ADD COLUMN longitude DOUBLE NULL;
 
+-- Optimistic locking cho booking updates (confirm/pickup/return/cancel/payment sync).
+ALTER TABLE bookings ADD COLUMN version BIGINT NULL;
+
 -- Owner gửi request đăng xe cho thuê (P2P listing flow).
 CREATE TABLE IF NOT EXISTS owner_vehicle_requests (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,

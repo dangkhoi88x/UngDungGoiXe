@@ -3,7 +3,9 @@ package com.example.ungdunggoixe.service.implement;
 import com.example.ungdunggoixe.service.*;
 
 import com.example.ungdunggoixe.common.BookingStatus;
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.constant.MomoConstants;
+import com.example.ungdunggoixe.constant.SecurityConstants;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.common.PaymentStatus;
 import com.example.ungdunggoixe.dto.momo.CreatePaymentResponse;
 import com.example.ungdunggoixe.dto.request.CreatePaymentRequest;
@@ -32,15 +34,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentServiceImplement implements PaymentService {
-
-    private static final Set<String> MOMO_PREPAY_REQUEST_TYPES = Set.of("captureWallet", "payWithATM");
 
     /** Theo phản hồi lỗi MoMo (resultCode 22): tối thiểu 1.000 VND mỗi giao dịch. */
     private static final long MOMO_GATEWAY_MIN_VND = 1_000L;
@@ -208,7 +207,9 @@ public class PaymentServiceImplement implements PaymentService {
         if (amountVnd > MOMO_GATEWAY_MAX_VND) {
             throw new AppException(ErrorCode.PAYMENT_MOMO_PREPAY_AMOUNT_RANGE);
         }
-        long min = "payWithATM".equals(momoRequestType) ? MOMO_GATEWAY_MIN_VND_ATM : MOMO_GATEWAY_MIN_VND;
+        long min = MomoConstants.REQUEST_TYPE_PAY_WITH_ATM.equals(momoRequestType)
+                ? MOMO_GATEWAY_MIN_VND_ATM
+                : MOMO_GATEWAY_MIN_VND;
         if (amountVnd < min) {
             throw new AppException(ErrorCode.PAYMENT_MOMO_PREPAY_AMOUNT_RANGE);
         }
@@ -234,8 +235,7 @@ public class PaymentServiceImplement implements PaymentService {
         }
         for (GrantedAuthority ga : auth.getAuthorities()) {
             String r = ga.getAuthority();
-            if ("ROLE_ADMIN".equals(r) || "ROLE_SUPER_ADMIN".equals(r)
-                    || "ROLE_ADMIN_".equals(r) || "ROLE_SUPER_ADMIN_".equals(r)) {
+            if (SecurityConstants.ADMIN_AUTHORITIES.contains(r)) {
                 return true;
             }
         }
@@ -363,7 +363,7 @@ public class PaymentServiceImplement implements PaymentService {
             throw new AppException(ErrorCode.MOMO_REQUEST_TYPE_INVALID);
         }
         String rt = momoRequestType.trim();
-        if (!MOMO_PREPAY_REQUEST_TYPES.contains(rt)) {
+        if (!MomoConstants.CREATE_REQUEST_TYPES.contains(rt)) {
             throw new AppException(ErrorCode.MOMO_REQUEST_TYPE_INVALID);
         }
 

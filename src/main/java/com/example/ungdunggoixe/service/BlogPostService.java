@@ -1,24 +1,14 @@
 package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.common.BlogPostStatus;
-import com.example.ungdunggoixe.common.ErrorCode;
-import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.dto.request.AdminBlogPostUpsertRequest;
 import com.example.ungdunggoixe.dto.response.BlogPostAdminResponse;
 import com.example.ungdunggoixe.dto.response.BlogPostPublicResponse;
 import com.example.ungdunggoixe.dto.response.PagedBlogPostAdminResponse;
 import com.example.ungdunggoixe.dto.response.PagedBlogPostResponse;
-import com.example.ungdunggoixe.entity.BlogPost;
-import com.example.ungdunggoixe.exception.AppException;
-import com.example.ungdunggoixe.repository.BlogPostRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+
 import java.text.Normalizer;
-import java.time.Instant;
 import java.util.Locale;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 public interface BlogPostService {

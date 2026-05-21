@@ -1,15 +1,16 @@
 package com.example.ungdunggoixe.controller;
 
 import com.example.ungdunggoixe.common.BlogPostStatus;
-import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.request.AdminBlogPostUpsertRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.BlogPostAdminResponse;
 import com.example.ungdunggoixe.dto.response.PagedBlogPostAdminResponse;
 import com.example.ungdunggoixe.exception.AppException;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.service.BlogPostService;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.MediaService;
+import com.example.ungdunggoixe.util.JwtPrincipalUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -68,7 +69,7 @@ public class AdminBlogPostController {
             @RequestBody AdminBlogPostUpsertRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        Long authorId = parseUserId(jwt);
+        Long authorId = JwtPrincipalUtils.requireUserId(jwt);
         BlogPostAdminResponse data = blogPostService.create(request, authorId);
         return ApiResponse.<BlogPostAdminResponse>builder()
                 .status("success")
@@ -118,7 +119,7 @@ public class AdminBlogPostController {
         if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
             throw new AppException(ErrorCode.FILE_UPLOAD_INVALID);
         }
-        Long adminId = parseUserId(jwt);
+        Long adminId = JwtPrincipalUtils.requireUserId(jwt);
         String url;
         try {
             url = mediaService.uploadToS3AndGetUrl(file, "blog-posts/" + adminId + "/covers");
@@ -143,16 +144,5 @@ public class AdminBlogPostController {
                 .data(null)
                 .timestamp(Instant.now())
                 .build();
-    }
-
-    private static Long parseUserId(Jwt jwt) {
-        if (jwt == null || jwt.getSubject() == null || jwt.getSubject().isBlank()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
-        try {
-            return Long.parseLong(jwt.getSubject());
-        } catch (NumberFormatException ex) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
     }
 }

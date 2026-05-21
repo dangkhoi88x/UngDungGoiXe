@@ -7,7 +7,6 @@ import com.example.ungdunggoixe.entity.Payment;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,11 +28,6 @@ public class PaymentController {
      */
     @PostMapping
     @Operation(summary = "Tao thanh toan", description = "Tao ban ghi thanh toan cho booking (dat coc/thanh toan).")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao thanh toan thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Thong tin thanh toan khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay booking")
-    })
     public ApiResponse<PaymentResponse> create(@Valid @RequestBody CreatePaymentRequest request) {
         PaymentResponse result = paymentService.createPayment(request);
         return ApiResponse.<PaymentResponse>builder()
@@ -77,12 +71,6 @@ public class PaymentController {
     @GetMapping("/pending-adjustments")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @Operation(summary = "Danh sach dieu chinh cho xu ly", description = "Lay danh sach payment PENDING theo purpose TOPUP hoac REFUND de admin xu ly nhanh.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lay danh sach dieu chinh thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "purpose khong hop le, chi chap nhan TOPUP|REFUND"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Khong du quyen")
-    })
     public ApiResponse<List<PaymentResponse>> getPendingAdjustments(@RequestParam Payment.PaymentPurpose purpose) {
         List<PaymentResponse> result = paymentService.getPendingAdjustments(purpose);
         return ApiResponse.<List<PaymentResponse>>builder()
@@ -100,11 +88,6 @@ public class PaymentController {
     @PatchMapping("/{id}/confirm")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @Operation(summary = "Xac nhan thanh toan", description = "Danh dau thanh toan thanh cong.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Xac nhan thanh toan thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Trang thai thanh toan khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay thanh toan")
-    })
     public ApiResponse<PaymentResponse> confirm(@PathVariable Long id) {
         PaymentResponse result = paymentService.confirmPayment(id);
         return ApiResponse.<PaymentResponse>builder()
@@ -118,11 +101,6 @@ public class PaymentController {
     @PatchMapping("/{id}/confirm-topup")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @Operation(summary = "Xac nhan thu them TOPUP", description = "Xac nhan da thu them cho payment purpose = TOPUP.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Xac nhan thu them thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Payment khong phai TOPUP hoac trang thai khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay payment")
-    })
     public ApiResponse<PaymentResponse> confirmTopup(@PathVariable Long id) {
         PaymentResponse result = paymentService.confirmTopupPayment(id);
         return ApiResponse.<PaymentResponse>builder()
@@ -136,11 +114,6 @@ public class PaymentController {
     @PatchMapping("/{id}/confirm-refund")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @Operation(summary = "Xac nhan hoan tien REFUND", description = "Xac nhan da hoan tien cho payment purpose = REFUND.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Xac nhan hoan tien thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Payment khong phai REFUND hoac trang thai khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay payment")
-    })
     public ApiResponse<PaymentResponse> confirmRefund(@PathVariable Long id) {
         PaymentResponse result = paymentService.confirmRefundPayment(id);
         return ApiResponse.<PaymentResponse>builder()
@@ -158,10 +131,6 @@ public class PaymentController {
     @PatchMapping("/{id}/fail")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
     @Operation(summary = "Danh dau thanh toan that bai", description = "Cap nhat trang thai thanh toan ve FAILED.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Cap nhat that bai thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Khong tim thay thanh toan")
-    })
     public ApiResponse<PaymentResponse> fail(@PathVariable Long id) {
         PaymentResponse result = paymentService.failPayment(id);
         return ApiResponse.<PaymentResponse>builder()

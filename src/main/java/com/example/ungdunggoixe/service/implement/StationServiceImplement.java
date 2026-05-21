@@ -2,7 +2,7 @@ package com.example.ungdunggoixe.service.implement;
 
 import com.example.ungdunggoixe.service.*;
 
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.common.StationStatus;
 import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.dto.request.CreateStationRequest;

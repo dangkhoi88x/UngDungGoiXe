@@ -13,7 +13,6 @@ import com.example.ungdunggoixe.dto.response.UserResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,10 +40,6 @@ public class UserController {
 
     @PostMapping
     @Operation(summary = "Tao user", description = "Dang ky tai khoan nguoi dung moi.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao user thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Email da ton tai")
-    })
     public ApiResponse<CreateUserResponse> createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
         CreateUserResponse result = userService.createUser(createUserRequest);
         return ApiResponse.<CreateUserResponse>builder()
@@ -62,10 +57,6 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/my-info")
     @Operation(summary = "Lay thong tin cua toi", description = "Lay profile cua user dang dang nhap.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lay thong tin thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap")
-    })
     public ApiResponse<UserResponse> getMyInfo() {
         UserResponse result = userService.getMyInfo();
         return ApiResponse.<UserResponse>builder()
@@ -93,11 +84,6 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping(value = "/my-documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Gui giay to xac minh", description = "Nguoi dung gui CMND/CCCD va GPLX de cho duyet.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Gui giay to thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Du lieu hoac file khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chua dang nhap")
-    })
         public ApiResponse<UserResponse> submitMyDocuments(
             @RequestParam("identityNumber") String identityNumber,
             @RequestParam("licenseNumber") String licenseNumber,

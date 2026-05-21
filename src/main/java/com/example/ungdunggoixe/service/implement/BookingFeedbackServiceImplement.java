@@ -3,7 +3,8 @@ package com.example.ungdunggoixe.service.implement;
 import com.example.ungdunggoixe.service.*;
 
 import com.example.ungdunggoixe.common.BookingStatus;
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.constant.FileUploadConstants;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.dto.request.SubmitBookingVehicleFeedbackRequest;
 import com.example.ungdunggoixe.dto.response.BookingVehicleFeedbackResponse;
 import com.example.ungdunggoixe.entity.Booking;
@@ -26,7 +27,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -37,10 +37,6 @@ public class BookingFeedbackServiceImplement implements BookingFeedbackService {
     private static final int COMMENT_MAX_LEN = 4000;
     private static final int MAX_FEEDBACK_PHOTOS = 8;
     private static final int PHOTO_URL_MAX_LEN = 2048;
-
-    private static final Set<String> FEEDBACK_PHOTO_TYPES = Set.of(
-            "image/jpeg", "image/jpg", "image/png", "image/webp"
-    );
 
     private final FeedbackRepository feedbackRepository;
     private final BookingRepository bookingRepository;
@@ -153,7 +149,7 @@ public class BookingFeedbackServiceImplement implements BookingFeedbackService {
         if (contentType == null) {
             throw new AppException(ErrorCode.FILE_UPLOAD_INVALID);
         }
-        if (!FEEDBACK_PHOTO_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+        if (!FileUploadConstants.IMAGE_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
             throw new AppException(ErrorCode.FILE_UPLOAD_INVALID);
         }
     }

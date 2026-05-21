@@ -3,7 +3,8 @@ package com.example.ungdunggoixe.service.implement;
 import com.example.ungdunggoixe.service.*;
 
 import com.example.ungdunggoixe.common.TokenType;
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.constant.JwtConstants;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.dto.TokenPayload;
 import com.example.ungdunggoixe.exception.AppException;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -53,9 +54,9 @@ public class JwtServiceImplement implements JwtService {
                 .audience(List.of(audience))
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(3600))
-                .issuer("http://localhost:8080")
-                .claim("roles", roles)
-                .claim("typ", TokenType.ACCESS)
+                .issuer(JwtConstants.DEFAULT_ISSUER)
+                .claim(JwtConstants.CLAIM_ROLES, roles)
+                .claim(JwtConstants.CLAIM_TOKEN_TYPE, TokenType.ACCESS)
                 .id(jti)
                 .build();
 
@@ -74,8 +75,8 @@ public class JwtServiceImplement implements JwtService {
                 .audience(List.of(audience))
                 .issuedAt(now)
                 .expiresAt(expiresAt)
-                .issuer("http://localhost:8080")
-                .claim("typ", TokenType.REFRESH)
+                .issuer(JwtConstants.DEFAULT_ISSUER)
+                .claim(JwtConstants.CLAIM_TOKEN_TYPE, TokenType.REFRESH)
                 .build();
 
         String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
@@ -90,13 +91,13 @@ public class JwtServiceImplement implements JwtService {
         JwtDecoder decoder = (type == TokenType.REFRESH) ? refreshTokenDecoder : accessTokenDecoder;
         Jwt jwt = decoder.decode(token);
 
-        String typ = jwt.getClaim("typ").toString();
+        String typ = jwt.getClaim(JwtConstants.CLAIM_TOKEN_TYPE).toString();
         if (TokenType.valueOf(typ) != type) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
         Long userId = Long.parseLong(jwt.getSubject());
-        List<String> roles = extractRoles(jwt.getClaim("roles"));
+        List<String> roles = extractRoles(jwt.getClaim(JwtConstants.CLAIM_ROLES));
         String jti = jwt.getId();
         Instant issuedAt = jwt.getIssuedAt();
         Instant expiration = jwt.getExpiresAt();

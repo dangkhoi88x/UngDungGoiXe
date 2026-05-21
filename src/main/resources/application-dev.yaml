@@ -59,7 +59,6 @@ oauth2:
     client-secret: ${OAUTH_GOOGLE_SECRET:}
 app:
   web-base-url: ${APP_WEB_BASE_URL:http://localhost:5173}
-  upload-dir: uploads
   booking:
     # Thời gian chờ thanh toán MoMo prepay tổng; sau mốc này booking PENDING (chưa có tiền PAID) được hủy để nhường slot.
     # ~1h40 khớp countdown đơn hàng trên cổng test MoMo; có thể tăng nhẹ (vd. 105m) để giảm race với IPN trễ.

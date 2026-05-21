@@ -3,12 +3,14 @@ package com.example.ungdunggoixe.service.implement;
 import com.example.ungdunggoixe.service.*;
 
 
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.common.FuelType;
 import com.example.ungdunggoixe.common.OwnerVehicleRequestStatus;
 import com.example.ungdunggoixe.common.VehiclePolicyTerm;
 import com.example.ungdunggoixe.common.VehicleStatus;
 import com.example.ungdunggoixe.configuration.RedisConfiguration;
+import com.example.ungdunggoixe.constant.FileUploadConstants;
+import com.example.ungdunggoixe.constant.SecurityConstants;
 import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
 import com.example.ungdunggoixe.dto.response.CreateVehicleResponse;
@@ -63,14 +65,6 @@ public class VehicleServiceImplement implements VehicleService {
     /** Đồng bộ với {@code app.owner-vehicle-upload.max-file-size-bytes} (và spring.servlet.multipart max-file-size). */
     @Value("${app.owner-vehicle-upload.max-file-size-bytes:6291456}")
     private long maxVehiclePhotoUploadBytes;
-
-    private static final Set<String> VEHICLE_PHOTO_TYPES = Set.of(
-            "image/jpeg", "image/jpg", "image/png", "image/webp"
-    );
-
-    private static final Set<String> ADMIN_ROLE_AUTHORITIES = Set.of(
-            "ROLE_ADMIN", "ROLE_ADMIN_", "ROLE_SUPER_ADMIN", "ROLE_SUPER_ADMIN_"
-    );
 
     private static String mapVehicleSortProperty(String sortBy) {
         if (sortBy == null || sortBy.isBlank()) {
@@ -317,7 +311,7 @@ public class VehicleServiceImplement implements VehicleService {
         if (jwtRoleAuthorities == null || jwtRoleAuthorities.isEmpty()) {
             return false;
         }
-        return jwtRoleAuthorities.stream().anyMatch(ADMIN_ROLE_AUTHORITIES::contains);
+        return jwtRoleAuthorities.stream().anyMatch(SecurityConstants.ADMIN_AUTHORITIES::contains);
     }
 
     private boolean isApprovedOwnerOfVehicle(Long userId, Long vehicleId) {
@@ -347,7 +341,7 @@ public class VehicleServiceImplement implements VehicleService {
             throw new AppException(ErrorCode.FILE_UPLOAD_INVALID);
         }
         String normalized = contentType.toLowerCase(Locale.ROOT);
-        if (!VEHICLE_PHOTO_TYPES.contains(normalized)) {
+        if (!FileUploadConstants.IMAGE_TYPES.contains(normalized)) {
             throw new AppException(ErrorCode.FILE_UPLOAD_INVALID);
         }
     }

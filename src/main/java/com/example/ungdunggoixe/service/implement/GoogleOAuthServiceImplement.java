@@ -2,7 +2,7 @@ package com.example.ungdunggoixe.service.implement;
 
 import com.example.ungdunggoixe.service.*;
 
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.exception.AppException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

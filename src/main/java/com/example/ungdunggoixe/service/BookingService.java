@@ -1,43 +1,14 @@
 package com.example.ungdunggoixe.service;
 
 import com.example.ungdunggoixe.common.BookingStatus;
-import com.example.ungdunggoixe.common.ErrorCode;
-import com.example.ungdunggoixe.common.PaymentStatus;
-import com.example.ungdunggoixe.common.StationStatus;
-import com.example.ungdunggoixe.common.VehicleStatus;
+import com.example.ungdunggoixe.dto.request.BookingPageRequest;
 import com.example.ungdunggoixe.dto.request.CreateBookingRequest;
 import com.example.ungdunggoixe.dto.request.UpdateBookingRequest;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
 import com.example.ungdunggoixe.dto.response.PageResponse;
-import com.example.ungdunggoixe.entity.Booking;
-import com.example.ungdunggoixe.entity.Payment;
-import com.example.ungdunggoixe.entity.Station;
-import com.example.ungdunggoixe.entity.User;
-import com.example.ungdunggoixe.entity.Vehicle;
-import com.example.ungdunggoixe.exception.AppException;
-import com.example.ungdunggoixe.mapper.BookingMapper;
-import com.example.ungdunggoixe.repository.BookingRepository;
-import com.example.ungdunggoixe.repository.PaymentRepository;
-import com.example.ungdunggoixe.repository.StationRepository;
-import com.example.ungdunggoixe.repository.UserRepository;
-import com.example.ungdunggoixe.repository.VehicleRepository;
-import com.example.ungdunggoixe.repository.specification.BookingSpecs;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
+
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
 
 public interface BookingService {
     BookingResponse createBooking(CreateBookingRequest request);
@@ -49,7 +20,7 @@ public interface BookingService {
     List<BookingResponse> getMyBookings(Long userId);
     BookingResponse getBookingById(Long id);
     List<BookingResponse> getBookings(Long renterId, Long stationId, BookingStatus status);
-    PageResponse<BookingResponse> getBookingsPaged( Long renterId, Long stationId, Long vehicleId, BookingStatus status, PaymentStatus paymentStatus, LocalDateTime startTimeFrom, LocalDateTime startTimeTo, LocalDateTime createdAtFrom, LocalDateTime createdAtTo, String keyword, int page, int size, String sortBy, String sortDir);
+    PageResponse<BookingResponse> getBookingsPaged(BookingPageRequest request);
     BookingResponse updateBooking(Long id, UpdateBookingRequest request);
     String deleteBooking(Long id);
 }

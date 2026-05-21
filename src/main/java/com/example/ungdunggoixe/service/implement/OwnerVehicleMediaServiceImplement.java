@@ -2,7 +2,8 @@ package com.example.ungdunggoixe.service.implement;
 
 import com.example.ungdunggoixe.service.*;
 
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.constant.FileUploadConstants;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.exception.AppException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,23 +18,11 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
 
-/**
- * Upload ảnh / tài liệu hồ sơ chủ xe lên S3 (thay thế lưu local {@code /files/owner-vehicles/...}).
- */
 @Service
 @RequiredArgsConstructor
 public class OwnerVehicleMediaServiceImplement implements OwnerVehicleMediaService {
 
-    private static final Set<String> IMAGE_TYPES = Set.of(
-            "image/jpeg", "image/jpg", "image/png", "image/webp"
-    );
-
-    private static final Set<String> DOC_TYPES = Set.of(
-            "image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"
-    );
-
     private final MediaService mediaService;
-    private final LocalOwnerVehicleFileStorage localOwnerVehicleFileStorage;
 
     @Value("${app.owner-vehicle-upload.max-file-size-bytes:6291456}")
     private long maxBytesPerFile;
@@ -61,9 +50,6 @@ public class OwnerVehicleMediaServiceImplement implements OwnerVehicleMediaServi
             return false;
         }
         String p = publicUrl.trim();
-        if (p.startsWith("/files/owner-vehicles/")) {
-            return true;
-        }
         return isOurS3OwnerVehicleUrl(p);
     }
 
@@ -72,13 +58,8 @@ public class OwnerVehicleMediaServiceImplement implements OwnerVehicleMediaServi
             return;
         }
         String p = publicUrl.trim();
-        if (p.startsWith("/files/")) {
-            localOwnerVehicleFileStorage.deleteStoredFileIfPresent(publicUrl);
-            return;
-        }
         if (isOurS3OwnerVehicleUrl(p)) {
             mediaService.tryDeleteS3ByUrl(p);
-            return;
         }
     }
 
@@ -96,7 +77,7 @@ public class OwnerVehicleMediaServiceImplement implements OwnerVehicleMediaServi
     }
 
     private void validateOwnerPhoto(MultipartFile file) {
-        validateCommon(file, IMAGE_TYPES);
+        validateCommon(file, FileUploadConstants.IMAGE_TYPES);
         String ct = file.getContentType();
         if (ct == null) {
             throw new AppException(ErrorCode.FILE_UPLOAD_INVALID);
@@ -105,7 +86,7 @@ public class OwnerVehicleMediaServiceImplement implements OwnerVehicleMediaServi
     }
 
     private void validateOwnerDocument(MultipartFile file) {
-        validateCommon(file, DOC_TYPES);
+        validateCommon(file, FileUploadConstants.IMAGE_AND_PDF_TYPES);
         String ct = file.getContentType();
         if (ct == null) {
             throw new AppException(ErrorCode.FILE_UPLOAD_INVALID);

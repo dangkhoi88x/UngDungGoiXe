@@ -9,7 +9,6 @@ import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.MomoService;
 import com.example.ungdunggoixe.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -35,11 +34,6 @@ public class MomoController {
     @Operation(
             summary = "Tao giao dich MoMo",
             description = "Khoi tao giao dich thanh toan MoMo tra ve payUrl. Body co the truyen requestType (captureWallet, payWithATM); neu bo trong thi dung momo.request-type trong cau hinh.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tao giao dich MoMo thanh cong"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "amount/orderInfo khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Loi ket noi/ky request voi MoMo")
-    })
     public ApiResponse<CreatePaymentResponse> create(@RequestBody CreateMomoPaymentRequest request) {
         if (request == null || request.getAmount() == null || request.getAmount() <= 0
                 || request.getOrderInfo() == null || request.getOrderInfo().isBlank()) {
@@ -79,11 +73,6 @@ public class MomoController {
     @Operation(
             summary = "MoMo IPN callback",
             description = "Nhan POST application/json tu MoMo, verify HMAC, cap nhat payment/booking. Tra 204 No Content khi xu ly thanh cong (dung MoMo Payment Notification).")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Da xu ly, dong y IPN"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Body thieu/sai hoac chu ky khong hop le"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Chu ky hop le nhung khong map duoc giao dich noi bo")
-    })
     public ResponseEntity<Void> ipn(@RequestBody(required = false) IpnCallbackRequest payload) {
         if (payload == null || !StringUtils.hasText(payload.getOrderId())) {
             log.warn("MoMo IPN rejected: empty body or missing orderId");

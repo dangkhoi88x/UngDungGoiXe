@@ -1,6 +1,5 @@
 package com.example.ungdunggoixe.exception;
 
-import com.example.ungdunggoixe.common.ErrorCode;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import lombok.RequiredArgsConstructor;
@@ -11,10 +10,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.stream.Collectors;
@@ -88,10 +87,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ErrorCode.FORBIDDEN.getHttpStatus()).body(response);
     }
 
-    /**
-     * Static resources under /files may include old local URLs stored before S3 migration.
-     * Return a plain 404 instead of treating missing images/documents as an application error.
-     */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(NoResourceFoundException e) {
         ApiResponse<Void> response = errorBody(404, "Resource not found");

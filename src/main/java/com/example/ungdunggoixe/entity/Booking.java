@@ -19,6 +19,10 @@ import java.time.LocalDateTime;
 @Table(name = "bookings")
 public class Booking extends AuditableEntity {
 
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     private String bookingCode;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "renter_id", nullable = false)

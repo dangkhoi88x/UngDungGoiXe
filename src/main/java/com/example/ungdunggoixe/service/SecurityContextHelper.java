@@ -1,6 +1,7 @@
 package com.example.ungdunggoixe.service;
 
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.constant.SecurityConstants;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.entity.User;
 import com.example.ungdunggoixe.exception.AppException;
 import com.example.ungdunggoixe.repository.UserRepository;
@@ -12,7 +13,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Tiện ích chung để truy vấn thông tin user từ SecurityContext.
@@ -22,15 +22,6 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class SecurityContextHelper {
-
-    /**
-     * Tất cả authority được coi là admin/staff.
-     * <p><b>Lưu ý:</b> {@code ROLE_ADMIN_} và {@code ROLE_SUPER_ADMIN_} (dấu gạch dưới cuối)
-     * được giữ lại cho tương thích ngược — nên loại bỏ khi đã xác nhận không có token cũ nào dùng.</p>
-     */
-    public static final Set<String> ADMIN_AUTHORITIES = Set.of(
-            "ROLE_ADMIN", "ROLE_ADMIN_", "ROLE_SUPER_ADMIN", "ROLE_SUPER_ADMIN_"
-    );
 
     private final UserRepository userRepository;
 
@@ -88,7 +79,7 @@ public class SecurityContextHelper {
             return false;
         }
         for (GrantedAuthority ga : auth.getAuthorities()) {
-            if (ADMIN_AUTHORITIES.contains(ga.getAuthority())) {
+            if (SecurityConstants.ADMIN_AUTHORITIES.contains(ga.getAuthority())) {
                 return true;
             }
         }

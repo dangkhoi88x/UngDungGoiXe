@@ -2,7 +2,8 @@ package com.example.ungdunggoixe.service.implement;
 
 import com.example.ungdunggoixe.service.*;
 
-import com.example.ungdunggoixe.common.ErrorCode;
+import com.example.ungdunggoixe.constant.MomoConstants;
+import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.configuration.MomoProperties;
 import com.example.ungdunggoixe.dto.momo.CreatePaymentRequest;
 import com.example.ungdunggoixe.dto.momo.CreatePaymentResponse;
@@ -28,14 +29,11 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
-import java.util.Set;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class MomoServiceImplement implements MomoService {
-    private static final Set<String> ALLOWED_CREATE_REQUEST_TYPES = Set.of("captureWallet", "payWithATM");
-
     private final MomoProperties momoProperties;
     private final MomoMapper momoMapper;
     private final I18nService i18nService;
@@ -127,7 +125,7 @@ public class MomoServiceImplement implements MomoService {
 
     private String resolveCreateRequestType(String requestType) {
         String rt = !StringUtils.hasText(requestType) ? momoProperties.getRequestType() : requestType.trim();
-        if (!ALLOWED_CREATE_REQUEST_TYPES.contains(rt)) {
+        if (!MomoConstants.CREATE_REQUEST_TYPES.contains(rt)) {
             throw new IllegalStateException(i18nService.getMessage("error.momo.request_type_invalid"));
         }
         return rt;
