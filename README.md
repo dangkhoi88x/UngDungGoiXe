@@ -1,154 +1,225 @@
-# 🚗 Rent-car-platform 
+# ThueXeOto - Rent Car Platform
 
-Nền tảng đặt xe tự lái với hệ thống quản trị, quy trình duyệt xe cho chủ xe (owner), thanh toán MoMo, đánh giá sau chuyến đi và lưu trữ media trên AWS S3.
+ThueXeOto là nền tảng marketplace B2B/B2C cho thuê ô tô tự lái, kết nối người dùng có nhu cầu thuê xe với cá nhân, chủ xe và đơn vị kinh doanh muốn khai thác xe nhàn rỗi của mình. Hệ thống hỗ trợ trọn vẹn quy trình từ đăng xe, duyệt hồ sơ chủ xe, tìm kiếm và đặt xe, thanh toán, quản lý chuyến thuê, đánh giá sau chuyến đi đến lưu trữ hình ảnh/tài liệu trên AWS S3.
 
-## 🎯 Mục tiêu dự án
+Trang web đã được deploy tại: [https://thuexeoto.online](https://thuexeoto.online)
 
-- Xây dựng hệ thống thuê xe rõ ràng theo vai trò: User / Owner / Admin.
-- Chuẩn hóa quy trình nghiệp vụ booking, thanh toán, duyệt xe và feedback.
-- Tăng độ tin cậy vận hành với CI/CD, quản lý token bằng Redis, media bằng S3.
+## Tổng Quan
 
-## 🧰 Tech Stack
+Dự án hiện đang là mono-repo gồm:
 
-### Backend
+- Backend Spring Boot trong thư mục gốc.
+- Frontend React/Vite trong thư mục `frontend/`.
+- Media upload dùng AWS S3, không còn phục vụ file local qua `/files`.
+- Backend production có thể build thành Docker image bằng `Dockerfile`.
+- CI GitHub Actions build Maven package và push image Docker Hub.
+
+## Tech Stack
+
+Backend:
+
 - Java 21
-- Spring Boot 4
-- Spring Security + JWT + OAuth2
-- Spring Data JPA
+- Spring Boot 4.0.5
+- Spring Security, JWT, OAuth2 Google
+- Spring Data JPA, MySQL
 - Spring Data Redis
-- Maven Wrapper
+- MapStruct, Lombok
+- AWS SDK S3
+- Spring Mail
 - Swagger/OpenAPI
+- Maven Wrapper
 
-### Frontend
-- React
+Frontend:
+
+- React 19
 - TypeScript
 - Vite
+- React Router
+- Google Maps JavaScript API
+- TipTap rich text editor cho blog admin
 
-### DevOps / Hạ tầng
+Hạ tầng:
+
 - MySQL
 - Redis
 - AWS S3
-- Docker + Docker Hub
+- Docker
 - GitHub Actions
 
-## ✨ Tính năng chính
+## Tính Năng Chính
 
-### User
-- Đăng ký/đăng nhập, refresh token, OAuth Google.
-- Tìm xe, xem chi tiết xe, đặt xe.
-- Thanh toán MoMo (prepay tổng), theo dõi trạng thái đơn.
-- Upload giấy tờ xác minh tài khoản (`/users/my-documents`) lên S3.
-- Gửi đánh giá sau chuyến đi, upload ảnh feedback lên S3.
+Người dùng:
 
-### Owner
-- Gửi yêu cầu đăng xe, upload ảnh xe/tài liệu lên S3.
-- Theo dõi trạng thái duyệt hồ sơ xe.
-- Quản lý yêu cầu và cập nhật thông tin bổ sung khi cần.
+- Đăng ký, đăng nhập, refresh token, đăng nhập Google.
+- Tìm kiếm xe, xem chi tiết xe, xem đánh giá công khai.
+- Đặt xe và theo dõi lịch sử booking.
+- Thanh toán tổng trước qua MoMo.
+- Upload giấy tờ xác minh tài khoản lên S3.
+- Gửi đánh giá sau chuyến đi, kèm ảnh feedback upload lên S3.
 
-### Admin
-- Quản lý xe, trạm, người dùng, booking.
-- Duyệt/từ chối yêu cầu đăng xe từ owner.
-- Quản trị bài viết blog + upload cover image lên S3.
-- Theo dõi feedback và các luồng điều chỉnh thanh toán.
+Chủ xe:
 
-## 📁 Cấu trúc thư mục
+- Gửi yêu cầu đăng xe.
+- Upload ảnh xe và tài liệu xe lên S3.
+- Theo dõi trạng thái duyệt hồ sơ.
+- Cập nhật hoặc gửi lại yêu cầu khi admin yêu cầu bổ sung.
+- Xem lịch sử booking của xe đã được duyệt.
 
-- `src/`: Backend Spring Boot
-- `frontend/`: Frontend React/Vite
-- `src/main/resources/application.yaml`: cấu hình runtime backend
-- `.github/workflows/ci.yml`: pipeline CI/CD
+Admin:
 
-## ⚙️ Hướng dẫn cài đặt (step-by-step)
+- Quản lý user, xe, trạm, booking.
+- Duyệt, từ chối hoặc yêu cầu bổ sung hồ sơ chủ xe.
+- Quản lý thanh toán, xác nhận thu thêm/hoàn tiền.
+- Quản lý feedback sau chuyến đi.
+- Quản lý bài viết blog và upload ảnh cover lên S3.
+- Xem dashboard thống kê quản trị.
 
-### 1) Chuẩn bị môi trường
+## Cấu Trúc Thư Mục
+
+```text
+.
+├── src/                         # Backend Spring Boot
+│   └── main/
+│       ├── java/com/example/ungdunggoixe/
+│       │   ├── configuration/    # Security, AWS, Swagger, Redis, ...
+│       │   ├── constant/         # Constant dùng chung
+│       │   ├── controller/       # REST API
+│       │   ├── dto/              # Request/response DTO
+│       │   ├── entity/           # JPA entities
+│       │   ├── mapper/           # MapStruct mapper
+│       │   ├── repository/       # JPA/Redis repositories
+│       │   ├── service/          # Service interfaces
+│       │   ├── service/implement/# Service implementations
+│       │   └── util/             # Utility helpers
+│       └── resources/
+│           ├── application.yaml
+│           ├── application-dev.yaml
+│           ├── application-prod.yaml
+│           └── schema-mysql.sql
+├── frontend/                    # Frontend React/Vite
+├── .github/workflows/ci.yml      # CI build backend + Docker image
+├── Dockerfile                    # Backend Docker image
+├── pom.xml
+└── README.md
+```
+
+## Yêu Cầu Môi Trường Local
 
 - Java 21
-- Node.js >= 20 + npm
-- MySQL (mặc định `localhost:3306`)
-- Redis (mặc định `localhost:6379`)
+- Node.js 20 trở lên
+- npm
+- MySQL chạy ở `localhost:3306`
+- Redis chạy ở `localhost:6379`
+- AWS S3 bucket nếu muốn test upload media
 
-### 2) Tạo database
+## Cấu Hình Database
+
+Tạo database local:
 
 ```sql
 CREATE DATABASE UngDungGoiXe CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 3) Cấu hình biến môi trường backend
+Mặc định profile `dev` đang dùng:
 
-Tạo `.env` (hoặc export trực tiếp) với các biến sau:
+```yaml
+spring.datasource.url: jdbc:mysql://localhost:3306/UngDungGoiXe
+spring.datasource.username: root
+spring.datasource.password: 12345
+spring.data.redis.host: localhost
+spring.data.redis.port: 6379
+spring.data.redis.password: 12345678
+```
+
+Có thể chỉnh trong `src/main/resources/application-dev.yaml` hoặc override bằng biến môi trường.
+
+## Biến Môi Trường Backend
+
+Các biến quan trọng khi chạy local hoặc production:
 
 ```env
+SPRING_PROFILES_ACTIVE=dev
+
 JWT_SECRET=your_jwt_secret
 JWT_AUDIENCE=ungdunggoixe-local
 
-EMAIL_USERNAME=your_email
-EMAIL_PASSWORD=your_email_app_password
+EMAIL_USERNAME=your_gmail
+EMAIL_PASSWORD=your_gmail_app_password
 
 AWS_ACCESS_KEY=your_aws_access_key
 AWS_SECRET_KEY=your_aws_secret_key
 REGION=ap-southeast-1
 BUCKET_NAME=your_s3_bucket
+
+OAUTH_GOOGLE_ID=your_google_client_id
+OAUTH_GOOGLE_SECRET=your_google_client_secret
+
+APP_WEB_BASE_URL=http://localhost:5173
 ```
 
-### 4) Chạy backend
+Production có thể dùng thêm:
+
+```env
+SPRING_PROFILES_ACTIVE=prod
+MYSQL_HOST=mysql
+MYSQL_PORT=3306
+MYSQL_USERNAME=root
+MYSQL_PASSWORD=your_mysql_password
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+APP_WEB_BASE_URL=https://thuexeoto.online
+```
+
+## Chạy Backend Local
+
+Tại root project:
 
 ```bash
-cd /Users/dank/Desktop/giaoxe/Rent-car-platform
 ./mvnw spring-boot:run
 ```
 
-- Backend URL: `http://localhost:8080`
+Backend local:
+
+- API: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 
-### 5) Chạy frontend
+Nếu port `8080` đang bị dùng, có thể chạy port khác:
 
 ```bash
-cd /Users/dank/Desktop/giaoxe/Rent-car-platform/frontend
+./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=8081
+```
+
+## Chạy Frontend Local
+
+```bash
+cd frontend
 npm install
 cp .env.example .env.local
 npm run dev
 ```
 
-- Frontend URL: `http://localhost:5173`
+Frontend local:
 
-### 6) Cấu hình env frontend
+- `http://localhost:5173`
 
-`frontend/.env.local`:
+`frontend/vite.config.ts` đang proxy `/api` về backend local `http://localhost:8080`. Nếu backend chạy port khác, chỉnh lại proxy hoặc biến môi trường frontend tương ứng.
+
+## Biến Môi Trường Frontend
+
+Ví dụ `frontend/.env.local`:
 
 ```env
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
-# Optional
-# VITE_GOOGLE_MAP_ID=
-# VITE_API_BASE=/api
+VITE_GOOGLE_MAP_ID=
+VITE_API_BASE=/api
 ```
 
-Vite proxy mặc định:
+Khi deploy frontend riêng, cấu hình API base trỏ tới domain backend/API production theo môi trường deploy.
 
-- `/api` -> `http://localhost:8080`
-- `/files` -> `http://localhost:8080`
+## Media Upload
 
-## 🧪 Lệnh chạy thường dùng
-
-### Backend
-
-```bash
-./mvnw spring-boot:run
-./mvnw test
-./mvnw verify
-./mvnw package -DskipTests
-```
-
-### Frontend
-
-```bash
-npm run dev
-npm run build
-npm run lint
-```
-
-## ☁️ Media Upload (AWS S3)
-
-Các endpoint upload chính hiện dùng S3:
+Project hiện dùng AWS S3 cho media upload. Các luồng upload chính:
 
 - `POST /vehicles/{id}/photos`
 - `POST /uploads/owner-vehicle/photo`
@@ -157,28 +228,78 @@ Các endpoint upload chính hiện dùng S3:
 - `POST /admin/blog/posts/cover-image`
 - `POST /users/my-documents`
 
-## 🔁 CI/CD
+Lưu ý: các URL file local cũ dạng `/files/...` không còn được phục vụ sau khi chuyển sang S3.
+
+## Lệnh Thường Dùng
+
+Backend:
+
+```bash
+./mvnw -q -DskipTests compile
+./mvnw test
+./mvnw package -DskipTests
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run dev
+npm run build
+npm run lint
+```
+
+Docker backend:
+
+```bash
+docker build -t ungdunggoixe:latest .
+docker run -p 8080:8080 --env-file .env ungdunggoixe:latest
+```
+
+## CI/CD
 
 Workflow: `.github/workflows/ci.yml`
 
-- Build backend với Maven Wrapper
-- Build & push Docker image lên Docker Hub
-- Service phụ trợ trong pipeline: MySQL, Redis
+Pipeline hiện tại:
 
-GitHub Secrets tối thiểu:
+- Checkout code.
+- Setup Java 21.
+- Build backend bằng Maven.
+- Build Docker image từ `Dockerfile`.
+- Push image lên Docker Hub với tag `ungdunggoixe:latest`.
 
-- `JWT_SECRET`, `JWT_AUDIENCE`
-- `EMAIL_USERNAME`, `EMAIL_PASSWORD`
-- `DOCKER_USERNAME`, `DOCKER_PASSWORD`
+GitHub Secrets cần có:
 
-Nếu chạy test/media phụ thuộc AWS trong CI:
+```text
+JWT_SECRET
+JWT_AUDIENCE
+EMAIL_USERNAME
+EMAIL_PASSWORD
+DOCKER_USERNAME
+DOCKER_PASSWORD
+```
 
-- `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `REGION`, `BUCKET_NAME`
+Nếu pipeline hoặc môi trường deploy cần upload S3:
 
+```text
+AWS_ACCESS_KEY
+AWS_SECRET_KEY
+REGION
+BUCKET_NAME
+```
 
-## 🔒 Bảo mật
+## Ghi Chú Khi Tách Repo Frontend/Backend
 
-- Không commit `.env` hoặc secret thật vào repo.
-- Dùng GitHub Secrets thay vì hard-code trong workflow.
-- Rotate secrets ngay nếu có rủi ro lộ thông tin.
+Project hiện vẫn là mono-repo. Nếu tách thành hai repo:
 
+- Repo backend giữ `src/`, `pom.xml`, `mvnw`, `.mvn/`, `Dockerfile`.
+- Repo frontend đưa toàn bộ nội dung `frontend/` lên root repo mới.
+- Frontend production cần cấu hình API base trỏ tới backend public.
+- Backend cần cấu hình CORS cho domain frontend, ví dụ `https://thuexeoto.online`.
+
+## Bảo Mật
+
+- Không commit `.env`, secret thật, access key hoặc password production.
+- Dùng GitHub Secrets hoặc biến môi trường trên server.
+- Rotate secret ngay nếu nghi ngờ bị lộ.
+- Cấu hình CORS đúng domain production, tránh mở rộng không cần thiết.
