@@ -271,7 +271,8 @@ public class VehicleServiceImplement implements VehicleService {
     public String deleteVehicle(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
-        vehicleRepository.delete(vehicle);
+        vehicle.setStatus(VehicleStatus.UNAVAILABLE);
+        vehicleRepository.save(vehicle);
         return i18nService.getMessage("response.vehicle.delete.success");
     }
 

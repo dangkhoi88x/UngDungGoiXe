@@ -831,7 +831,7 @@ function BlogSection() {
 
   return (
     <section id="insights" className="sx-blog">
-      <h2 className="sx-blog__title">Bài viết &amp; gợi ý cho đồ án</h2>
+      <h2 className="sx-blog__title">Bài viết &amp; gợi ý </h2>
 
       {loading ? (
         <p className="sx-blog__status" role="status">
