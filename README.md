@@ -35,7 +35,7 @@ Frontend:
 - TypeScript
 - Vite
 - React Router
-- Google Maps JavaScript API
+- OpenStreetMap + Leaflet
 - TipTap rich text editor cho blog admin
 
 Hạ tầng:
@@ -210,8 +210,6 @@ Frontend local:
 Ví dụ `frontend/.env.local`:
 
 ```env
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
-VITE_GOOGLE_MAP_ID=
 VITE_API_BASE=/api
 ```
 
