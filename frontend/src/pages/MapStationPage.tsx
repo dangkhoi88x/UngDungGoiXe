@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { fetchStations, stationLabel, type StationDto } from '../api/stations'
 import TopNav from '../components/TopNav'
 import './MapStationPage.css'
 
 const DEFAULT_CENTER: L.LatLngExpression = [10.7769, 106.7009]
 const STATUS_OPTIONS = ['ALL', 'ACTIVE', 'INACTIVE', 'MAINTENANCE'] as const
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+})
 
 type MarkerEntry = {
   marker: L.Marker
