@@ -330,7 +330,7 @@ export default function MapStationPage() {
         <aside className="panel-wrap" aria-label="Danh sách trạm">
           <h2 className="panel-title">Danh sách trạm</h2>
           <p className="panel-subtitle">
-            Marker chỉ hiển thị với trạm có đủ latitude/longitude.
+
           </p>
           <div className="panel-filters">
             <input

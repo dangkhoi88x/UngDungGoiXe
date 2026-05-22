@@ -704,19 +704,6 @@ export default function CarRentalPage() {
         )}
       </section>
 
-      <footer className="cr-footer">
-        <div className="cr-footer__inner">
-          <div>
-            <strong style={{ color: '#fff' }}>Horizon</strong> — Car rental listing (đồ án Ứng dụng gọi
-            xe).
-          </div>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <a href="/">Trang chủ</a>
-            <a href="/auth">Đăng nhập</a>
-            <a href="/rent">Car Rental</a>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

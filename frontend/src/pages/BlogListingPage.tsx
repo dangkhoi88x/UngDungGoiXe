@@ -61,9 +61,9 @@ export default function BlogListingPage() {
       <main className="blog-main">
         <header className="blog-hero">
           <p className="blog-hero__eyebrow">Blog</p>
-          <h1 className="blog-hero__title">Gợi ý thuê xe &amp; đồ án</h1>
+          <h1 className="blog-hero__title">Blog và gợi ý </h1>
           <p className="blog-hero__sub">
-            Bài viết được quản trị viên xuất bản — chỉ hiển thị nội dung public.
+
           </p>
         </header>
 

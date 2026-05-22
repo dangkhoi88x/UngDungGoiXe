@@ -25,10 +25,10 @@ import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
 import com.example.ungdunggoixe.repository.specification.VehicleSpecs;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +49,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @CacheConfig(cacheNames = RedisConfiguration.VEHICLE_INFO_CACHE)
 public class VehicleServiceImplement implements VehicleService {
     private static final Set<String> VEHICLE_SORT_FIELDS = Set.of(
@@ -216,22 +217,29 @@ public class VehicleServiceImplement implements VehicleService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(key = "#id.toString()")
     public CreateVehicleResponse getVehicleById(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
         CreateVehicleResponse response = VehicleMapper.INSTANCE.toCreateVehicleResponse(vehicle);
-        String ownerEmail = ownerVehicleRequestRepository.findFirstByApprovedVehicleIdOrderByCreatedAtDesc(id)
-                .map(req -> req.getOwner() != null ? req.getOwner().getEmail() : null)
-                .orElseGet(() -> ownerVehicleRequestRepository
-                        .findFirstByLicensePlateAndStatusOrderByCreatedAtDesc(
-                                vehicle.getLicensePlate(),
-                                OwnerVehicleRequestStatus.APPROVED
-                        )
-                        .map(req -> req.getOwner() != null ? req.getOwner().getEmail() : null)
-                        .orElse(null));
-        response.setOwnerEmail(ownerEmail);
+        response.setOwnerEmail(resolveOwnerEmail(vehicle));
         return response;
+    }
+
+    private String resolveOwnerEmail(Vehicle vehicle) {
+        try {
+            return ownerVehicleRequestRepository.findFirstByApprovedVehicleIdOrderByCreatedAtDesc(vehicle.getId())
+                    .map(req -> req.getOwner() != null ? req.getOwner().getEmail() : null)
+                    .orElseGet(() -> ownerVehicleRequestRepository
+                            .findFirstByLicensePlateAndStatusOrderByCreatedAtDesc(
+                                    vehicle.getLicensePlate(),
+                                    OwnerVehicleRequestStatus.APPROVED
+                            )
+                            .map(req -> req.getOwner() != null ? req.getOwner().getEmail() : null)
+                            .orElse(null));
+        } catch (RuntimeException ex) {
+            log.warn("Could not resolve owner email for vehicle {}", vehicle.getId(), ex);
+            return null;
+        }
     }
 
     @Transactional
