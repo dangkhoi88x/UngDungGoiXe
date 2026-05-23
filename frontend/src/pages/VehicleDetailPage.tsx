@@ -357,7 +357,7 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
               </div>
               <div className="vd-price-row">
                 <div>
-                  <div className="vd-price-label">Đặt cọc (demo)</div>
+                  <div className="vd-price-label">Đặt cọc</div>
                   <div className="vd-price-secondary">{formatDeposit(vehicle)}</div>
                 </div>
                 {vehicle.rentCount != null && vehicle.rentCount > 0 ? (
@@ -524,10 +524,6 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
         {suggestions.length > 0 ? (
           <section className="vd-suggest" aria-labelledby="vd-suggest-title">
             <h2 id="vd-suggest-title">Xe bạn có thể quan tâm</h2>
-            <p className="vd-suggest__sub">
-              Gợi ý từ các xe <strong>AVAILABLE</strong> trên hệ thống — ưu tiên cùng phân loại (
-              {category}), sau đó là các xe khác.
-            </p>
             <div className="vd-suggest-grid">
               {suggestions.map((v) => (
                 <a key={v.id} className="vd-suggest-card" href={`/rent/${v.id}`}>
