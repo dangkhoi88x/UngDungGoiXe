@@ -19,6 +19,6 @@ public class VehiclePublicFeedbackRowResponse {
     private String comment;
     private List<String> photoUrls;
     private Instant createdAt;
-    /** Ví dụ: "Nguyễn A." — không lộ email. */
+    /**  không lộ email.*/
     private String reviewerLabel;
 }

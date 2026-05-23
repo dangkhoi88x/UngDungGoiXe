@@ -20,7 +20,6 @@ public class PaymentResponse {
     private BigDecimal amount;
     private PaymentMethod paymentMethod;
     private PaymentPurpose paymentPurpose;
-    /** captureWallet | payWithATM (khi paymentMethod=MOMO). */
     private String momoRequestType;
     private PaymentStatus status;
     private Long processedById;

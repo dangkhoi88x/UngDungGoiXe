@@ -20,7 +20,7 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
 
     @Query("""
             select b from BlogPost b
-            where b.slug = :slug and b.status = com.example.ungdunggoixe.common.BlogPostStatus.PUBLISHED
+            where b.slug = :slug and b.status = BlogPostStatus.PUBLISHED
             """)
     Optional<BlogPost> findPublishedBySlug(@Param("slug") String slug);
 
@@ -28,7 +28,7 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
 
     @Query("""
             select b from BlogPost b
-            where b.status = com.example.ungdunggoixe.common.BlogPostStatus.PUBLISHED
+            where b.status = BlogPostStatus.PUBLISHED
             and (:keyword is null or :keyword = ''
                 or lower(b.title) like lower(concat('%', :keyword, '%'))
                 or lower(b.slug) like lower(concat('%', :keyword, '%')))

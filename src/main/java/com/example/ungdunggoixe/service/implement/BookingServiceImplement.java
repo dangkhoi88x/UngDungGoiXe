@@ -135,7 +135,6 @@ public class BookingServiceImplement implements BookingService {
         booking.setBookingCode(generateBookingCode());
         booking.setStatus(BookingStatus.PENDING);
         booking.setPaymentStatus(PaymentStatus.PENDING);
-        // DB có thể còn ràng buộc NOT NULL trên checked_out_by; lúc tạo booking chưa có nhân viên giao xe.
         // Gán tạm renter để insert hợp lệ; pickup (có JWT nhân viên) sẽ ghi đè.
         booking.setCheckedOutBy(renter);
 
@@ -528,7 +527,7 @@ public class BookingServiceImplement implements BookingService {
      * Khi staff giao xe tại trạm, coi như đã thu phần còn thiếu bằng tiền mặt.
      * Điều này giúp lần "trả xe" không sinh thêm TOPUP treo do chênh lệch chưa thu.
      */
-    private void settleOutstandingCashAtPickup(Booking booking) {
+    private void   settleOutstandingCashAtPickup(Booking booking) {
         BigDecimal total = booking.getTotalAmount() == null ? BigDecimal.ZERO : booking.getTotalAmount();
         BigDecimal paid = booking.getPartiallyPaid() == null ? BigDecimal.ZERO : booking.getPartiallyPaid();
         BigDecimal remaining = total.subtract(paid).setScale(2, RoundingMode.HALF_UP);

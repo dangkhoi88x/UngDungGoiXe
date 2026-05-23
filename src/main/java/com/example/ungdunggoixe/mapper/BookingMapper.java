@@ -15,45 +15,47 @@ import org.mapstruct.factory.Mappers;
 public interface BookingMapper {
     BookingMapper INSTANCE = Mappers.getMapper(BookingMapper.class);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "bookingCode", ignore = true)
-    @Mapping(target = "renter", ignore = true)
-    @Mapping(target = "vehicle", ignore = true)
-    @Mapping(target = "station", ignore = true)
-    @Mapping(target = "actualEndTime", ignore = true)
-    @Mapping(target = "status", ignore = true)
-    @Mapping(target = "checkedOutBy", ignore = true)
-    @Mapping(target = "checkedInBy", ignore = true)
-    @Mapping(target = "basePrice", ignore = true)
-    @Mapping(target = "partiallyPaid", ignore = true)
-    @Mapping(target = "extraFee", ignore = true)
-    @Mapping(target = "totalAmount", ignore = true)
-    @Mapping(target = "paymentStatus", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
+    @BeanMapping(
+            ignoreByDefault = true,
+            nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+    )
+    @Mapping(target = "startTime", source = "startTime")
+    @Mapping(target = "expectedEndTime", source = "expectedEndTime")
+    @Mapping(target = "pickupNote", source = "pickupNote")
     Booking toBooking(CreateBookingRequest request);
 
     @Mapping(target = "renterId", source = "renter.id")
-    @Mapping(target = "renterName", expression = "java(booking.getRenter().getFirstName() + \" \" + booking.getRenter().getLastName())")
+    @Mapping(target = "renterName", expression = "java(renterName(booking))")
     @Mapping(target = "vehicleId", source = "vehicle.id")
     @Mapping(target = "vehicleName", source = "vehicle.name")
     @Mapping(target = "stationId", source = "station.id")
     @Mapping(target = "stationName", source = "station.name")
-    @Mapping(target = "checkedOutById", expression = "java(booking.getCheckedOutBy() != null ? booking.getCheckedOutBy().getId() : null)")
-    @Mapping(target = "checkedInById", expression = "java(booking.getCheckedInBy() != null ? booking.getCheckedInBy().getId() : null)")
+    @Mapping(target = "checkedOutById", source = "checkedOutBy.id")
+    @Mapping(target = "checkedInById", source = "checkedInBy.id")
     BookingResponse toBookingResponse(Booking booking);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "bookingCode", ignore = true)
-    @Mapping(target = "renter", ignore = true)
-    @Mapping(target = "vehicle", ignore = true)
-    @Mapping(target = "station", ignore = true)
-    @Mapping(target = "checkedOutBy", ignore = true)
-    @Mapping(target = "checkedInBy", ignore = true)
-    @Mapping(target = "basePrice", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
+    @BeanMapping(
+            ignoreByDefault = true,
+            nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+    )
+    @Mapping(target = "startTime", source = "startTime")
+    @Mapping(target = "expectedEndTime", source = "expectedEndTime")
+    @Mapping(target = "actualEndTime", source = "actualEndTime")
+    @Mapping(target = "status", source = "status")
+    @Mapping(target = "paymentStatus", source = "paymentStatus")
+    @Mapping(target = "partiallyPaid", source = "partiallyPaid")
+    @Mapping(target = "extraFee", source = "extraFee")
+    @Mapping(target = "totalAmount", source = "totalAmount")
+    @Mapping(target = "pickupNote", source = "pickupNote")
+    @Mapping(target = "returnNote", source = "returnNote")
     void updateEntity(UpdateBookingRequest request, @MappingTarget Booking booking);
+
+    default String renterName(Booking booking) {
+        if (booking == null || booking.getRenter() == null) {
+            return null;
+        }
+        String firstName = booking.getRenter().getFirstName();
+        String lastName = booking.getRenter().getLastName();
+        return ((firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "")).trim();
+    }
 }

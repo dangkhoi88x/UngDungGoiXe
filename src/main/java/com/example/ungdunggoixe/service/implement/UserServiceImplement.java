@@ -23,6 +23,7 @@ import com.example.ungdunggoixe.mapper.UserMapper;
 import com.example.ungdunggoixe.repository.UserRepository;
 import com.example.ungdunggoixe.repository.specification.UserSpecs;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -60,6 +61,9 @@ public class UserServiceImplement implements UserService {
     private final MailService mailService;
     private final I18nService i18nService;
 
+    @Value("${app.web-base-url:http://localhost:5173}")
+    private String webBaseUrl;
+
     private static String mapUserSortProperty(String sortBy) {
         if (sortBy == null || sortBy.isBlank() || !USER_SORT_FIELDS.contains(sortBy)) {
             return "id";
@@ -96,11 +100,20 @@ public class UserServiceImplement implements UserService {
                 Map.of(
                         "name", name,
                         "accountEmail", user.getEmail(),
-                        "loginUrl", "http://localhost:5173/auth"
+                        "loginUrl", buildWebUrl("/auth")
                 )
         );
         return UserMapper.INSTANCE.ToCreateUserResponse(user);
 }
+
+    private String buildWebUrl(String path) {
+        String base = webBaseUrl == null || webBaseUrl.isBlank()
+                ? "http://localhost:5173"
+                : webBaseUrl.trim();
+        String normalizedBase = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+        String normalizedPath = path.startsWith("/") ? path : "/" + path;
+        return normalizedBase + normalizedPath;
+    }
 
     @Cacheable(key = "#id.toString()")
     public UserResponse getUserbyID(Long id){

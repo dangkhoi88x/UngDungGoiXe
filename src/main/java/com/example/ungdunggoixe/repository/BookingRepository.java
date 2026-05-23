@@ -70,6 +70,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
          * khoảng [requestedStart, requestedEnd].
          * Dùng để chống double-booking.
          */
+
+
+
         @Query("""
             SELECT COUNT(b) > 0 FROM Booking b
             WHERE b.vehicle.id = :vehicleId

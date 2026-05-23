@@ -24,7 +24,6 @@ public class StationResponse {
     private String photo;
     private LocalTime startTime;
     private LocalTime endTime;
-
     private Double latitude;
     private Double longitude;
     private Long createdBy;

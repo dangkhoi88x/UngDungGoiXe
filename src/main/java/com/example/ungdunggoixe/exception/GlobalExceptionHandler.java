@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
-    /** Sai mật khẩu hoặc không có user (Spring ẩn "user not found" thành bad credentials). */
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException e) {
         ApiResponse<Void> response =
@@ -78,7 +78,6 @@ public class GlobalExceptionHandler {
 
     /**
      * Lỗi phân quyền (403) từ Spring Security/@PreAuthorize.
-     * Trả response gọn để tránh rơi xuống handler tổng quát và in stacktrace dài.
      */
     @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(Exception e) {
