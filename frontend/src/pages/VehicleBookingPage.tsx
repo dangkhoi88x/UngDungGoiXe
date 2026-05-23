@@ -15,7 +15,7 @@ import { fetchStationById, stationLabel, type StationDto } from '../api/stations
 import {
   fetchVehicleById,
   formatDeposit,
-  formatHourlyPrice,
+  formatDailyPrice,
   vehicleDisplayName,
   type VehicleDto,
 } from '../api/vehicles'
@@ -31,6 +31,11 @@ function resolvePhotoUrl(p: string): string {
   return t
 }
 
+function formatDailyRentalPrice(vehicle: VehicleDto): string {
+  const price = formatDailyPrice(vehicle)
+  return price === 'Liên hệ' ? price : `${price}/ngày`
+}
+
 function toDateTimeInput(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
@@ -43,13 +48,6 @@ function defaultRange(): { start: string; end: string } {
   const end = new Date(start)
   end.setHours(end.getHours() + 48)
   return { start: toDateTimeInput(start), end: toDateTimeInput(end) }
-}
-
-function depositNum(v: VehicleDto): number {
-  const d = v.depositAmount
-  if (d == null) return 0
-  const n = typeof d === 'number' ? d : parseFloat(String(d))
-  return Number.isFinite(n) ? n : 0
 }
 
 type Props = { vehicleId: number }
@@ -117,11 +115,9 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
   }, [profile])
 
   const estimate = useMemo(() => {
-    if (!vehicle) return { hours: 0, subtotal: 0 }
+    if (!vehicle) return { days: 0, subtotal: 0 }
     return computeBookingEstimate(vehicle, start, end)
   }, [vehicle, start, end])
-
-  const deposit = vehicle ? depositNum(vehicle) : 0
 
   const timesValid = useMemo(() => {
     if (!start || !end) return false
@@ -364,18 +360,11 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
                   onChange={(e) => setPhoneInput(e.target.value)}
                   maxLength={20}
                 />
-                <p className="vb-hint">
-                  Họ tên, email và SĐT có thể chỉnh chỉ cho lần đặt này — không cập nhật hồ sơ tài khoản. Nội dung
-                  có điền sẽ được ghi vào ghi chú nhận xe kèm booking.
-                </p>
               </div>
               <div className="vb-field">
                 <span className="vb-label">Trạm giao xe</span>
                 <input className="vb-input" type="text" value={stationName} readOnly />
                 {station?.address ? <p className="vb-hint">{station.address}</p> : null}
-                <p className="vb-hint">
-                  Trạm chưa khai báo tọa độ bản đồ — dùng địa chỉ hoặc hotline để liên hệ.
-                </p>
               </div>
             </section>
 
@@ -474,7 +463,7 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
                 <div>
                   <p className="vb-order-name">{title}</p>
                   <p className="vb-order-meta">
-                    Biển {vehicle.licensePlate} · {formatHourlyPrice(vehicle)}
+                    Biển {vehicle.licensePlate} · {formatDailyRentalPrice(vehicle)}
                   </p>
                 </div>
               </div>
@@ -516,11 +505,11 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
 
               <div className="vb-rows">
                 <div className="vb-row">
-                  <span>Số giờ tính phí (ước tính)</span>
-                  <strong>{estimate.hours} giờ</strong>
+                  <span>Số ngày tính phí (ước tính)</span>
+                  <strong>{estimate.days} ngày</strong>
                 </div>
                 <div className="vb-row">
-                  <span>Tiền thuê (theo giờ × giờ)</span>
+                  <span>Tiền thuê (theo ngày × ngày)</span>
                   <strong>{formatBookingMoney(estimate.subtotal)}</strong>
                 </div>
                 <div className="vb-row">
@@ -528,15 +517,10 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
                   <strong>{formatDeposit(vehicle)}</strong>
                 </div>
                 <div className="vb-row vb-row--total">
-                  <span>Tạm tính (server sẽ tính lại)</span>
+                  <span>Tạm tính</span>
                   <span>{formatBookingMoney(estimate.subtotal)}</span>
                 </div>
               </div>
-              {deposit > 0 ? (
-                <p className="vb-hint">
-                  Cọc tối thiểu trước khi xác nhận booking có thể được áp dụng ở backend (ví dụ 10% tổng).
-                </p>
-              ) : null}
             </section>
           </div>
         </div>

@@ -138,27 +138,27 @@ export async function fetchBookingsPaged(params: {
   return paged
 }
 
-/** Khớp `BookingService#calculateBasePrice`: max(1, floor(giờ)) × hourlyRate. */
+/** Khớp `BookingService#calculateBasePrice`: max(1, ceil(ngày)) × dailyRate. */
 export function computeBookingEstimate(
   vehicle: VehicleDto,
   startLocal: string,
   endLocal: string,
-): { hours: number; subtotal: number } {
-  const rateRaw = vehicle.hourlyRate
+): { days: number; subtotal: number } {
+  const rateRaw = vehicle.dailyRate
   const rate =
     rateRaw == null
       ? 0
       : typeof rateRaw === 'number'
         ? rateRaw
         : parseFloat(String(rateRaw))
-  const hourly = Number.isFinite(rate) ? rate : 0
-  if (!startLocal?.trim() || !endLocal?.trim()) return { hours: 0, subtotal: 0 }
+  const daily = Number.isFinite(rate) ? rate : 0
+  if (!startLocal?.trim() || !endLocal?.trim()) return { days: 0, subtotal: 0 }
   const start = new Date(startLocal)
   const end = new Date(endLocal)
-  if (!(end.getTime() > start.getTime())) return { hours: 0, subtotal: 0 }
-  const rawHours = Math.floor((end.getTime() - start.getTime()) / 3600000)
-  const hours = Math.max(1, rawHours)
-  return { hours, subtotal: hours * hourly }
+  if (!(end.getTime() > start.getTime())) return { days: 0, subtotal: 0 }
+  const rawDays = Math.ceil((end.getTime() - start.getTime()) / 86400000)
+  const days = Math.max(1, rawDays)
+  return { days, subtotal: days * daily }
 }
 
 export async function checkVehicleAvailability(params: {

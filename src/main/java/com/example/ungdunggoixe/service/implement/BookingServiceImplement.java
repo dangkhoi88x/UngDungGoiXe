@@ -480,9 +480,10 @@ public class BookingServiceImplement implements BookingService {
     }
 
     private BigDecimal calculateBasePrice(Vehicle vehicle, LocalDateTime startTime, LocalDateTime expectedEndTime) {
-        long totalHours = Math.max(1, Duration.between(startTime, expectedEndTime).toHours());
-        BigDecimal hourlyRate = vehicle.getHourlyRate() == null ? BigDecimal.ZERO : vehicle.getHourlyRate();
-        return hourlyRate.multiply(BigDecimal.valueOf(totalHours));
+        long durationMillis = Duration.between(startTime, expectedEndTime).toMillis();
+        long rentalDays = Math.max(1, (long) Math.ceil(durationMillis / (24d * 60 * 60 * 1000)));
+        BigDecimal dailyRate = vehicle.getDailyRate() == null ? BigDecimal.ZERO : vehicle.getDailyRate();
+        return dailyRate.multiply(BigDecimal.valueOf(rentalDays));
     }
 
     /**
