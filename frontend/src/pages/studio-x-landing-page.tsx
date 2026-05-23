@@ -404,7 +404,7 @@ function FloatingDock() {
     <nav className="sx-dock" aria-label="Quick actions">
       <div className="sx-dock__inner sx-dock__inner--vex">
         <span className="sx-dock__logo sx-dock__logo--vex" aria-hidden="true">
-          VEX
+          RENT
         </span>
         <button
           type="button"
