@@ -4,6 +4,7 @@ import com.example.ungdunggoixe.common.OwnerVehicleRequestStatus;
 import com.example.ungdunggoixe.dto.request.CreateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
+import com.example.ungdunggoixe.dto.response.OwnerRevenueDashboardResponse;
 import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestResponse;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.List;
 public interface OwnerVehicleRequestService {
     OwnerVehicleRequestResponse create(CreateOwnerVehicleRequest request);
     List<OwnerVehicleRequestResponse> getMyRequests();
+    OwnerRevenueDashboardResponse getMyRevenueDashboard();
     OwnerVehicleRequestResponse getMyRequestById(Long id);
     List<BookingResponse> getMyApprovedVehicleBookings(Long requestId);
     OwnerVehicleRequestResponse updateMyRequest(Long id, UpdateOwnerVehicleRequest request);

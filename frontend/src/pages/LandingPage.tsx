@@ -101,7 +101,7 @@ export function LandingPage() {
             TOP
           </button>
           <button type="button" className="landing__contact-btn">
-            Contact
+            Liên hệ
           </button>
         </div>
       </nav>

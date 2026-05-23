@@ -171,10 +171,10 @@ export default function VehicleDetailPage({ vehicleId }: Props) {
   const authNav = authUi.loggedIn ? (
     <div className="vd-topbar__auth">
       <a className="vd-auth vd-auth--account" href="/account" title={authUi.displayName ?? 'Tài khoản'}>
-        {authUi.displayName ? `Hi, ${authUi.displayName}` : 'Tài khoản'}
+        {authUi.displayName ? `Xin chào, ${authUi.displayName}` : 'Tài khoản'}
       </a>
       <a className="vd-auth vd-auth--logout" href="/logout">
-        Log Out
+        Đăng xuất
       </a>
     </div>
   ) : (

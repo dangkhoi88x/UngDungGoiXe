@@ -55,8 +55,8 @@ export default function TopNav({ solid = false, showSearch = true }: TopNavProps
             <input
               type="search"
               name="navSearch"
-              placeholder="Search destination..."
-              aria-label="Search destination"
+              placeholder="Tìm xe, hãng xe, trạm..."
+              aria-label="Tìm xe"
               value={navQuery}
               onChange={(ev) => setNavQuery(ev.target.value)}
             />
@@ -75,19 +75,19 @@ export default function TopNav({ solid = false, showSearch = true }: TopNavProps
               Đăng ký cho thuê xe
             </a>
             <a className="cr-nav__account-btn" href="/account" title={authUi.displayName ?? 'Tài khoản'}>
-              {authUi.displayName ? `Hi, ${authUi.displayName}` : 'My Account'}
+              {authUi.displayName ? `Xin chào, ${authUi.displayName}` : 'Tài khoản'}
             </a>
             <a className="cr-nav__logout-btn" href="/logout">
-              Log Out
+              Đăng xuất
             </a>
           </>
         ) : (
           <>
             <a className="cr-nav__login" href="/auth">
-              Log In
+              Đăng nhập
             </a>
             <a className="cr-nav__signup" href="/auth">
-              Sign Up
+              Đăng ký
             </a>
           </>
         )}

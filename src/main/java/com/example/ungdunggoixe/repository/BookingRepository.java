@@ -28,6 +28,23 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
         long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
 
         @Query("""
+                SELECT COUNT(b)
+                FROM Booking b
+                JOIN b.vehicle v
+                WHERE b.status = :status
+                  AND EXISTS (
+                      SELECT 1
+                      FROM OwnerVehicleRequest ovr
+                      WHERE ovr.approvedVehicle = v
+                        AND ovr.owner.id = :ownerId
+                  )
+                """)
+        long countOwnerVehicleBookingsByStatus(
+                @Param("ownerId") Long ownerId,
+                @Param("status") BookingStatus status
+        );
+
+        @Query("""
                 SELECT COALESCE(SUM(b.totalAmount), 0)
                 FROM Booking b
                 WHERE b.status = :status

@@ -269,7 +269,7 @@
   pointer-events: none;
 }
 
-/* ── VEX top navigation ───────────────────────────── */
+/* ── Top navigation ───────────────────────────────── */
 .vex-topnav {
   position: fixed;
   top: 0;
@@ -409,7 +409,7 @@
   }
 }
 
-/* ── VEX hero (video) ─────────────────────────────── */
+/* ── Hero (video) ─────────────────────────────────── */
 .vex-hero {
   position: relative;
   min-height: 100svh;

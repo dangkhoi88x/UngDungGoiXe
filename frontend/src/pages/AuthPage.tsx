@@ -118,23 +118,23 @@ function AuthPage() {
       <section className="auth-shell">
         <div className="auth-left">
           <div className="auth-left__glow" aria-hidden="true" />
-          <h1>Move Fast. Break Nothing.</h1>
+          <h1>Thuê xe nhanh, an tâm trên mọi hành trình.</h1>
           <ul className="auth-feature-list">
             <li>
               <span className="auth-feature-list__icon">||</span>
               <div>
-                <h2>Remove Bottlenecks</h2>
+                <h2>Đặt xe gọn hơn</h2>
                 <p>
-                  Simplify release flow and remove handoff friction across teams.
+                  Tìm xe, chọn lịch và thanh toán trong một luồng rõ ràng.
                 </p>
               </div>
             </li>
             <li>
               <span className="auth-feature-list__icon">[]</span>
               <div>
-                <h2>Access Risk Analysis</h2>
+                <h2>Quản lý minh bạch</h2>
                 <p>
-                  Assess changes faster using clear context and predictable checks.
+                  Theo dõi hồ sơ, booking và trạng thái xác minh ngay trong tài khoản.
                 </p>
               </div>
             </li>
@@ -150,7 +150,7 @@ function AuthPage() {
               className={mode === 'signin' ? 'is-active' : ''}
               onClick={() => setMode('signin')}
             >
-              Sign in
+              Đăng nhập
             </button>
             <button
               type="button"
@@ -159,19 +159,19 @@ function AuthPage() {
               className={mode === 'signup' ? 'is-active' : ''}
               onClick={() => setMode('signup')}
             >
-              Sign up
+              Đăng ký
             </button>
           </div>
 
           <h2 className="auth-card__title">{title}</h2>
           <p className="auth-card__subtitle">
-            {mode === 'signin' ? 'New here?' : 'Already have an account?'}{' '}
+            {mode === 'signin' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}{' '}
             <button
               type="button"
               className="auth-link-button"
               onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
             >
-              {mode === 'signin' ? 'Create one' : 'Sign in'}
+              {mode === 'signin' ? 'Tạo tài khoản' : 'Đăng nhập'}
             </button>
           </p>
 
@@ -246,7 +246,7 @@ function AuthPage() {
             ) : null}
 
             <button type="submit" className="auth-submit" disabled={loading}>
-              {loading ? 'Đang xử lý…' : mode === 'signin' ? 'Sign in' : 'Sign up'}
+              {loading ? 'Đang xử lý…' : mode === 'signin' ? 'Đăng nhập' : 'Đăng ký'}
             </button>
           </form>
 

@@ -28,7 +28,7 @@ public class Station extends AuditableEntity {
     private LocalTime startTime;
     private LocalTime endTime;
 
-    /** Vĩ độ WGS84 — dùng cho bản đồ (Google Maps, …). Nullable nếu chưa gán. */
+    /** Vĩ độ WGS84 — dùng cho bản đồ OpenStreetMap/Leaflet. Nullable nếu chưa gán. */
     private Double latitude;
     /** Kinh độ WGS84 — nullable nếu chưa gán. */
     private Double longitude;

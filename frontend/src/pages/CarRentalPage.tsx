@@ -314,7 +314,7 @@ export default function CarRentalPage() {
       } catch (e) {
         if (cancelled) return
         setAvailabilityMap({})
-        setAvailabilityError(e instanceof Error ? e.message : 'Không kiểm tra được availability theo thời gian.')
+        setAvailabilityError(e instanceof Error ? e.message : 'Không kiểm tra được xe trống theo thời gian.')
       } finally {
         if (!cancelled) setAvailabilityLoading(false)
       }
@@ -388,8 +388,8 @@ export default function CarRentalPage() {
             <input
               type="search"
               name="navSearch"
-              placeholder="Search destination..."
-              aria-label="Search destination"
+              placeholder="Tìm xe, hãng xe, trạm..."
+              aria-label="Tìm xe"
               value={navQuery}
               onChange={(ev) => setNavQuery(ev.target.value)}
             />
@@ -406,19 +406,19 @@ export default function CarRentalPage() {
                 href="/account"
                 title={authUi.displayName ?? 'Tài khoản'}
               >
-                {authUi.displayName ? `Hi, ${authUi.displayName}` : 'My Account'}
+                {authUi.displayName ? `Xin chào, ${authUi.displayName}` : 'Tài khoản'}
               </a>
               <a className="cr-nav__logout-btn" href="/logout">
-                Log Out
+                Đăng xuất
               </a>
             </>
           ) : (
             <>
               <a className="cr-nav__login" href="/auth">
-                Log In
+                Đăng nhập
               </a>
               <a className="cr-nav__signup" href="/auth">
-                Sign Up
+                Đăng ký
               </a>
             </>
           )}
@@ -428,13 +428,13 @@ export default function CarRentalPage() {
       <section className="cr-hero" aria-labelledby="cr-hero-title">
         <div className="cr-hero__bg" aria-hidden="true" />
         <h1 id="cr-hero-title" className="cr-hero__title">
-          Rent a Car for Every Journey
+          Thuê xe cho mọi hành trình
         </h1>
         <div className="cr-hero__form-wrap">
           <form className="cr-search-form" onSubmit={handleSearchSubmit} aria-label="Tìm xe thuê">
             <div className="cr-search-form__row">
               <div className="cr-field">
-                <label htmlFor="cr-pickup-dt">Pick Up Date &amp; Time</label>
+                <label htmlFor="cr-pickup-dt">Thời gian nhận xe</label>
                 <div className="cr-field__input">
                   <span aria-hidden="true">📅</span>
                   <input
@@ -448,7 +448,7 @@ export default function CarRentalPage() {
                 </div>
               </div>
               <div className="cr-field">
-                <label htmlFor="cr-return-dt">Return Date &amp; Time</label>
+                <label htmlFor="cr-return-dt">Thời gian trả xe</label>
                 <div className="cr-field__input">
                   <span aria-hidden="true">📅</span>
                   <input
@@ -508,14 +508,14 @@ export default function CarRentalPage() {
                     checked={availabilityOnly}
                     onChange={(e) => setAvailabilityOnly(e.target.checked)}
                   />
-                  Chỉ hiển thị xe trống trong khung thời gian đã chọn (Pick up / Return)
+                  Chỉ hiển thị xe trống trong khung thời gian đã chọn
                 </label>
 
                 {availabilityOnly && !hasValidAvailabilityWindow ? (
-                  <div className="cr-filter-hint">Chọn thời gian nhận/trả xe hợp lệ để lọc availability.</div>
+                  <div className="cr-filter-hint">Chọn thời gian nhận/trả xe hợp lệ để lọc xe trống.</div>
                 ) : null}
                 {availabilityOnly && availabilityLoading ? (
-                  <div className="cr-filter-hint">Đang kiểm tra availability theo thời gian...</div>
+                  <div className="cr-filter-hint">Đang kiểm tra xe trống theo thời gian...</div>
                 ) : null}
                 {availabilityOnly && availabilityError ? (
                   <div className="cr-filter-hint cr-filter-hint--error">{availabilityError}</div>
@@ -580,24 +580,24 @@ export default function CarRentalPage() {
                 ) : null}
               </div>
 
-              <div className="cr-driver-toggle" role="group" aria-label="Driver option">
+              <div className="cr-driver-toggle" role="group" aria-label="Tùy chọn tài xế">
                 <button
                   type="button"
                   className={driverMode === 'without' ? 'is-active' : ''}
                   onClick={() => setDriverMode('without')}
                 >
-                  Without Driver
+                  Tự lái
                 </button>
                 <button
                   type="button"
                   className={driverMode === 'with' ? 'is-active' : ''}
                   onClick={() => setDriverMode('with')}
                 >
-                  With Driver
+                  Có tài xế
                 </button>
               </div>
               <button type="submit" className="cr-search-form__submit">
-                Search →
+                Tìm xe →
               </button>
             </div>
           </form>
@@ -637,7 +637,7 @@ export default function CarRentalPage() {
                   <div className="cr-card__body">
                     <h3 className="cr-card__title">{vehicleDisplayName(v)}</h3>
                     <div className="cr-card__meta">
-                      <span title="Nhiên liệu / hộp số (demo)">⚙ {fuelLabel(v.fuelType)}</span>
+                      <span title="Nhiên liệu / hộp số">⚙ {fuelLabel(v.fuelType)}</span>
                       <span title="Số chỗ">👥 {v.capacity ?? '—'}</span>
                       <span title="Cửa (ước lượng)">🚪 {doorsGuess(v.capacity)}</span>
                       {hasCustomerRating(v) ? (

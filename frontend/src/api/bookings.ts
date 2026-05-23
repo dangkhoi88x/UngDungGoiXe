@@ -143,7 +143,7 @@ export function computeBookingEstimate(
   vehicle: VehicleDto,
   startLocal: string,
   endLocal: string,
-): { days: number; subtotal: number } {
+): { days: number; subtotal: number; exactDays: number; hours: number; roundedUp: boolean } {
   const rateRaw = vehicle.dailyRate
   const rate =
     rateRaw == null
@@ -152,13 +152,20 @@ export function computeBookingEstimate(
         ? rateRaw
         : parseFloat(String(rateRaw))
   const daily = Number.isFinite(rate) ? rate : 0
-  if (!startLocal?.trim() || !endLocal?.trim()) return { days: 0, subtotal: 0 }
+  if (!startLocal?.trim() || !endLocal?.trim()) {
+    return { days: 0, subtotal: 0, exactDays: 0, hours: 0, roundedUp: false }
+  }
   const start = new Date(startLocal)
   const end = new Date(endLocal)
-  if (!(end.getTime() > start.getTime())) return { days: 0, subtotal: 0 }
-  const rawDays = Math.ceil((end.getTime() - start.getTime()) / 86400000)
+  if (!(end.getTime() > start.getTime())) {
+    return { days: 0, subtotal: 0, exactDays: 0, hours: 0, roundedUp: false }
+  }
+  const durationMs = end.getTime() - start.getTime()
+  const exactDays = durationMs / 86400000
+  const hours = durationMs / 3600000
+  const rawDays = Math.ceil(exactDays)
   const days = Math.max(1, rawDays)
-  return { days, subtotal: days * daily }
+  return { days, subtotal: days * daily, exactDays, hours, roundedUp: days > exactDays }
 }
 
 export async function checkVehicleAvailability(params: {

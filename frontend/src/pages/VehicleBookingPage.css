@@ -295,6 +295,17 @@
   font-weight: 600;
 }
 
+.vb-price-note {
+  margin: 0.15rem 0 0.35rem;
+  border-left: 3px solid #d4a373;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
 .vb-row--total {
   font-size: 1rem;
   font-weight: 700;

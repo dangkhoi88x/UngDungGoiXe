@@ -1,4 +1,4 @@
-import {
+        import {
   useEffect,
   useMemo,
   useState,
@@ -45,8 +45,8 @@ function sxBlogCardExcerpt(p: BlogPostPublicDto): string {
 
 
 function VexHeroHeading() {
-  const line1 = 'Thuê xe'
-  const line2 = 'phù hợp cho mọi chuyến đi'
+  const line1 = 'Thuê xe phù hợp'
+  const line2 = 'cho mọi chuyến đi'
   const [animate, setAnimate] = useState(false)
 
   useEffect(() => {
@@ -106,14 +106,14 @@ function HeroSection() {
             </p>
             <div className="vex-hero__actions">
               <a className="vex-hero__btn vex-hero__btn--primary" href="/auth">
-                Start a Chat
+                Bắt đầu ngay
               </a>
               <button
                 type="button"
                 className="vex-hero__btn vex-hero__btn--glass liquid-glass"
                 onClick={() => go('solutions')}
               >
-                Explore Now
+                Khám phá ngay
               </button>
             </div>
           </div>
@@ -240,7 +240,7 @@ function QuickSearchSection() {
         <form className="sx-quick-search__form" onSubmit={onSubmit}>
           <div className="sx-quick-search__row sx-quick-search__row--date">
             <label className="sx-quick-search__field">
-              <span className="sx-quick-search__label">Pick Up Date &amp; Time</span>
+              <span className="sx-quick-search__label">Thời gian nhận xe</span>
               <div className="sx-quick-search__input">
                 <span aria-hidden="true">📅</span>
                 <input
@@ -252,7 +252,7 @@ function QuickSearchSection() {
               </div>
             </label>
             <label className="sx-quick-search__field">
-              <span className="sx-quick-search__label">Return Date &amp; Time</span>
+              <span className="sx-quick-search__label">Thời gian trả xe</span>
               <div className="sx-quick-search__input">
                 <span aria-hidden="true">📅</span>
                 <input
@@ -307,7 +307,7 @@ function QuickSearchSection() {
               checked={availabilityOnly}
               onChange={(e) => setAvailabilityOnly(e.target.checked)}
             />
-            Chỉ hiển thị xe trống trong khung thời gian đã chọn (Pick up / Return)
+            Chỉ hiển thị xe trống trong khung thời gian đã chọn
           </label>
 
           {priceBounds && priceFilter ? (
@@ -373,24 +373,24 @@ function QuickSearchSection() {
           {error ? <p className="sx-quick-search__error">{error}</p> : null}
 
           <div className="sx-quick-search__actions">
-            <div className="sx-quick-search__driver" role="group" aria-label="Driver option">
+            <div className="sx-quick-search__driver" role="group" aria-label="Tùy chọn tài xế">
               <button
                 type="button"
                 className={driverMode === 'without' ? 'is-active' : ''}
                 onClick={() => setDriverMode('without')}
               >
-                Without Driver
+                Tự lái
               </button>
               <button
                 type="button"
                 className={driverMode === 'with' ? 'is-active' : ''}
                 onClick={() => setDriverMode('with')}
               >
-                With Driver
+                Có tài xế
               </button>
             </div>
             <button type="submit" className="sx-quick-search__submit">
-              Search →
+              Tìm xe →
             </button>
           </div>
         </form>
@@ -415,7 +415,7 @@ function FloatingDock() {
           TOP
         </button>
         <a className="sx-dock__contact sx-dock__contact--vex sx-dock__contact--link" href="/auth">
-          Start a Chat
+          Bắt đầu
         </a>
       </div>
     </nav>
@@ -994,7 +994,7 @@ function FooterSection() {
           {/*      <a href="/rent">Xe sẵn sàng cho thuê</a>*/}
           {/*    </li>*/}
           {/*    <li>*/}
-          {/*      <a href="/admin">Quản trị (demo UI)</a>*/}
+          {/*      <a href="/admin">Quản trị</a>*/}
           {/*    </li>*/}
           {/*  </ul>*/}
           {/*</div>*/}
@@ -1007,7 +1007,7 @@ function FooterSection() {
           {/*  </ul>*/}
           {/*</div>*/}
           <div>
-            <h3 className="sx-footer__col-title">Liên hệ (demo)</h3>
+            <h3 className="sx-footer__col-title">Liên hệ</h3>
             <ul>
               <li>dangkhoi88x@gmail.com</li>
               <li>+84 939093231</li>

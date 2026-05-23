@@ -334,7 +334,7 @@ export default function UserAccountPage() {
                 </p>
                 <p className="uacc__meta-line">
                   <span className="uacc__meta-link">
-                    {rolePills.length ? rolePills.join(' · ') : 'Thành viên VEX'}
+                    {rolePills.length ? rolePills.join(' · ') : 'Thành viên'}
                   </span>
                   <span className="uacc__meta-dot" aria-hidden>
                     ·
@@ -356,7 +356,7 @@ export default function UserAccountPage() {
                   ) : (
                     <li className="uacc__pill uacc__pill--soft">Chưa gửi / chưa xác minh GPLX</li>
                   )}
-                  <li className="uacc__pill uacc__pill--accent">VEX Member</li>
+                  <li className="uacc__pill uacc__pill--accent">Thành viên thuê xe</li>
                 </ul>
               </div>
             </div>
@@ -464,7 +464,7 @@ export default function UserAccountPage() {
 
             <footer className="uacc__footer">
               <a className="uacc__footer-link" href="/">
-                ← Về trang chủ VEX
+                ← Về trang chủ
               </a>
               <a className="uacc__footer-link" href="/rent">
                 Thuê xe

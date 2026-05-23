@@ -49,6 +49,24 @@ export type OwnerVehicleRequestDto = {
   updatedAt?: string | null
 }
 
+export type OwnerRevenueDashboardDto = {
+  totalRevenue?: string | number | null
+  revenueThisMonth?: string | number | null
+  completedBookings?: number | null
+  activeVehicles?: number | null
+  revenueLast7Days?: Array<{
+    date: string
+    revenue?: string | number | null
+  }> | null
+  vehicles?: Array<{
+    vehicleId?: number | null
+    vehicleName?: string | null
+    licensePlate?: string | null
+    completedBookings?: number | null
+    revenue?: string | number | null
+  }> | null
+}
+
 export type AdminReviewPayload = {
   adminNote?: string | null
 }
@@ -196,6 +214,17 @@ export async function fetchMyOwnerVehicleRequests(): Promise<OwnerVehicleRequest
   const list = unwrapApiData<unknown>(payload)
   if (!Array.isArray(list)) return []
   return list as OwnerVehicleRequestDto[]
+}
+
+export async function fetchMyOwnerRevenueDashboard(): Promise<OwnerRevenueDashboardDto> {
+  const res = await authFetch(`${OWNER_VEHICLE_REQUESTS}/revenue-dashboard`)
+  if (!res.ok) throw new Error(await parseApiError(res))
+  const payload = (await res.json()) as unknown
+  const data = unwrapApiData<OwnerRevenueDashboardDto>(payload)
+  if (!data || typeof data !== 'object') {
+    throw new Error('Phản hồi thống kê doanh thu không hợp lệ.')
+  }
+  return data
 }
 
 export async function fetchMyOwnerVehicleRequestById(

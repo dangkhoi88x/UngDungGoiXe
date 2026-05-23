@@ -43,11 +43,11 @@ momo:
   partner-code: MOMO
   partner-name: ${MOMO_PARTNER_NAME:UngDungGoiXe}
   store-id: ${MOMO_STORE_ID:UngDungGoiXeStore}
-  return-url: http://localhost:5173/payment/momo-return
-  endpoint: https://test-payment.momo.vn/v2/gateway/api
-  ipn-url: http://localhost:8080/momo/ipn-handler
-  access-key: F8BBA842ECF85
-  secret-key: K951B6PE1waDMi640xX08PD3vg6EkVlz
+  return-url: ${MOMO_RETURN_URL:https://www.thuexeoto.online/payment/momo-return}
+  endpoint: ${MOMO_ENDPOINT:https://test-payment.momo.vn/v2/gateway/api}
+  ipn-url: ${MOMO_IPN_URL:https://api.thuexeoto.online/momo/ipn-handler}
+  access-key: ${MOMO_ACCESS_KEY}
+  secret-key: ${MOMO_SECRET_KEY}
   # captureWallet = vi MoMo; co the override khi goi API (payWithATM = the ATM noi dia)
   request-type: captureWallet
 jwt:
@@ -58,7 +58,7 @@ oauth2:
     client-id: ${OAUTH_GOOGLE_ID:}
     client-secret: ${OAUTH_GOOGLE_SECRET:}
 app:
-  web-base-url: ${APP_WEB_BASE_URL:http://localhost:5173}
+  web-base-url: ${APP_WEB_BASE_URL}
   booking:
     # Thời gian chờ thanh toán MoMo prepay tổng; sau mốc này booking PENDING (chưa có tiền PAID) được hủy để nhường slot.
     # ~1h40 khớp countdown đơn hàng trên cổng test MoMo; có thể tăng nhẹ (vd. 105m) để giảm race với IPN trễ.

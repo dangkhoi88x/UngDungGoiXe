@@ -36,6 +36,24 @@ function formatDailyRentalPrice(vehicle: VehicleDto): string {
   return price === 'Liên hệ' ? price : `${price}/ngày`
 }
 
+function moneyToNumber(value: string | number | null | undefined): number {
+  if (value == null || value === '') return 0
+  const parsed = typeof value === 'number' ? value : Number(String(value).replace(/[^\d.-]/g, ''))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function formatDurationDays(days: number): string {
+  if (!Number.isFinite(days) || days <= 0) return '0 ngày'
+  const rounded = Math.round(days * 10) / 10
+  return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)} ngày`
+}
+
+function formatDurationHours(hours: number): string {
+  if (!Number.isFinite(hours) || hours <= 0) return '0 giờ'
+  const rounded = Math.round(hours * 10) / 10
+  return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)} giờ`
+}
+
 function toDateTimeInput(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
@@ -115,7 +133,7 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
   }, [profile])
 
   const estimate = useMemo(() => {
-    if (!vehicle) return { days: 0, subtotal: 0 }
+    if (!vehicle) return { days: 0, subtotal: 0, exactDays: 0, hours: 0, roundedUp: false }
     return computeBookingEstimate(vehicle, start, end)
   }, [vehicle, start, end])
 
@@ -277,6 +295,9 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
   const title = vehicleDisplayName(vehicle)
   const thumb = resolvePhotoUrl(vehicle.photos?.[0] ?? '')
   const stationName = station ? stationLabel(station) : `Trạm #${vehicle.stationId}`
+  const dailyRate = moneyToNumber(vehicle.dailyRate)
+  const depositAmount = moneyToNumber(vehicle.depositAmount)
+  const momoPrepayEstimate = estimate.subtotal + depositAmount
 
   const slotMsg = !timesValid ? null : checkingSlot ? (
     <p className="vb-slot-msg vb-slot-msg--wait">Đang kiểm tra lịch trống…</p>
@@ -408,8 +429,8 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
             <section className="vb-card">
               <h2 className="vb-card-title">Thanh toán</h2>
               <p className="vb-hint" style={{ marginTop: 0 }}>
-                Chọn hình thức thanh toán cho booking này. Hai lựa chọn MoMo đều trả trước theo tổng dự kiến + tiền
-                cọc; khác nhau ở cổng thanh toán (ví hoặc thẻ nội địa).
+                Chọn hình thức thanh toán cho booking này. MoMo thu trước tiền thuê dự kiến và tiền cọc; tiền mặt sẽ
+                được trạm xử lý khi nhận xe.
               </p>
               <div className="vb-pay-grid" style={{ marginTop: '0.85rem' }}>
                 <label className={`vb-pay-option${paymentMode === 'momoWalletPrepay' ? ' is-selected' : ''}`}>
@@ -505,21 +526,41 @@ export default function VehicleBookingPage({ vehicleId }: Props) {
 
               <div className="vb-rows">
                 <div className="vb-row">
-                  <span>Số ngày tính phí (ước tính)</span>
-                  <strong>{estimate.days} ngày</strong>
+                  <span>Thời lượng đã chọn</span>
+                  <strong>
+                    {formatDurationDays(estimate.exactDays)} ({formatDurationHours(estimate.hours)})
+                  </strong>
                 </div>
                 <div className="vb-row">
-                  <span>Tiền thuê (theo ngày × ngày)</span>
+                  <span>Số ngày tính phí</span>
+                  <strong>{estimate.days} ngày</strong>
+                </div>
+                {estimate.roundedUp ? (
+                  <p className="vb-price-note">
+                    Thời lượng {formatDurationDays(estimate.exactDays)} được làm tròn thành {estimate.days} ngày theo
+                    chính sách thuê theo ngày.
+                  </p>
+                ) : null}
+                <div className="vb-row">
+                  <span>
+                    Tiền thuê: {estimate.days} ngày × {formatBookingMoney(dailyRate)}/ngày
+                  </span>
                   <strong>{formatBookingMoney(estimate.subtotal)}</strong>
                 </div>
                 <div className="vb-row">
-                  <span>Tiền cọc (tham khảo)</span>
+                  <span>Tiền cọc</span>
                   <strong>{formatDeposit(vehicle)}</strong>
                 </div>
                 <div className="vb-row vb-row--total">
-                  <span>Tạm tính</span>
+                  <span>Tạm tính tiền thuê</span>
                   <span>{formatBookingMoney(estimate.subtotal)}</span>
                 </div>
+                {paymentMode === 'momoWalletPrepay' || paymentMode === 'momoAtmPrepay' ? (
+                  <div className="vb-row">
+                    <span>Số tiền MoMo dự kiến</span>
+                    <strong>{formatBookingMoney(momoPrepayEstimate)}</strong>
+                  </div>
+                ) : null}
               </div>
             </section>
           </div>

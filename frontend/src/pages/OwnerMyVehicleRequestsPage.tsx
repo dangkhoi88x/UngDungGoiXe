@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   cancelOwnerVehicleRequest,
+  fetchMyOwnerRevenueDashboard,
   fetchMyOwnerVehicleRequests,
   resubmitOwnerVehicleRequest,
+  type OwnerRevenueDashboardDto,
   type OwnerVehicleRequestDto,
   type OwnerVehicleRequestStatus,
 } from '../api/ownerVehicleRequests'
@@ -39,6 +41,26 @@ function toDate(value?: string | null): string {
   const d = new Date(value)
   if (!Number.isFinite(d.getTime())) return value
   return d.toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+function moneyToNumber(value?: string | number | null): number {
+  if (value == null || value === '') return 0
+  const parsed = typeof value === 'number' ? value : Number(String(value).replace(/[^\d.-]/g, ''))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function formatMoney(value?: string | number | null): string {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(moneyToNumber(value))
+}
+
+function shortDate(value: string): string {
+  const d = new Date(value)
+  if (!Number.isFinite(d.getTime())) return value
+  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
 }
 
 function parseIsoDate(value?: string | null): Date | null {
@@ -77,8 +99,12 @@ export default function OwnerMyVehicleRequestsPage() {
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastState>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
+  const [activeTab, setActiveTab] = useState<'requests' | 'revenue'>('requests')
   const [statusFilter, setStatusFilter] = useState<OwnerVehicleRequestStatus | 'ALL'>('ALL')
   const [sortOrder, setSortOrder] = useState<'NEWEST' | 'OLDEST'>('NEWEST')
+  const [revenue, setRevenue] = useState<OwnerRevenueDashboardDto | null>(null)
+  const [revenueLoading, setRevenueLoading] = useState(false)
+  const [revenueError, setRevenueError] = useState<string | null>(null)
   /** approvedVehicleId → điểm TB (batch sau khi load items). */
   const [ratingByVehicleId, setRatingByVehicleId] = useState<
     Record<number, number | null>
@@ -113,6 +139,25 @@ export default function OwnerMyVehicleRequestsPage() {
   useEffect(() => {
     void load({ detectStatusChange: false })
   }, [load])
+
+  const loadRevenue = useCallback(async () => {
+    setRevenueLoading(true)
+    setRevenueError(null)
+    try {
+      setRevenue(await fetchMyOwnerRevenueDashboard())
+    } catch (e) {
+      setRevenueError(e instanceof Error ? e.message : 'Không tải được thống kê doanh thu.')
+      setRevenue(null)
+    } finally {
+      setRevenueLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'revenue' && !revenue && !revenueLoading) {
+      void loadRevenue()
+    }
+  }, [activeTab, loadRevenue, revenue, revenueLoading])
 
   useEffect(() => {
     const ids = [
@@ -176,6 +221,11 @@ export default function OwnerMyVehicleRequestsPage() {
     })
   }, [items, sortOrder, statusFilter])
 
+  const maxDailyRevenue = useMemo(() => {
+    const values = revenue?.revenueLast7Days?.map((d) => moneyToNumber(d.revenue)) ?? []
+    return Math.max(1, ...values)
+  }, [revenue])
+
   async function onResubmit(id: number) {
     setToast(null)
     setBusyId(id)
@@ -217,6 +267,13 @@ export default function OwnerMyVehicleRequestsPage() {
             </p>
           </div>
           <div className="owmr-head-actions">
+            <button
+              type="button"
+              className={`owreg__btn ${activeTab === 'revenue' ? 'owreg__btn--primary' : 'owreg__btn--ghost'}`}
+              onClick={() => setActiveTab((tab) => (tab === 'revenue' ? 'requests' : 'revenue'))}
+            >
+              {activeTab === 'revenue' ? 'Danh sách yêu cầu' : 'Thống kê'}
+            </button>
             <a className="owreg__btn owreg__btn--ghost" href="/owner/register-vehicle">
               + Đăng xe mới
             </a>
@@ -231,7 +288,120 @@ export default function OwnerMyVehicleRequestsPage() {
           </div>
         </div>
 
-        <div className="owmr-toolbar">
+        <div className="owmr-tabs" role="tablist" aria-label="Owner vehicle tabs">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'requests'}
+            className={`owmr-tab${activeTab === 'requests' ? ' is-active' : ''}`}
+            onClick={() => setActiveTab('requests')}
+          >
+            Yêu cầu xe
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'revenue'}
+            className={`owmr-tab${activeTab === 'revenue' ? ' is-active' : ''}`}
+            onClick={() => setActiveTab('revenue')}
+          >
+            Owner revenue dashboard
+          </button>
+        </div>
+
+        {activeTab === 'revenue' ? (
+          <section className="owmr-revenue" aria-label="Owner revenue dashboard">
+            <div className="owmr-revenue__head">
+              <div>
+                <h2>Thống kê doanh thu xe cho thuê</h2>
+                <p>Doanh thu net từ các payment đã thanh toán của những xe đã được duyệt thuộc tài khoản owner này.</p>
+              </div>
+              <button
+                type="button"
+                className="owreg__btn owreg__btn--ghost"
+                onClick={() => void loadRevenue()}
+                disabled={revenueLoading}
+              >
+                {revenueLoading ? 'Đang tải…' : 'Tải lại thống kê'}
+              </button>
+            </div>
+
+            {revenueError ? (
+              <p className="owreg__err" role="alert">
+                {revenueError}
+              </p>
+            ) : null}
+            {revenueLoading && !revenue ? <p className="owmr-muted">Đang tải thống kê doanh thu…</p> : null}
+
+            {revenue ? (
+              <>
+                <div className="owmr-revenue-cards">
+                  <article className="owmr-revenue-card">
+                    <span>Tổng doanh thu</span>
+                    <strong>{formatMoney(revenue.totalRevenue)}</strong>
+                  </article>
+                  <article className="owmr-revenue-card">
+                    <span>Tháng này</span>
+                    <strong>{formatMoney(revenue.revenueThisMonth)}</strong>
+                  </article>
+                  <article className="owmr-revenue-card">
+                    <span>Booking hoàn tất</span>
+                    <strong>{revenue.completedBookings ?? 0}</strong>
+                  </article>
+                  <article className="owmr-revenue-card">
+                    <span>Xe đang cho thuê</span>
+                    <strong>{revenue.activeVehicles ?? 0}</strong>
+                  </article>
+                </div>
+
+                <div className="owmr-revenue-grid">
+                  <section className="owmr-revenue-panel">
+                    <h3>Doanh thu 7 ngày gần đây</h3>
+                    <div className="owmr-revenue-bars">
+                      {(revenue.revenueLast7Days ?? []).map((day) => {
+                        const value = moneyToNumber(day.revenue)
+                        const height = Math.max(8, Math.round((value / maxDailyRevenue) * 100))
+                        return (
+                          <div className="owmr-revenue-bar" key={day.date}>
+                            <div className="owmr-revenue-bar__track">
+                              <span style={{ height: `${height}%` }} />
+                            </div>
+                            <strong>{shortDate(day.date)}</strong>
+                            <small>{formatMoney(value)}</small>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </section>
+
+                  <section className="owmr-revenue-panel">
+                    <h3>Doanh thu theo xe</h3>
+                    {(revenue.vehicles ?? []).length === 0 ? (
+                      <p className="owmr-muted">Chưa có doanh thu từ xe đã duyệt.</p>
+                    ) : (
+                      <div className="owmr-revenue-table">
+                        {(revenue.vehicles ?? []).map((row) => (
+                          <article className="owmr-revenue-row" key={row.vehicleId ?? row.licensePlate ?? row.vehicleName}>
+                            <div>
+                              <strong>{row.vehicleName || `Xe #${row.vehicleId ?? '—'}`}</strong>
+                              <span>{row.licensePlate || 'Chưa có biển số'}</span>
+                            </div>
+                            <div>
+                              <strong>{formatMoney(row.revenue)}</strong>
+                              <span>{row.completedBookings ?? 0} booking hoàn tất</span>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </>
+            ) : null}
+          </section>
+        ) : null}
+
+        {activeTab === 'requests' ? <div className="owmr-toolbar">
           <label className="owmr-filter">
             <span>Trạng thái</span>
             <select
@@ -259,9 +429,9 @@ export default function OwnerMyVehicleRequestsPage() {
           </label>
 
           <span className="owmr-count">Hiển thị {filteredAndSortedItems.length} yêu cầu</span>
-        </div>
+        </div> : null}
 
-        {toast ? (
+        {activeTab === 'requests' && toast ? (
           <p className="owmr-toast" role="status">
             {toast.message}{' '}
             {toast.href ? (
@@ -271,17 +441,17 @@ export default function OwnerMyVehicleRequestsPage() {
             ) : null}
           </p>
         ) : null}
-        {error ? (
+        {activeTab === 'requests' && error ? (
           <p className="owreg__err" role="alert">
             {error}
           </p>
         ) : null}
 
-        {loading && items.length === 0 ? (
+        {activeTab === 'requests' && loading && items.length === 0 ? (
           <p className="owmr-muted">Đang tải danh sách…</p>
         ) : null}
 
-        {!loading && filteredAndSortedItems.length === 0 ? (
+        {activeTab === 'requests' && !loading && filteredAndSortedItems.length === 0 ? (
           <div className="owmr-empty">
             <p>
               {items.length === 0
@@ -294,7 +464,7 @@ export default function OwnerMyVehicleRequestsPage() {
           </div>
         ) : null}
 
-        {filteredAndSortedItems.length > 0 ? (
+        {activeTab === 'requests' && filteredAndSortedItems.length > 0 ? (
           <section className="owmr-booking-list" aria-label="Owner vehicle requests">
             {filteredAndSortedItems.map((r) => {
               const dayMeta = cardDayMeta(r.createdAt)

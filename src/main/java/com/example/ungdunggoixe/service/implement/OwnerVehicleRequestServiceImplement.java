@@ -2,13 +2,16 @@ package com.example.ungdunggoixe.service.implement;
 
 import com.example.ungdunggoixe.service.*;
 
+import com.example.ungdunggoixe.common.BookingStatus;
 import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.common.OwnerVehicleRequestStatus;
 import com.example.ungdunggoixe.common.VehicleStatus;
+import com.example.ungdunggoixe.configuration.AppProperties;
 import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.dto.request.CreateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
+import com.example.ungdunggoixe.dto.response.OwnerRevenueDashboardResponse;
 import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestResponse;
 import com.example.ungdunggoixe.entity.OwnerVehicleRequest;
 import com.example.ungdunggoixe.entity.OwnerVehicleRequestHistoryItem;
@@ -20,11 +23,12 @@ import com.example.ungdunggoixe.mapper.OwnerVehicleRequestMapper;
 import com.example.ungdunggoixe.mapper.BookingMapper;
 import com.example.ungdunggoixe.repository.BookingRepository;
 import com.example.ungdunggoixe.repository.OwnerVehicleRequestRepository;
+import com.example.ungdunggoixe.repository.PaymentRepository;
 import com.example.ungdunggoixe.repository.StationRepository;
 import com.example.ungdunggoixe.repository.UserRepository;
 import com.example.ungdunggoixe.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.security.core.Authentication;
@@ -39,6 +43,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -46,18 +52,39 @@ import java.time.LocalDateTime;
 public class OwnerVehicleRequestServiceImplement implements OwnerVehicleRequestService {
     private final OwnerVehicleRequestRepository ownerVehicleRequestRepository;
     private final BookingRepository bookingRepository;
+    private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
     private final StationRepository stationRepository;
     private final VehicleRepository vehicleRepository;
     private final OwnerVehicleMediaService ownerVehicleMediaService;
     private final MailService mailService;
     private final CacheManager cacheManager;
-    @Value("${app.web-base-url:http://localhost:5173}")
-    private String webBaseUrl;
+    private final AppProperties appProperties;
     private static final int MAX_PHOTOS_PER_REQUEST = 20;
+    private static final int OWNER_REVENUE_DAYS = 7;
+    private static final int OWNER_TOP_VEHICLES_LIMIT = 10;
 
     private static String normalizePlate(String raw) {
         return raw == null ? "" : raw.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static BigDecimal zeroIfNull(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private OwnerRevenueDashboardResponse.VehicleRevenue toOwnerVehicleRevenue(Object[] row) {
+        Long vehicleId = row[0] instanceof Number n ? n.longValue() : null;
+        String vehicleName = row[1] == null ? null : String.valueOf(row[1]);
+        String licensePlate = row[2] == null ? null : String.valueOf(row[2]);
+        long completedBookings = row[3] instanceof Number n ? n.longValue() : 0L;
+        BigDecimal revenue = row[4] instanceof BigDecimal b ? b : BigDecimal.ZERO;
+        return OwnerRevenueDashboardResponse.VehicleRevenue.builder()
+                .vehicleId(vehicleId)
+                .vehicleName(vehicleName)
+                .licensePlate(licensePlate)
+                .completedBookings(completedBookings)
+                .revenue(revenue)
+                .build();
     }
 
     private void evictVehicleInfoCache(Long vehicleId) {
@@ -311,7 +338,8 @@ public class OwnerVehicleRequestServiceImplement implements OwnerVehicleRequestS
         String normalizedNote = adminNote == null ? "" : adminNote.trim();
         String note = normalizedNote.isEmpty() ? "Khong co ghi chu bo sung tu admin." : normalizedNote;
         String vehicleName = req.getName() == null || req.getName().isBlank() ? req.getLicensePlate() : req.getName().trim();
-        String detailUrl = webBaseUrl.replaceAll("/+$", "") + "/owner/vehicle-requests/" + req.getId();
+        String detailUrl = appProperties.getWebBaseUrl().trim().replaceAll("/+$", "")
+                + "/owner/vehicle-requests/" + req.getId();
         String statusLabel = ownerRequestStatusLabel(status);
         String statusTag = ownerRequestStatusTag(status);
 
@@ -378,6 +406,45 @@ public class OwnerVehicleRequestServiceImplement implements OwnerVehicleRequestS
                 .stream()
                 .map(OwnerVehicleRequestMapper.INSTANCE::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public OwnerRevenueDashboardResponse getMyRevenueDashboard() {
+        Long ownerId = currentUserId();
+        LocalDate today = LocalDate.now();
+        LocalDate firstDayOfMonth = today.withDayOfMonth(1);
+        LocalDateTime monthStart = firstDayOfMonth.atStartOfDay();
+        LocalDateTime nextMonthStart = firstDayOfMonth.plusMonths(1).atStartOfDay();
+
+        List<OwnerRevenueDashboardResponse.DailyRevenue> revenueLast7Days = new ArrayList<>(OWNER_REVENUE_DAYS);
+        for (int i = OWNER_REVENUE_DAYS - 1; i >= 0; i--) {
+            LocalDate day = today.minusDays(i);
+            LocalDateTime dayStart = day.atStartOfDay();
+            LocalDateTime dayEnd = day.plusDays(1).atStartOfDay();
+            BigDecimal revenue = paymentRepository.sumOwnerVehicleNetPaidAmountBetween(ownerId, dayStart, dayEnd);
+            revenueLast7Days.add(OwnerRevenueDashboardResponse.DailyRevenue.builder()
+                    .date(day.toString())
+                    .revenue(zeroIfNull(revenue))
+                    .build());
+        }
+
+        List<OwnerRevenueDashboardResponse.VehicleRevenue> vehicles = paymentRepository
+                .findOwnerVehicleRevenueRows(ownerId, PageRequest.of(0, OWNER_TOP_VEHICLES_LIMIT))
+                .stream()
+                .map(this::toOwnerVehicleRevenue)
+                .toList();
+
+        return OwnerRevenueDashboardResponse.builder()
+                .totalRevenue(zeroIfNull(paymentRepository.sumOwnerVehicleNetPaidAmount(ownerId)))
+                .revenueThisMonth(zeroIfNull(paymentRepository.sumOwnerVehicleNetPaidAmountBetween(ownerId, monthStart, nextMonthStart)))
+                .completedBookings(bookingRepository.countOwnerVehicleBookingsByStatus(ownerId, BookingStatus.COMPLETED))
+                .activeVehicles(ownerVehicleRequestRepository.countByOwnerIdAndStatusAndApprovedVehicleIsNotNull(
+                        ownerId,
+                        OwnerVehicleRequestStatus.APPROVED
+                ))
+                .revenueLast7Days(revenueLast7Days)
+                .vehicles(vehicles)
+                .build();
     }
 
     @Transactional(readOnly = true)

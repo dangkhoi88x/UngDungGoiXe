@@ -93,7 +93,7 @@ export default function UserAccountUpdatePage() {
       <header className="uacc__toolbar">
         <nav className="uacc__crumb" aria-label="Breadcrumb">
           <a className="uacc__crumb-link" href="/" title="Trang chủ">
-            VEX
+            Horizon
           </a>
           <span className="uacc__crumb-sep" aria-hidden>
             /

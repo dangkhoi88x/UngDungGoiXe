@@ -260,7 +260,7 @@ export default function AdminBlogPostsSection({ refreshKey }: Props) {
     try {
       const uploadedUrl = await uploadAdminBlogCover(file)
       setForm((f) => ({ ...f, coverImageUrl: uploadedUrl }))
-      setToast('Đã upload ảnh bìa lên Cloudinary.')
+      setToast('Đã upload ảnh bìa lên AWS S3.')
     } catch (err) {
       setToast(err instanceof Error ? err.message : 'Upload ảnh bìa thất bại.')
     } finally {
@@ -550,7 +550,7 @@ export default function AdminBlogPostsSection({ refreshKey }: Props) {
                         onChange={onCoverFileSelected}
                         disabled={saving || coverUploading}
                       />
-                      {coverUploading ? 'Đang upload…' : 'Chọn ảnh và upload Cloudinary'}
+                      {coverUploading ? 'Đang upload…' : 'Chọn ảnh và upload S3'}
                     </label>
                   </div>
                   {looksLikeImageUrl(form.coverImageUrl) ? (

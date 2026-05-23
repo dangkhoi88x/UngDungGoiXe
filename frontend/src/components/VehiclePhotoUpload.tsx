@@ -77,7 +77,7 @@ export default function VehiclePhotoUpload({
           }}
         />
         <label htmlFor={inputId} className="veh-photo-up__label">
-          {busy ? 'Đang tải lên…' : admin ? 'Chọn ảnh (Cloudinary)' : 'Thêm ảnh xe'}
+          {busy ? 'Đang tải lên…' : admin ? 'Chọn ảnh' : 'Thêm ảnh xe'}
         </label>
       </div>
       <p className="veh-photo-up__hint">

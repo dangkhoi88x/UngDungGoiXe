@@ -4,6 +4,7 @@ import com.example.ungdunggoixe.dto.request.CreateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.BookingResponse;
+import com.example.ungdunggoixe.dto.response.OwnerRevenueDashboardResponse;
 import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestResponse;
 import com.example.ungdunggoixe.service.I18nService;
 import com.example.ungdunggoixe.service.OwnerVehicleRequestService;
@@ -44,6 +45,19 @@ public class OwnerVehicleRequestController {
         return ApiResponse.<List<OwnerVehicleRequestResponse>>builder()
                 .status("success")
                 .message(i18nService.getMessage("response.owner_vehicle_request.my_list.success"))
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/revenue-dashboard")
+    @Operation(summary = "Thong ke doanh thu owner", description = "Thong ke doanh thu cac xe da duoc duyet cua owner hien tai.")
+    public ApiResponse<OwnerRevenueDashboardResponse> getMyRevenueDashboard() {
+        OwnerRevenueDashboardResponse result = ownerVehicleRequestService.getMyRevenueDashboard();
+        return ApiResponse.<OwnerRevenueDashboardResponse>builder()
+                .status("success")
+                .message("Lay thong ke doanh thu owner thanh cong")
                 .data(result)
                 .timestamp(Instant.now())
                 .build();

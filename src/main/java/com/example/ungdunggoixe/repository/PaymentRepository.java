@@ -58,6 +58,54 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     );
 
     @Query("""
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN p.paymentPurpose = com.example.ungdunggoixe.entity.Payment$PaymentPurpose.REFUND
+                        THEN -p.amount
+                    ELSE p.amount
+                END
+            ), 0)
+            FROM Payment p
+            JOIN p.booking b
+            JOIN b.vehicle v
+            WHERE p.status = com.example.ungdunggoixe.entity.Payment$PaymentStatus.PAID
+              AND EXISTS (
+                  SELECT 1
+                  FROM OwnerVehicleRequest ovr
+                  WHERE ovr.approvedVehicle = v
+                    AND ovr.owner.id = :ownerId
+              )
+            """)
+    BigDecimal sumOwnerVehicleNetPaidAmount(@Param("ownerId") Long ownerId);
+
+    @Query("""
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN p.paymentPurpose = com.example.ungdunggoixe.entity.Payment$PaymentPurpose.REFUND
+                        THEN -p.amount
+                    ELSE p.amount
+                END
+            ), 0)
+            FROM Payment p
+            JOIN p.booking b
+            JOIN b.vehicle v
+            WHERE p.status = com.example.ungdunggoixe.entity.Payment$PaymentStatus.PAID
+              AND COALESCE(p.paidAt, p.createdAt) >= :from
+              AND COALESCE(p.paidAt, p.createdAt) < :to
+              AND EXISTS (
+                  SELECT 1
+                  FROM OwnerVehicleRequest ovr
+                  WHERE ovr.approvedVehicle = v
+                    AND ovr.owner.id = :ownerId
+              )
+            """)
+    BigDecimal sumOwnerVehicleNetPaidAmountBetween(
+            @Param("ownerId") Long ownerId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+    @Query("""
             SELECT b.vehicle.id,
                    COALESCE(v.name, ''),
                    COALESCE(v.licensePlate, ''),
@@ -83,4 +131,44 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                    ), 0) DESC
             """)
     List<Object[]> findTopVehicleRevenueRows(org.springframework.data.domain.Pageable pageable);
+
+    @Query("""
+            SELECT b.vehicle.id,
+                   COALESCE(v.name, ''),
+                   COALESCE(v.licensePlate, ''),
+                   COUNT(DISTINCT CASE
+                       WHEN b.status = com.example.ungdunggoixe.common.BookingStatus.COMPLETED
+                           THEN b.id
+                       ELSE NULL
+                   END),
+                   COALESCE(SUM(
+                       CASE
+                           WHEN p.paymentPurpose = com.example.ungdunggoixe.entity.Payment$PaymentPurpose.REFUND
+                               THEN -p.amount
+                           ELSE p.amount
+                       END
+                   ), 0)
+            FROM Payment p
+            JOIN p.booking b
+            JOIN b.vehicle v
+            WHERE p.status = com.example.ungdunggoixe.entity.Payment$PaymentStatus.PAID
+              AND EXISTS (
+                  SELECT 1
+                  FROM OwnerVehicleRequest ovr
+                  WHERE ovr.approvedVehicle = v
+                    AND ovr.owner.id = :ownerId
+              )
+            GROUP BY b.vehicle.id, v.name, v.licensePlate
+            ORDER BY COALESCE(SUM(
+                       CASE
+                           WHEN p.paymentPurpose = com.example.ungdunggoixe.entity.Payment$PaymentPurpose.REFUND
+                               THEN -p.amount
+                           ELSE p.amount
+                       END
+                   ), 0) DESC
+            """)
+    List<Object[]> findOwnerVehicleRevenueRows(
+            @Param("ownerId") Long ownerId,
+            org.springframework.data.domain.Pageable pageable
+    );
 }

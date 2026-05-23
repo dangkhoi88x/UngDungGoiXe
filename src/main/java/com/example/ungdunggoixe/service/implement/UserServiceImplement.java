@@ -6,6 +6,7 @@ import com.example.ungdunggoixe.cache.UserCacheExpressions;
 import com.example.ungdunggoixe.exception.ErrorCode;
 import com.example.ungdunggoixe.common.LicenseVerificationStatus;
 import com.example.ungdunggoixe.common.RoleName;
+import com.example.ungdunggoixe.configuration.AppProperties;
 import com.example.ungdunggoixe.configuration.RedisConfiguration;
 import com.example.ungdunggoixe.constant.FileUploadConstants;
 
@@ -23,7 +24,6 @@ import com.example.ungdunggoixe.mapper.UserMapper;
 import com.example.ungdunggoixe.repository.UserRepository;
 import com.example.ungdunggoixe.repository.specification.UserSpecs;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -60,9 +60,7 @@ public class UserServiceImplement implements UserService {
     private final MediaService mediaService;
     private final MailService mailService;
     private final I18nService i18nService;
-
-    @Value("${app.web-base-url:http://localhost:5173}")
-    private String webBaseUrl;
+    private final AppProperties appProperties;
 
     private static String mapUserSortProperty(String sortBy) {
         if (sortBy == null || sortBy.isBlank() || !USER_SORT_FIELDS.contains(sortBy)) {
@@ -107,9 +105,7 @@ public class UserServiceImplement implements UserService {
 }
 
     private String buildWebUrl(String path) {
-        String base = webBaseUrl == null || webBaseUrl.isBlank()
-                ? "http://localhost:5173"
-                : webBaseUrl.trim();
+        String base = appProperties.getWebBaseUrl().trim();
         String normalizedBase = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
         String normalizedPath = path.startsWith("/") ? path : "/" + path;
         return normalizedBase + normalizedPath;

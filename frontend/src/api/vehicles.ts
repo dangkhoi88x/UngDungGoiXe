@@ -29,7 +29,7 @@ export function validateVehiclePhotoFileClient(file: File): string | null {
   return null
 }
 
-/** Upload ảnh xe (Cloudinary); yêu cầu JWT — admin hoặc chủ xe đã duyệt. */
+/** Upload ảnh xe lên AWS S3; yêu cầu JWT — admin hoặc chủ xe đã duyệt. */
 export async function uploadVehiclePhoto(
   vehicleId: number,
   file: File,

@@ -12,6 +12,7 @@ import java.util.Optional;
 @Repository
 public interface OwnerVehicleRequestRepository extends JpaRepository<OwnerVehicleRequest, Long> {
     List<OwnerVehicleRequest> findByOwnerIdOrderByCreatedAtDesc(Long ownerId);
+    long countByOwnerIdAndStatusAndApprovedVehicleIsNotNull(Long ownerId, OwnerVehicleRequestStatus status);
     List<OwnerVehicleRequest> findByStatusOrderByCreatedAtAsc(OwnerVehicleRequestStatus status);
     List<OwnerVehicleRequest> findAllByOrderByCreatedAtDesc();
     boolean existsByLicensePlateAndStatusIn(String licensePlate, List<OwnerVehicleRequestStatus> statuses);

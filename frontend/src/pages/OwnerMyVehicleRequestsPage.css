@@ -69,6 +69,178 @@
   color: rgba(232, 236, 241, 0.68);
 }
 
+.owmr-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin: 14px 0 12px;
+  padding: 4px;
+  border: 1px solid #d9e1ea;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.owmr-tab {
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #475467;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+.owmr-tab.is-active {
+  background: #111827;
+  color: #fff;
+}
+
+.owmr-revenue {
+  display: grid;
+  gap: 14px;
+}
+
+.owmr-revenue__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.owmr-revenue__head h2,
+.owmr-revenue-panel h3 {
+  margin: 0;
+  color: #111827;
+}
+
+.owmr-revenue__head p {
+  margin: 6px 0 0;
+  color: #667085;
+  max-width: 62ch;
+}
+
+.owmr-revenue-cards {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.owmr-revenue-card,
+.owmr-revenue-panel {
+  border: 1px solid #dbe3ed;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.owmr-revenue-card {
+  padding: 14px;
+}
+
+.owmr-revenue-card span,
+.owmr-revenue-row span {
+  color: #667085;
+  font-size: 13px;
+}
+
+.owmr-revenue-card strong {
+  display: block;
+  margin-top: 6px;
+  color: #111827;
+  font-size: 1.35rem;
+}
+
+.owmr-revenue-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 12px;
+}
+
+.owmr-revenue-panel {
+  padding: 14px;
+}
+
+.owmr-revenue-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+  margin-top: 16px;
+}
+
+.owmr-revenue-bar {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.owmr-revenue-bar__track {
+  position: relative;
+  width: 100%;
+  max-width: 34px;
+  height: 132px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+
+.owmr-revenue-bar__track span {
+  position: absolute;
+  inset: auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, #2f80ed, #0f766e);
+}
+
+.owmr-revenue-bar strong,
+.owmr-revenue-bar small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owmr-revenue-bar strong {
+  color: #344054;
+  font-size: 12px;
+}
+
+.owmr-revenue-bar small {
+  color: #667085;
+  font-size: 11px;
+}
+
+.owmr-revenue-table {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.owmr-revenue-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #edf1f5;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+
+.owmr-revenue-row > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.owmr-revenue-row > div:last-child {
+  text-align: right;
+}
+
+.owmr-revenue-row strong {
+  color: #111827;
+}
+
 .owmr-toast {
   margin: 0 0 16px;
   padding: 12px 14px;
@@ -376,6 +548,19 @@
   .owmr-booking-actions {
     grid-auto-flow: column;
     justify-content: flex-start;
+  }
+
+  .owmr-revenue-cards,
+  .owmr-revenue-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .owmr-revenue-row {
+    grid-template-columns: 1fr;
+  }
+
+  .owmr-revenue-row > div:last-child {
+    text-align: left;
   }
 }
 
