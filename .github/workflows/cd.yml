@@ -11,6 +11,7 @@ on:
       - main
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/backend-rent-car
 
 jobs:
