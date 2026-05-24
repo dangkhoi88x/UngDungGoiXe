@@ -78,11 +78,11 @@ export function validateOwnerVehicleFormStrings(
   const cap = parseOptionalInt(d.capacity)
   if (d.capacity.trim() && cap == null) return 'Số chỗ phải là số nguyên dương hoặc để trống.'
   const h = parseRequiredMoney(d.hourlyRate, 'Giá theo giờ')
-  if (!h.ok) return h.error
+  if (h.ok === false) return h.error
   const dly = parseRequiredMoney(d.dailyRate, 'Giá theo ngày')
-  if (!dly.ok) return dly.error
+  if (dly.ok === false) return dly.error
   const dep = parseRequiredMoney(d.depositAmount, 'Tiền cọc')
-  if (!dep.ok) return dep.error
+  if (dep.ok === false) return dep.error
   if (!d.registrationDocUrl.trim()) return 'Nhập URL giấy đăng ký / đăng kiểm.'
   if (!d.insuranceDocUrl.trim()) return 'Nhập URL giấy bảo hiểm.'
   if (photoUrls.length < 3) return 'Cần ít nhất 3 URL ảnh xe (mỗi dòng một URL).'

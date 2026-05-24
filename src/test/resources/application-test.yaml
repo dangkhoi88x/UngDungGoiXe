@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: UngDungGoiXe
+
+  datasource:
+    url: jdbc:h2:mem:ungdunggoixe_test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    defer-datasource-initialization: false
+  sql:
+    init:
+      mode: never
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+
+  mail:
+    host: localhost
+    port: 1025
+    username: test@example.com
+    password: test
+
+jwt:
+  secret-key: test-secret-test-secret-test-secret-test-secret
+  audience: ungdunggoixe-client
+
+momo:
+  partner-code: MOMO
+  partner-name: UngDungGoiXe
+  store-id: UngDungGoiXeStore
+  return-url: http://localhost:5173/payment/momo-return
+  endpoint: https://test-payment.momo.vn/v2/gateway/api
+  ipn-url: http://localhost:8080/momo/ipn-handler
+  access-key: test
+  secret-key: test
+  request-type: captureWallet
+
+oauth2:
+  google:
+    client-id:
+    client-secret:
+
+app:
+  web-base-url: http://localhost:5173
+  booking:
+    momo-prepaid-expiration: 100m
+    momo-prepaid-expiry-scan-interval: PT5M
+    momo-prepaid-expiry-enabled: false
+  owner-vehicle-upload:
+    max-file-size-bytes: 6291456
+
+aws:
+  credentials:
+    access-key: test
+    secret-key: test
+  region:
+    static: ap-southeast-1
+  s3:
+    bucket: test-bucket
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

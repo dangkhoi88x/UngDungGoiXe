@@ -256,35 +256,53 @@ docker run -p 8080:8080 --env-file .env ungdunggoixe:latest
 
 ## CI/CD
 
-Workflow: `.github/workflows/ci.yml`
+Workflow:
 
-Pipeline hiện tại:
+```text
+.github/workflows/ci.yml
+.github/workflows/cd.yml
+```
+
+CI hiện tại:
 
 - Checkout code.
 - Setup Java 21.
-- Build backend bằng Maven.
-- Build Docker image từ `Dockerfile`.
-- Push image lên Docker Hub với tag `ungdunggoixe:latest`.
+- Chạy backend test bằng Maven với profile `test`.
+- Build frontend bằng `npm ci` và `npm run build`.
+
+CD hiện tại:
+
+- Chỉ chạy sau khi workflow `CI` pass trên push vào `master` hoặc `main`.
+- Build Docker image `linux/amd64` từ `Dockerfile`.
+- Push image lên Docker Hub với tag `backend-rent-car:latest` và tag theo commit SHA.
+- SSH vào EC2, pull image mới và restart service `backend-rent` bằng Docker Compose.
 
 GitHub Secrets cần có:
 
 ```text
-JWT_SECRET
-JWT_AUDIENCE
-EMAIL_USERNAME
-EMAIL_PASSWORD
 DOCKER_USERNAME
 DOCKER_PASSWORD
+EC2_HOST
+EC2_USER
+EC2_SSH_KEY
+EC2_PORT
+EC2_DEPLOY_PATH
+EC2_COMPOSE_FILE
 ```
 
-Nếu pipeline hoặc môi trường deploy cần upload S3:
+Trong đó:
 
 ```text
-AWS_ACCESS_KEY
-AWS_SECRET_KEY
-REGION
-BUCKET_NAME
+EC2_HOST        = IP/domain EC2, ví dụ 13.228.161.189
+EC2_USER        = user SSH, thường là ubuntu
+EC2_SSH_KEY     = private key PEM để SSH vào EC2
+EC2_PORT        = SSH port, thường là 22
+EC2_DEPLOY_PATH = thư mục chứa docker-compose.yml trên EC2, ví dụ /home/ubuntu
+EC2_COMPOSE_FILE = tên file compose nếu không phải docker-compose.yml, ví dụ compose.yml
 ```
+
+Lưu ý: file `docker-compose.yml` trên EC2 cần có service tên `backend-rent`.
+Pipeline sẽ tự đổi image backend trong compose sang `backend-rent-car:latest` trước khi pull/restart.
 
 ## Ghi Chú Khi Tách Repo Frontend/Backend
 

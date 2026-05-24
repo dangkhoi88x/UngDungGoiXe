@@ -273,7 +273,7 @@ export default function AdminStationsSection({ refreshKey = 0 }: Props) {
     const photo = form.photo.trim() || null
 
     const coords = parseStationCoords(form.latitude, form.longitude)
-    if (!coords.ok) {
+    if (coords.ok === false) {
       setToast(coords.message)
       return
     }
