@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.controller;
 
+import com.example.ungdunggoixe.constant.SecurityConstants;
 import com.example.ungdunggoixe.dto.response.AdminOverviewStatsResponse;
 import com.example.ungdunggoixe.dto.response.AdminDashboardChartsResponse;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
@@ -18,7 +19,7 @@ import java.time.Instant;
 public class AdminDashboardController {
     private final AdminDashboardService adminDashboardService;
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_VIEW_DASHBOARD)
     @GetMapping("/overview-stats")
     public ApiResponse<AdminOverviewStatsResponse> getOverviewStats() {
         AdminOverviewStatsResponse stats = adminDashboardService.getOverviewStats();
@@ -30,7 +31,7 @@ public class AdminDashboardController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_VIEW_DASHBOARD)
     @GetMapping("/charts")
     public ApiResponse<AdminDashboardChartsResponse> getCharts() {
         AdminDashboardChartsResponse charts = adminDashboardService.getCharts();

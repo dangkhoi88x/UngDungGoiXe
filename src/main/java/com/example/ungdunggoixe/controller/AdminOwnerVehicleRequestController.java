@@ -1,6 +1,7 @@
 package com.example.ungdunggoixe.controller;
 
 import com.example.ungdunggoixe.common.OwnerVehicleRequestStatus;
+import com.example.ungdunggoixe.constant.SecurityConstants;
 import com.example.ungdunggoixe.dto.request.AdminReviewOwnerVehicleRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.OwnerVehicleRequestResponse;
@@ -21,7 +22,7 @@ public class AdminOwnerVehicleRequestController {
     private final OwnerVehicleRequestService ownerVehicleRequestService;
     private final I18nService i18nService;
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_OWNER_REQUESTS)
     @GetMapping
     @Operation(summary = "Admin lay danh sach yeu cau chu xe", description = "Lay danh sach yeu cau chu xe theo trang thai.")
     public ApiResponse<List<OwnerVehicleRequestResponse>> getAdminRequests(
@@ -36,7 +37,7 @@ public class AdminOwnerVehicleRequestController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_OWNER_REQUESTS)
     @GetMapping("/{id}")
     @Operation(summary = "Admin lay chi tiet yeu cau", description = "Lay chi tiet yeu cau chu xe theo id.")
     public ApiResponse<OwnerVehicleRequestResponse> getAdminRequestById(@PathVariable Long id) {
@@ -49,7 +50,7 @@ public class AdminOwnerVehicleRequestController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_OWNER_REQUESTS)
     @PostMapping("/{id}/approve")
     @Operation(summary = "Admin phe duyet yeu cau", description = "Phe duyet yeu cau chu xe.")
     public ApiResponse<OwnerVehicleRequestResponse> approve(
@@ -66,7 +67,7 @@ public class AdminOwnerVehicleRequestController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_OWNER_REQUESTS)
     @PostMapping("/{id}/reject")
     @Operation(summary = "Admin tu choi yeu cau", description = "Tu choi yeu cau chu xe.")
     public ApiResponse<OwnerVehicleRequestResponse> reject(
@@ -83,7 +84,7 @@ public class AdminOwnerVehicleRequestController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_OWNER_REQUESTS)
     @PostMapping("/{id}/need-more-info")
     @Operation(summary = "Admin yeu cau bo sung", description = "Danh dau yeu cau chu xe can bo sung thong tin.")
     public ApiResponse<OwnerVehicleRequestResponse> needMoreInfo(

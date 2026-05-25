@@ -12,7 +12,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -24,15 +26,24 @@ import java.util.List;
 public class User extends AuditableEntity implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-                List<Role> listRoles = this.userRoles.stream()
-                        .map(UserRole::getRole)
-                        .toList();
-                List<String> rolesName= listRoles.stream()
-                        .map(Role::getName)
-                        .toList();
-                return rolesName.stream()
-                        .map(roleName -> new SimpleGrantedAuthority("ROLE_" +roleName))
-                        .toList();
+        Set<String> authorities = new LinkedHashSet<>();
+        this.userRoles.stream()
+                .map(UserRole::getRole)
+                .filter(role -> role != null && role.getName() != null)
+                .forEach(role -> {
+                    authorities.add("ROLE_" + role.getName());
+                    if (role.getRolePermissions() == null) {
+                        return;
+                    }
+                    role.getRolePermissions().stream()
+                            .map(RolePermission::getPermission)
+                            .filter(permission -> permission != null && permission.getName() != null)
+                            .map(Permission::getName)
+                            .forEach(authorities::add);
+                });
+        return authorities.stream()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
     }
 
     @Override

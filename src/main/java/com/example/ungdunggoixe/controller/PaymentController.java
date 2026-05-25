@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.controller;
 
+import com.example.ungdunggoixe.constant.SecurityConstants;
 import com.example.ungdunggoixe.dto.request.CreatePaymentRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.PaymentResponse;
@@ -69,7 +70,7 @@ public class PaymentController {
     }
 
     @GetMapping("/pending-adjustments")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_PAYMENTS)
     @Operation(summary = "Danh sach dieu chinh cho xu ly", description = "Lay danh sach payment PENDING theo purpose TOPUP hoac REFUND de admin xu ly nhanh.")
     public ApiResponse<List<PaymentResponse>> getPendingAdjustments(@RequestParam Payment.PaymentPurpose purpose) {
         List<PaymentResponse> result = paymentService.getPendingAdjustments(purpose);
@@ -86,7 +87,7 @@ public class PaymentController {
      * PATCH /payments/{id}/confirm
      */
     @PatchMapping("/{id}/confirm")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_PAYMENTS)
     @Operation(summary = "Xac nhan thanh toan", description = "Danh dau thanh toan thanh cong.")
     public ApiResponse<PaymentResponse> confirm(@PathVariable Long id) {
         PaymentResponse result = paymentService.confirmPayment(id);
@@ -99,7 +100,7 @@ public class PaymentController {
     }
 
     @PatchMapping("/{id}/confirm-topup")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_PAYMENTS)
     @Operation(summary = "Xac nhan thu them TOPUP", description = "Xac nhan da thu them cho payment purpose = TOPUP.")
     public ApiResponse<PaymentResponse> confirmTopup(@PathVariable Long id) {
         PaymentResponse result = paymentService.confirmTopupPayment(id);
@@ -112,7 +113,7 @@ public class PaymentController {
     }
 
     @PatchMapping("/{id}/confirm-refund")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_PAYMENTS)
     @Operation(summary = "Xac nhan hoan tien REFUND", description = "Xac nhan da hoan tien cho payment purpose = REFUND.")
     public ApiResponse<PaymentResponse> confirmRefund(@PathVariable Long id) {
         PaymentResponse result = paymentService.confirmRefundPayment(id);
@@ -129,7 +130,7 @@ public class PaymentController {
      * PATCH /payments/{id}/fail
      */
     @PatchMapping("/{id}/fail")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_PAYMENTS)
     @Operation(summary = "Danh dau thanh toan that bai", description = "Cap nhat trang thai thanh toan ve FAILED.")
     public ApiResponse<PaymentResponse> fail(@PathVariable Long id) {
         PaymentResponse result = paymentService.failPayment(id);

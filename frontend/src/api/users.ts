@@ -133,7 +133,7 @@ export async function fetchUserById(id: number): Promise<UserProfileDto> {
 export async function createUser(
   payload: UserCreatePayload,
 ): Promise<UserDto> {
-  const res = await fetch(`${API_BASE}/users`, {
+  const res = await authFetch(`${API_BASE}/users/admin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

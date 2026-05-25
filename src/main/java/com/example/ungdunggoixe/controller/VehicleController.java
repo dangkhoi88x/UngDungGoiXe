@@ -2,6 +2,7 @@ package com.example.ungdunggoixe.controller;
 
 import com.example.ungdunggoixe.common.FuelType;
 import com.example.ungdunggoixe.common.VehicleStatus;
+import com.example.ungdunggoixe.constant.SecurityConstants;
 import com.example.ungdunggoixe.dto.request.CreateVehicleRequest;
 import com.example.ungdunggoixe.dto.request.UpdateVehicleRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
@@ -46,7 +47,7 @@ public class VehicleController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_VEHICLES)
     @GetMapping("/paged")
     @Operation(summary = "Lay danh sach xe theo trang", description = "Loc va phan trang danh sach xe cho admin.")
     public ApiResponse<PageResponse<CreateVehicleResponse>> getVehiclesPaged(

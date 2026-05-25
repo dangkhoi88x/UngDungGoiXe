@@ -2,6 +2,7 @@ package com.example.ungdunggoixe.controller;
 
 
 import com.example.ungdunggoixe.common.LicenseVerificationStatus;
+import com.example.ungdunggoixe.constant.SecurityConstants;
 import com.example.ungdunggoixe.dto.request.CreateUserRequest;
 
 import com.example.ungdunggoixe.dto.request.UpdateMyProfileRequest;
@@ -41,6 +42,19 @@ public class UserController {
     @PostMapping
     @Operation(summary = "Tao user", description = "Dang ky tai khoan nguoi dung moi.")
     public ApiResponse<CreateUserResponse> createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
+        CreateUserResponse result = userService.createUser(createUserRequest);
+        return ApiResponse.<CreateUserResponse>builder()
+                .status("success")
+                .message(i18nService.getMessage("response.user.create.success"))
+                .data(result)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_USERS)
+    @PostMapping("/admin")
+    @Operation(summary = "Admin tao user", description = "Chi SUPER_ADMIN hoac tai khoan co USER_MANAGE moi duoc tao user tu man hinh quan tri.")
+    public ApiResponse<CreateUserResponse> createUserByAdmin(@Valid @RequestBody CreateUserRequest createUserRequest) {
         CreateUserResponse result = userService.createUser(createUserRequest);
         return ApiResponse.<CreateUserResponse>builder()
                 .status("success")
@@ -99,7 +113,7 @@ public class UserController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_USERS)
     @GetMapping("/paged")
     public ApiResponse<PageResponse<UserResponse>> getUsersPage(
             @RequestParam(defaultValue = "0") int page,
@@ -124,7 +138,7 @@ public class UserController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_USERS)
     @GetMapping("/{id}")
     public ApiResponse<UserResponse> getUserById(@PathVariable Long id) {
         UserResponse result = userService.getUserbyID(id);
@@ -136,7 +150,7 @@ public class UserController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_USERS)
     @GetMapping
     public ApiResponse<List<UserResponse>> getAllUsers() {
         List<UserResponse> result = userService.getAllUser();
@@ -148,7 +162,7 @@ public class UserController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_USERS)
     @PutMapping("/{id}")
     public ApiResponse<UserResponse> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         UserResponse result = userService.updateUser(id, request);
@@ -160,7 +174,7 @@ public class UserController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_USERS)
     @DeleteMapping("/{id}")
     public String deleteUserById(@PathVariable Long id) {
         return userService.deleteUserbyID(id);

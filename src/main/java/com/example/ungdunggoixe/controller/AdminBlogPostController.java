@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.controller;
 
+import com.example.ungdunggoixe.constant.SecurityConstants;
 import com.example.ungdunggoixe.common.BlogPostStatus;
 import com.example.ungdunggoixe.dto.request.AdminBlogPostUpsertRequest;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
@@ -31,7 +32,7 @@ public class AdminBlogPostController {
     private final I18nService i18nService;
     private final MediaService mediaService;
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_BLOGS)
     @GetMapping
     public ApiResponse<PagedBlogPostAdminResponse> list(
             @RequestParam(required = false) BlogPostStatus status,
@@ -51,7 +52,7 @@ public class AdminBlogPostController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_BLOGS)
     @GetMapping("/{id}")
     public ApiResponse<BlogPostAdminResponse> getById(@PathVariable Long id) {
         BlogPostAdminResponse data = blogPostService.getAdminById(id);
@@ -63,7 +64,7 @@ public class AdminBlogPostController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_BLOGS)
     @PostMapping
     public ApiResponse<BlogPostAdminResponse> create(
             @RequestBody AdminBlogPostUpsertRequest request,
@@ -79,7 +80,7 @@ public class AdminBlogPostController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_BLOGS)
     @PutMapping("/{id}")
     public ApiResponse<BlogPostAdminResponse> update(
             @PathVariable Long id,
@@ -94,7 +95,7 @@ public class AdminBlogPostController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_BLOGS)
     @PostMapping("/{id}/publish")
     public ApiResponse<BlogPostAdminResponse> publish(@PathVariable Long id) {
         BlogPostAdminResponse data = blogPostService.publish(id);
@@ -106,7 +107,7 @@ public class AdminBlogPostController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_BLOGS)
     @PostMapping("/cover-image")
     public ApiResponse<Map<String, String>> uploadCoverImage(
             @RequestParam("file") MultipartFile file,
@@ -134,7 +135,7 @@ public class AdminBlogPostController {
                 .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_BLOGS)
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         blogPostService.delete(id);

@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.controller;
 
+import com.example.ungdunggoixe.constant.SecurityConstants;
 import com.example.ungdunggoixe.dto.response.ApiResponse;
 import com.example.ungdunggoixe.dto.response.AdminBookingFeedbackRowResponse;
 import com.example.ungdunggoixe.dto.response.PageResponse;
@@ -22,7 +23,7 @@ public class AdminBookingFeedbackController {
 
     private final AdminBookingFeedbackService adminBookingFeedbackService;
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_BOOKINGS)
     @GetMapping
     public ApiResponse<PageResponse<AdminBookingFeedbackRowResponse>> list(
             @RequestParam(defaultValue = "0") int page,

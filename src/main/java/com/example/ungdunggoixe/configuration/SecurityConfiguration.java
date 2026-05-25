@@ -41,7 +41,6 @@ public class SecurityConfiguration {
             "/auth/**",
             "/stations/**",
             "/vehicles/**",
-            "/users/**",
             "/bookings/vehicle-availability",
             "/blog/posts",
             "/blog/posts/**",

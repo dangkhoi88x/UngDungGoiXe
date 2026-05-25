@@ -1,5 +1,6 @@
 package com.example.ungdunggoixe.controller;
 
+import com.example.ungdunggoixe.constant.SecurityConstants;
 import com.example.ungdunggoixe.dto.request.CreateStationRequest;
 import com.example.ungdunggoixe.dto.request.UpdateStationRequest;
 import com.example.ungdunggoixe.common.StationStatus;
@@ -37,7 +38,7 @@ public class StationController {
                     .build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMIN_', 'ROLE_SUPER_ADMIN', 'ROLE_SUPER_ADMIN_')")
+    @PreAuthorize(SecurityConstants.CAN_MANAGE_STATIONS)
     @GetMapping("/paged")
     @Operation(summary = "Lay danh sach tram theo trang", description = "Loc va phan trang danh sach tram cho admin.")
     public ApiResponse<PageResponse<StationResponse>> getStationsPaged(

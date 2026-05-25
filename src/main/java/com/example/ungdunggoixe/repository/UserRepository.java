@@ -20,22 +20,22 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @Query("SELECT COUNT(u) FROM User u WHERE u.email = :email AND u.id <> :id")
     long countByEmailAndIdNot(@Param("email") String email, @Param("id") Long id);
 
-    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
+    @EntityGraph(attributePaths = {"userRoles", "userRoles.role", "userRoles.role.rolePermissions", "userRoles.role.rolePermissions.permission"})
     Optional<User> findByEmail(String email);
 
-    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
+    @EntityGraph(attributePaths = {"userRoles", "userRoles.role", "userRoles.role.rolePermissions", "userRoles.role.rolePermissions.permission"})
     @Query("SELECT u FROM User u WHERE u.id = :id")
     Optional<User> findByIdWithUserRoles(@Param("id") Long id);
 
-    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
+    @EntityGraph(attributePaths = {"userRoles", "userRoles.role", "userRoles.role.rolePermissions", "userRoles.role.rolePermissions.permission"})
     @Override
     Page<User> findAll(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
+    @EntityGraph(attributePaths = {"userRoles", "userRoles.role", "userRoles.role.rolePermissions", "userRoles.role.rolePermissions.permission"})
     @Override
     Page<User> findAll(Specification<User> spec, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
+    @EntityGraph(attributePaths = {"userRoles", "userRoles.role", "userRoles.role.rolePermissions", "userRoles.role.rolePermissions.permission"})
     @Override
     java.util.List<User> findAll(Specification<User> spec);
 
