@@ -65,8 +65,6 @@ public class UserController {
     }
 
 
-    
-
     /** Không dùng <code>/page</code> — Spring có thể khớp nhầm với <code>/{id}</code> (id = "page"). */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/my-info")

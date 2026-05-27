@@ -46,7 +46,7 @@ function sxBlogCardExcerpt(p: BlogPostPublicDto): string {
 
 function VexHeroHeading() {
   const line1 = 'Thuê xe phù hợp'
-  const line2 = 'cho mọi chuyến đi'
+  const line2 = 'cho mọi chuyến  đi'
   const [animate, setAnimate] = useState(false)
 
   useEffect(() => {

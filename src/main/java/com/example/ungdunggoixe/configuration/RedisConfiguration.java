@@ -37,33 +37,26 @@ public class RedisConfiguration  {
             redisStandaloneConfiguration.setPort(port);
             redisStandaloneConfiguration.setPassword(password);
             return new LettuceConnectionFactory(redisStandaloneConfiguration);
-
-
-
     }
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
         GenericJacksonJsonRedisSerializer jacksonJsonRedisSerializer = GenericJacksonJsonRedisSerializer.builder()
                 .enableDefaultTyping(RedisCachePolymorphicValidatorFactory.create())
                 .build();
-
         RedisCacheConfiguration redisCacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofDays(1))
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jacksonJsonRedisSerializer))
                 .disableCachingNullValues();
-
         Map<String, RedisCacheConfiguration> initialCaches = new HashMap<>();
         initialCaches.put(USER_INFO_CACHE, redisCacheConfiguration.entryTtl(Duration.ofMinutes(50)));
         initialCaches.put(STATION_INFO_CACHE, redisCacheConfiguration.entryTtl(Duration.ofDays(2)));
         initialCaches.put(VEHICLE_INFO_CACHE, redisCacheConfiguration.entryTtl(Duration.ofDays(2)));
         initialCaches.put(BLOG_INFO_CACHE, redisCacheConfiguration.entryTtl(Duration.ofDays(2)));
 
-
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(redisCacheConfiguration)
                 .withInitialCacheConfigurations(initialCaches)
-
                 .build();
 
     }

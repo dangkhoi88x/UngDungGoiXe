@@ -65,7 +65,7 @@ public class SecurityConfiguration {
     private String allowedOrigins;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
+    public SecurityFilterChain filterChain(HttpSecurity http,JwtAuthenticationConverter jwtAuthenticationConverter)
             throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -107,7 +107,6 @@ public class SecurityConfiguration {
     public AuthenticationManager authenticationManager() {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(userDetailsService);
         authenticationProvider.setPasswordEncoder(passwordEncoder());
-
         return new ProviderManager(authenticationProvider);
     }
     @Bean
@@ -115,7 +114,6 @@ public class SecurityConfiguration {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
         grantedAuthoritiesConverter.setAuthoritiesClaimName(JwtConstants.CLAIM_ROLES);
         grantedAuthoritiesConverter.setAuthorityPrefix("");
-
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
         jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
         return jwtAuthenticationConverter;

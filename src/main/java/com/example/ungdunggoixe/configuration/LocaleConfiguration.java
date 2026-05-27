@@ -15,7 +15,7 @@ public class LocaleConfiguration {
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver localeResolver = new AcceptHeaderLocaleResolver();
         localeResolver.setSupportedLocales(List.of(Locale.ENGLISH, Locale.forLanguageTag("vi"), Locale.FRENCH));
-        localeResolver.setDefaultLocale(Locale.ENGLISH);
+        localeResolver.setDefaultLocale(Locale.forLanguageTag("vi"));
         return localeResolver;
     }
 }
